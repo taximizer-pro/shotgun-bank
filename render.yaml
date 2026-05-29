@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: shotgun-bank
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app --workers=2 --timeout=120
+    envVars:
+      - key: STRIPE_SECRET_KEY
+        sync: false
+      - key: STRIPE_PUBLISHABLE_KEY
+        sync: false
+      - key: STRIPE_WEBHOOK_SECRET
+        sync: false
+      - key: BASE44_API_KEY
+        sync: false
+      - key: FLASK_SECRET
+        sync: false
