@@ -1,0 +1,775 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Shotgun Bank</title>
+<script src="https://js.stripe.com/v3/"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+:root{--bg:#07070f;--surface:#0f0f1a;--card:#161622;--border:rgba(255,255,255,.07);--red:#e94560;--red2:#c0392b;--gold:#f59e0b;--green:#22c55e;--purple:#7c3aed;--muted:#94a3b8;--white:#f1f5f9;}
+body{background:var(--bg);color:var(--white);font-family:'Inter',sans-serif;min-height:100vh;overflow-x:hidden;}
+input,button,select{font-family:inherit;}
+.screen{display:none;min-height:100vh;flex-direction:column;}
+.screen.active{display:flex;}
+/* Splash */
+#s-splash{align-items:center;justify-content:center;text-align:center;padding:40px 24px;background:radial-gradient(ellipse at 50% 0%,rgba(233,69,96,.18) 0%,transparent 65%);}
+.splash-logo{width:96px;height:96px;object-fit:contain;margin-bottom:20px;filter:drop-shadow(0 0 32px rgba(233,69,96,.55));}
+.splash-title{font-size:38px;font-weight:900;letter-spacing:-1.5px;margin-bottom:8px;}
+.splash-title span{color:var(--red);}
+.splash-sub{font-size:14px;color:var(--muted);margin-bottom:12px;line-height:1.7;}
+.splash-tagline{font-size:11px;color:#475569;margin-bottom:44px;letter-spacing:.5px;text-transform:uppercase;}
+.btn{width:100%;max-width:340px;padding:16px;border-radius:14px;font-size:15px;font-weight:800;cursor:pointer;border:none;transition:all .15s;letter-spacing:.2px;}
+.btn-red{background:linear-gradient(135deg,var(--red),var(--red2));color:#fff;}
+.btn-red:hover{transform:translateY(-1px);box-shadow:0 8px 24px rgba(233,69,96,.4);}
+.btn-outline{background:rgba(255,255,255,.05);border:1.5px solid rgba(255,255,255,.12);color:var(--white);margin-top:12px;}
+.btn-outline:hover{background:rgba(255,255,255,.09);}
+.btn-sm{padding:10px 20px;font-size:13px;border-radius:10px;max-width:none;width:auto;}
+.btns{display:flex;flex-direction:column;align-items:center;width:100%;}
+/* Auth */
+.auth-wrap{display:flex;align-items:center;justify-content:center;flex:1;padding:24px;}
+.auth-card{width:100%;max-width:400px;background:var(--surface);border:1px solid var(--border);border-radius:24px;padding:32px 28px;}
+.back-btn{background:none;border:none;color:var(--muted);cursor:pointer;font-size:13px;margin-bottom:22px;display:flex;align-items:center;gap:5px;padding:0;}
+.back-btn:hover{color:var(--white);}
+.auth-title{font-size:22px;font-weight:900;margin-bottom:4px;}
+.auth-sub{font-size:13px;color:var(--muted);margin-bottom:24px;}
+.field{margin-bottom:14px;}
+.field label{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:6px;}
+.field input{width:100%;padding:13px 16px;background:rgba(255,255,255,.05);border:1.5px solid rgba(255,255,255,.08);border-radius:12px;color:var(--white);font-size:14px;outline:none;transition:border-color .2s;}
+.field input:focus{border-color:rgba(233,69,96,.5);}
+.field-2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.err-box{background:rgba(233,69,96,.1);border:1px solid rgba(233,69,96,.3);border-radius:10px;padding:10px 14px;font-size:12px;color:#f87171;margin-bottom:14px;display:none;}
+.err-box.on{display:block;}
+.hint{font-size:11px;color:var(--muted);margin-top:4px;}
+.hint.ok{color:var(--green);}
+.hint.bad{color:#f87171;}
+.auth-note{text-align:center;font-size:12px;color:#64748b;margin-top:16px;}
+.auth-note a{color:var(--gold);text-decoration:none;font-weight:600;cursor:pointer;}
+/* Steps */
+.step-bar{display:flex;gap:6px;margin-bottom:24px;}
+.step-dot{flex:1;height:4px;border-radius:2px;background:rgba(255,255,255,.1);}
+.step-dot.done{background:var(--red);}
+/* Dashboard */
+#s-dash{flex-direction:column;}
+.dash-hdr{background:var(--surface);border-bottom:1px solid var(--border);padding:14px 20px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+.dash-logo{display:flex;align-items:center;gap:9px;}
+.dash-logo img{width:28px;height:28px;object-fit:contain;}
+.dash-logo-name{font-size:16px;font-weight:900;}
+.dash-right{display:flex;align-items:center;gap:8px;}
+.tag-pill{background:rgba(233,69,96,.12);color:var(--red);border-radius:20px;padding:4px 10px;font-size:12px;font-weight:700;}
+.logout-btn{background:none;border:none;color:#475569;cursor:pointer;font-size:12px;}
+.dash-body{flex:1;overflow-y:auto;padding:20px 16px 110px;}
+/* Balance card */
+.bal-card{background:linear-gradient(135deg,#160810,#200b16);border:1px solid rgba(233,69,96,.2);border-radius:24px;padding:28px 24px;margin-bottom:18px;text-align:center;position:relative;overflow:hidden;}
+.bal-card::before{content:'';position:absolute;top:-50px;right:-50px;width:160px;height:160px;background:radial-gradient(circle,rgba(233,69,96,.12),transparent);border-radius:50%;}
+.bal-lbl{font-size:11px;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;}
+.bal-amt{font-size:46px;font-weight:900;letter-spacing:-2px;}
+.bal-amt.neg{color:#f87171;}
+.bal-tag{font-size:13px;color:var(--muted);margin-top:4px;}
+.btv-badge{display:inline-flex;align-items:center;gap:6px;background:rgba(124,58,237,.18);border:1px solid rgba(124,58,237,.35);border-radius:20px;padding:4px 12px;font-size:11px;color:#c4b5fd;font-weight:700;margin-top:10px;}
+/* Action grid */
+.act-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:18px;}
+.act-btn{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:14px 6px;display:flex;flex-direction:column;align-items:center;gap:6px;cursor:pointer;border:none;transition:all .15s;}
+.act-btn:hover{background:rgba(233,69,96,.08);outline:1px solid rgba(233,69,96,.25);}
+.act-icon{width:44px;height:44px;border-radius:13px;display:flex;align-items:center;justify-content:center;font-size:20px;}
+.act-icon.r{background:rgba(233,69,96,.15);}
+.act-icon.g{background:rgba(34,197,94,.15);}
+.act-icon.y{background:rgba(245,158,11,.15);}
+.act-icon.p{background:rgba(124,58,237,.15);}
+.act-icon.b{background:rgba(56,189,248,.15);}
+.act-lbl{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.3px;text-align:center;}
+/* Section card */
+.sec{background:var(--card);border:1px solid var(--border);border-radius:20px;padding:18px;margin-bottom:14px;}
+.sec-title{font-size:11px;font-weight:800;color:#475569;text-transform:uppercase;letter-spacing:.5px;margin-bottom:14px;}
+/* Virtual card */
+.vcard{background:linear-gradient(135deg,#1a0820,#0f1525);border:1px solid rgba(124,58,237,.25);border-radius:18px;padding:20px;margin-bottom:10px;}
+.vcard-num{font-size:17px;font-weight:700;letter-spacing:3px;font-family:monospace;margin-bottom:10px;}
+.vcard-row{display:flex;gap:20px;}
+.vcard-field{font-size:11px;color:var(--muted);}
+.vcard-field span{display:block;font-size:13px;font-weight:700;color:var(--white);margin-top:2px;}
+.reveal-btn{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:5px 12px;font-size:11px;color:var(--muted);cursor:pointer;margin-top:10px;}
+/* Transactions */
+.tx-row{display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid var(--border);}
+.tx-row:last-child{border-bottom:none;}
+.tx-ico{width:40px;height:40px;border-radius:12px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:20px;}
+.tx-info{flex:1;}
+.tx-name{font-size:13px;font-weight:700;}
+.tx-note{font-size:11px;color:var(--muted);margin-top:1px;}
+.tx-right{text-align:right;}
+.tx-amt{font-size:14px;font-weight:800;}
+.tx-amt.cr{color:var(--green);}
+.tx-amt.db{color:#f87171;}
+.tx-time{font-size:10px;color:#475569;margin-top:1px;}
+/* Bottom nav */
+.bnav{position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-top:1px solid var(--border);display:grid;grid-template-columns:repeat(5,1fr);padding:8px 0 env(safe-area-inset-bottom,8px);}
+.bnav-btn{display:flex;flex-direction:column;align-items:center;gap:3px;background:none;border:none;color:#475569;cursor:pointer;padding:6px 4px;transition:color .15s;font-size:10px;font-weight:700;}
+.bnav-btn.on{color:var(--red);}
+.bnav-icon{font-size:20px;line-height:1;}
+/* Modals */
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.82);z-index:1000;display:none;align-items:flex-end;justify-content:center;}
+.modal.on{display:flex;}
+.modal-body{background:var(--surface);border-radius:28px 28px 0 0;border-top:1px solid var(--border);padding:22px 20px 40px;width:100%;max-width:500px;max-height:88vh;overflow-y:auto;}
+.handle{width:38px;height:4px;background:rgba(255,255,255,.12);border-radius:2px;margin:0 auto 20px;}
+.modal-title{font-size:18px;font-weight:900;margin-bottom:4px;}
+.modal-sub{font-size:13px;color:var(--muted);margin-bottom:18px;}
+.amt-display{text-align:center;font-size:50px;font-weight:900;letter-spacing:-2px;margin:14px 0;min-height:64px;}
+.numpad{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:14px 0 18px;}
+.nk{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:15px;font-size:20px;font-weight:700;cursor:pointer;transition:all .15s;text-align:center;}
+.nk:hover{background:rgba(233,69,96,.1);border-color:var(--red);}
+.fee-note{font-size:11px;color:#475569;text-align:center;margin-bottom:14px;}
+.cancel-btn{width:100%;padding:13px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:12px;color:var(--muted);font-size:14px;font-weight:700;cursor:pointer;margin-top:10px;}
+/* Pending / onboarding screens */
+#s-pending,#s-onboard{align-items:center;justify-content:center;text-align:center;padding:40px 24px;}
+.big-icon{font-size:68px;margin-bottom:20px;}
+.info-title{font-size:22px;font-weight:900;margin-bottom:10px;}
+.info-sub{font-size:14px;color:var(--muted);line-height:1.7;max-width:300px;}
+/* Payment method warning */
+.pm-warning{background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.3);border-radius:12px;padding:14px;margin-bottom:16px;font-size:13px;color:#fbbf24;text-align:center;}
+/* Tabs */
+.tab-pills{display:flex;gap:8px;margin-bottom:18px;}
+.tab-pill{flex:1;padding:9px;text-align:center;border-radius:20px;font-size:13px;font-weight:700;cursor:pointer;border:1.5px solid var(--border);color:var(--muted);transition:all .15s;}
+.tab-pill.on{background:var(--red);border-color:var(--red);color:#fff;}
+.tab-sec{display:none;}
+.tab-sec.on{display:block;}
+.empty{text-align:center;padding:36px 20px;color:#475569;}
+.empty-ico{font-size:44px;margin-bottom:10px;}
+</style>
+</head>
+<body>
+
+<!-- SPLASH -->
+<div id="s-splash" class="screen active">
+  <img src="/static/shotgun_bank_main_logo_clean.png" class="splash-logo" onerror="this.style.display='none'">
+  <div class="splash-title">Shotgun <span>Bank</span></div>
+  <div class="splash-sub">Send money, request funds, load up,<br>cash out, and convert to crypto — instantly.</div>
+  <div class="splash-tagline">A Bisignano Holdings LLC Product</div>
+  <div class="btns">
+    <button class="btn btn-red" onclick="go('login')">Sign In</button>
+    <button class="btn btn-outline" onclick="go('signup1')">Create Account →</button>
+  </div>
+</div>
+
+<!-- LOGIN -->
+<div id="s-login" class="screen">
+  <div class="auth-wrap">
+    <div class="auth-card">
+      <button class="back-btn" onclick="go('splash')">← Back</button>
+      <div class="auth-title">Welcome back 👋</div>
+      <div class="auth-sub">Sign in with your #hashtag or email + PIN</div>
+      <div class="err-box" id="login-err"></div>
+      <div class="field"><label>Hashtag or Email</label><input id="l-id" type="text" placeholder="#YourTag or email@domain.com"></div>
+      <div class="field"><label>4-Digit PIN</label><input id="l-pin" type="password" inputmode="numeric" maxlength="4" placeholder="••••"></div>
+      <button class="btn btn-red" id="l-btn" onclick="doLogin()">Sign In →</button>
+      <div class="auth-note">No account? <a onclick="go('signup1')">Create one →</a></div>
+    </div>
+  </div>
+</div>
+
+<!-- SIGNUP STEP 1 — Personal Info -->
+<div id="s-signup1" class="screen">
+  <div class="auth-wrap">
+    <div class="auth-card">
+      <button class="back-btn" onclick="go('splash')">← Back</button>
+      <div class="step-bar"><div class="step-dot done"></div><div class="step-dot"></div><div class="step-dot"></div></div>
+      <div class="auth-title">Create Account</div>
+      <div class="auth-sub">Step 1 of 3 — Personal info</div>
+      <div class="err-box" id="s1-err"></div>
+      <div class="field-2">
+        <div class="field"><label>First Name</label><input id="s-first" type="text" placeholder="Tony"></div>
+        <div class="field"><label>Last Name</label><input id="s-last" type="text" placeholder="Montana"></div>
+      </div>
+      <div class="field"><label>Email</label><input id="s-email" type="email" placeholder="you@gmail.com"></div>
+      <div class="field"><label>Phone</label><input id="s-phone" type="tel" placeholder="(555) 000-0000"></div>
+      <div class="field"><label>Date of Birth</label><input id="s-dob" type="date" placeholder="1990-01-01"></div>
+      <button class="btn btn-red" onclick="signup1Next()">Next →</button>
+      <div class="auth-note">Already have an account? <a onclick="go('login')">Sign in →</a></div>
+    </div>
+  </div>
+</div>
+
+<!-- SIGNUP STEP 2 — Hashtag + PIN -->
+<div id="s-signup2" class="screen">
+  <div class="auth-wrap">
+    <div class="auth-card">
+      <button class="back-btn" onclick="go('signup1')">← Back</button>
+      <div class="step-bar"><div class="step-dot done"></div><div class="step-dot done"></div><div class="step-dot"></div></div>
+      <div class="auth-title">Your #Tag & PIN</div>
+      <div class="auth-sub">Step 2 of 3 — Choose your identity</div>
+      <div class="err-box" id="s2-err"></div>
+      <div class="field">
+        <label>Choose your #Hashtag</label>
+        <input id="s-tag" type="text" placeholder="YourUniqueName" oninput="checkTag(this.value)">
+        <div class="hint" id="tag-hint"></div>
+      </div>
+      <div class="field"><label>4-Digit PIN</label><input id="s-pin" type="password" inputmode="numeric" maxlength="4" placeholder="••••"></div>
+      <div class="field"><label>Confirm PIN</label><input id="s-pin2" type="password" inputmode="numeric" maxlength="4" placeholder="••••"></div>
+      <button class="btn btn-red" id="s2-btn" onclick="signup2Next()">Next →</button>
+    </div>
+  </div>
+</div>
+
+<!-- SIGNUP STEP 3 — Submit -->
+<div id="s-signup3" class="screen">
+  <div class="auth-wrap">
+    <div class="auth-card">
+      <button class="back-btn" onclick="go('signup2')">← Back</button>
+      <div class="step-bar"><div class="step-dot done"></div><div class="step-dot done"></div><div class="step-dot done"></div></div>
+      <div class="auth-title">Review & Submit</div>
+      <div class="auth-sub">Step 3 of 3 — Create your account</div>
+      <div class="err-box" id="s3-err"></div>
+      <div id="s3-review" style="background:rgba(255,255,255,.04);border-radius:14px;padding:16px;margin-bottom:18px;font-size:13px;line-height:2;"></div>
+      <div style="font-size:12px;color:#475569;margin-bottom:18px;line-height:1.7;">By creating an account you agree to our Terms of Service. Your identity will be verified by Stripe. You must link a bank or debit card before you can transact.</div>
+      <button class="btn btn-red" id="s3-btn" onclick="doSignup()">Create Account & Verify Identity →</button>
+    </div>
+  </div>
+</div>
+
+<!-- ONBOARDING (Stripe redirect came back) -->
+<div id="s-onboard" class="screen">
+  <div class="big-icon">🔗</div>
+  <div class="info-title">Complete Verification</div>
+  <div class="info-sub">Stripe needs to verify your identity and link your bank or debit card before you can use Shotgun.</div>
+  <button class="btn btn-red" style="max-width:300px;margin-top:28px;" id="onboard-btn">Continue Verification →</button>
+  <div style="margin-top:16px;font-size:12px;color:#475569;">Already done? <a href="#" onclick="go('login')" style="color:var(--gold);">Sign in →</a></div>
+</div>
+
+<!-- PENDING -->
+<div id="s-pending" class="screen">
+  <div class="big-icon">⏳</div>
+  <div class="info-title">Under Review</div>
+  <div class="info-sub">Your application is being reviewed. You'll get an email once approved — usually within minutes.</div>
+  <button class="btn btn-outline" style="max-width:260px;margin-top:28px;" onclick="go('login')">Check Status</button>
+</div>
+
+<!-- NO PAYMENT METHOD -->
+<div id="s-no-pm" class="screen">
+  <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 24px;text-align:center;">
+    <div class="big-icon">💳</div>
+    <div class="info-title">Link Payment Method</div>
+    <div class="info-sub">You must have a bank account or debit card linked to use Shotgun Bank. This is required and must stay connected.</div>
+    <button class="btn btn-red" style="max-width:300px;margin-top:28px;" id="link-pm-btn">Link Bank or Card →</button>
+    <button class="btn btn-outline" style="max-width:300px;margin-top:10px;" onclick="doLogout()">Sign Out</button>
+  </div>
+</div>
+
+<!-- DASHBOARD -->
+<div id="s-dash" class="screen">
+  <div class="dash-hdr">
+    <div class="dash-logo">
+      <img src="/static/shotgun_bank_main_logo_clean.png" onerror="this.style.display='none'">
+      <div class="dash-logo-name">Shotgun</div>
+    </div>
+    <div class="dash-right">
+      <div class="tag-pill" id="dash-tag">#—</div>
+      <button class="logout-btn" onclick="doLogout()">Sign Out</button>
+    </div>
+  </div>
+
+  <div class="dash-body">
+    <!-- Balance -->
+    <div class="bal-card">
+      <div class="bal-lbl">Available Balance</div>
+      <div class="bal-amt" id="dash-bal">$0.00</div>
+      <div class="bal-tag" id="dash-name">—</div>
+      <div id="btv-badge" style="display:none;"><div class="btv-badge">⚡ Beat the V — Active</div></div>
+    </div>
+
+    <!-- Actions -->
+    <div class="act-grid">
+      <button class="act-btn" onclick="openModal('send')"><div class="act-icon r">💸</div><div class="act-lbl">Send</div></button>
+      <button class="act-btn" onclick="openModal('request')"><div class="act-icon g">📥</div><div class="act-lbl">Request</div></button>
+      <button class="act-btn" onclick="openModal('deposit')"><div class="act-icon y">💳</div><div class="act-lbl">Load</div></button>
+      <button class="act-btn" onclick="openModal('withdraw')"><div class="act-icon p">🏦</div><div class="act-lbl">Withdraw</div></button>
+      <button class="act-btn" onclick="openModal('crypto')"><div class="act-icon b">₿</div><div class="act-lbl">Crypto</div></button>
+    </div>
+
+    <!-- Virtual Card -->
+    <div class="sec">
+      <div class="sec-title">Virtual Debit Card</div>
+      <div class="vcard">
+        <div class="vcard-num" id="vc-num">•••• •••• •••• ••••</div>
+        <div class="vcard-row">
+          <div class="vcard-field">Expires<span id="vc-exp">••/••</span></div>
+          <div class="vcard-field">CVV<span id="vc-cvv">•••</span></div>
+        </div>
+      </div>
+      <button class="reveal-btn" onclick="toggleCard()">👁 Reveal Card</button>
+    </div>
+
+    <!-- Bank Details -->
+    <div class="sec">
+      <div class="sec-title">Bank Details</div>
+      <div style="font-size:13px;color:var(--muted);margin-bottom:6px;">Routing <span id="bank-rt" style="color:var(--white);font-family:monospace;font-weight:700;margin-left:6px;"></span></div>
+      <div style="font-size:13px;color:var(--muted);">Account <span id="bank-ac" style="color:var(--white);font-family:monospace;font-weight:700;margin-left:6px;"></span></div>
+    </div>
+
+    <!-- Transactions -->
+    <div class="sec">
+      <div class="sec-title">Recent Activity</div>
+      <div id="tx-list"><div class="empty"><div class="empty-ico">🎯</div>No transactions yet</div></div>
+    </div>
+  </div>
+
+  <nav class="bnav">
+    <button class="bnav-btn on" onclick="bnav(this,'home')"><div class="bnav-icon">🏠</div>Home</button>
+    <button class="bnav-btn" onclick="bnav(this,'send');openModal('send')"><div class="bnav-icon">💸</div>Send</button>
+    <button class="bnav-btn" onclick="bnav(this,'load');openModal('deposit')"><div class="bnav-icon">💳</div>Load</button>
+    <button class="bnav-btn" onclick="openModal('sos')"><div class="bnav-icon">🆘</div>SOS</button>
+    <button class="bnav-btn" onclick="bnav(this,'activity')"><div class="bnav-icon">📋</div>Activity</button>
+  </nav>
+</div>
+
+<!-- ══ MODALS ══ -->
+
+<!-- SEND -->
+<div class="modal" id="m-send">
+  <div class="modal-body">
+    <div class="handle"></div>
+    <div class="modal-title">Send Money 💸</div>
+    <div class="modal-sub">Enter hashtag and amount</div>
+    <div class="err-box" id="send-err"></div>
+    <div class="field"><label>To (#Hashtag or email)</label><input id="send-to" type="text" placeholder="#TheirTag"></div>
+    <div class="amt-display" id="send-disp">$0</div>
+    <div class="numpad" id="send-pad"></div>
+    <div class="field"><label>Note (optional)</label><input id="send-note" type="text" placeholder="Pizza, rent, etc."></div>
+    <div class="fee-note">$1.50 fee applies to sender · $1.50 to recipient</div>
+    <button class="btn btn-red" id="send-btn" onclick="doSend()">🔫 Shoot It</button>
+    <button class="cancel-btn" onclick="closeModal('send')">Cancel</button>
+  </div>
+</div>
+
+<!-- REQUEST -->
+<div class="modal" id="m-request">
+  <div class="modal-body">
+    <div class="handle"></div>
+    <div class="modal-title">Request Money 📥</div>
+    <div class="modal-sub">Share your tag to get paid</div>
+    <div style="background:var(--card);border-radius:16px;padding:22px;text-align:center;margin-bottom:16px;">
+      <div style="font-size:30px;font-weight:900;color:var(--red);" id="req-tag">#—</div>
+      <div style="font-size:12px;color:var(--muted);margin-top:4px;">Send to this hashtag</div>
+    </div>
+    <div class="field"><label>Amount (optional)</label><input id="req-amt" type="number" step="0.01" placeholder="0.00"></div>
+    <div class="field"><label>Note (optional)</label><input id="req-note" type="text" placeholder="What's it for?"></div>
+    <button class="btn btn-red" onclick="doShareReq()">Share Request Link 🔗</button>
+    <button class="cancel-btn" onclick="closeModal('request')">Close</button>
+  </div>
+</div>
+
+<!-- DEPOSIT / LOAD -->
+<div class="modal" id="m-deposit">
+  <div class="modal-body">
+    <div class="handle"></div>
+    <div class="modal-title">Load Funds 💳</div>
+    <div class="modal-sub">Add money using your linked card or bank</div>
+    <div class="err-box" id="dep-err"></div>
+    <div class="amt-display" id="dep-disp">$0</div>
+    <div class="numpad" id="dep-pad"></div>
+    <div class="fee-note">4% fee applies to card deposits · Platform fee goes to Bisignano Holdings</div>
+    <div id="stripe-card-element" style="background:rgba(255,255,255,.05);border:1.5px solid rgba(255,255,255,.1);border-radius:12px;padding:14px;margin-bottom:14px;"></div>
+    <button class="btn btn-red" id="dep-btn" onclick="doDeposit()">Load Funds →</button>
+    <button class="cancel-btn" onclick="closeModal('deposit')">Cancel</button>
+  </div>
+</div>
+
+<!-- WITHDRAW -->
+<div class="modal" id="m-withdraw">
+  <div class="modal-body">
+    <div class="handle"></div>
+    <div class="modal-title">Withdraw 🏦</div>
+    <div class="modal-sub">Transfer to your linked bank account</div>
+    <div class="err-box" id="wd-err"></div>
+    <div class="tab-pills">
+      <div class="tab-pill on" onclick="wdTab(this,'instant')">⚡ Instant (5.75%)</div>
+      <div class="tab-pill" onclick="wdTab(this,'standard')">📅 Standard (1.5%)</div>
+    </div>
+    <div class="amt-display" id="wd-disp">$0</div>
+    <div class="numpad" id="wd-pad"></div>
+    <div class="fee-note" id="wd-fee-note">Instant withdrawal: 5.75% fee</div>
+    <button class="btn btn-red" id="wd-btn" onclick="doWithdraw()">Withdraw →</button>
+    <button class="cancel-btn" onclick="closeModal('withdraw')">Cancel</button>
+  </div>
+</div>
+
+<!-- CRYPTO -->
+<div class="modal" id="m-crypto">
+  <div class="modal-body">
+    <div class="handle"></div>
+    <div class="modal-title">Convert to Crypto ₿</div>
+    <div class="modal-sub">Coming soon — BTC, ETH, USDC and more</div>
+    <div style="text-align:center;padding:30px;">
+      <div style="font-size:52px;margin-bottom:14px;">₿</div>
+      <div style="font-size:15px;font-weight:700;margin-bottom:8px;">Crypto Conversion</div>
+      <div style="font-size:13px;color:var(--muted);line-height:1.7;">We're integrating BTC, ETH, USDC, and more. Convert your Shotgun balance to crypto instantly. Launching soon.</div>
+    </div>
+    <button class="cancel-btn" onclick="closeModal('crypto')">Close</button>
+  </div>
+</div>
+
+<!-- SOS -->
+<div class="modal" id="m-sos">
+  <div class="modal-body">
+    <div class="handle"></div>
+    <div class="modal-title">🆘 SOS Blast</div>
+    <div class="modal-sub">Request money from all your contacts at once</div>
+    <div class="err-box" id="sos-err"></div>
+    <div class="field"><label>Amount Needed</label><input id="sos-amt" type="number" step="0.01" placeholder="50.00"></div>
+    <div class="field"><label>Message</label><input id="sos-msg" type="text" placeholder="Need help with rent!"></div>
+    <button class="btn btn-red" style="background:linear-gradient(135deg,#dc2626,#991b1b);" onclick="doSOS()">🆘 Send SOS Blast</button>
+    <button class="cancel-btn" onclick="closeModal('sos')">Cancel</button>
+  </div>
+</div>
+
+<script>
+let acct = null, cardRevealed = false, wdSpeed = 'instant', tagOk = false, tagTimer = null;
+let sendAmt = '', depAmt = '', wdAmt = '';
+let stripe = null, cardElement = null;
+
+async function initStripe() {
+  if (stripe) return;
+  const cfg = await fetch('/api/config').then(r=>r.json());
+  stripe = Stripe(cfg.publishable_key);
+  const elements = stripe.elements();
+  cardElement = elements.create('card', {
+    style: {base: {color: '#f1f5f9', fontFamily: 'Inter, sans-serif', fontSize: '15px', '::placeholder': {color: '#64748b'}}},
+    hidePostalCode: true
+  });
+  cardElement.mount('#stripe-card-element');
+}
+
+function go(s) {
+  document.querySelectorAll('.screen').forEach(el=>el.classList.remove('active'));
+  document.getElementById('s-'+s).classList.add('active');
+  if (s === 'dash') initStripe();
+}
+
+function bnav(btn, tab) {
+  document.querySelectorAll('.bnav-btn').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+}
+
+function openModal(name) {
+  if (name==='send')     { buildPad('send');    sendAmt='';  updDisp('send'); }
+  if (name==='deposit')  { buildPad('dep');     depAmt='';   updDisp('dep'); initStripe(); }
+  if (name==='withdraw') { buildPad('wd');      wdAmt='';    updDisp('wd'); }
+  if (name==='request' && acct) { document.getElementById('req-tag').textContent = '#'+acct.hashtag; }
+  document.getElementById('m-'+name).classList.add('on');
+}
+function closeModal(n) {
+  document.getElementById('m-'+n).classList.remove('on');
+  const e = document.getElementById(n+'-err') || document.getElementById(n.slice(0,3)+'-err');
+  if(e){e.classList.remove('on');e.textContent='';}
+}
+function showErr(id, msg) { const e=document.getElementById(id); if(e){e.textContent=msg;e.classList.add('on');} }
+
+function buildPad(id) {
+  const p = document.getElementById(id+'-pad');
+  if (!p) return;
+  p.innerHTML = '';
+  [1,2,3,4,5,6,7,8,9,'.',0,'⌫'].forEach(k=>{
+    const b=document.createElement('button');
+    b.className='nk'; b.textContent=k;
+    b.onclick=()=>handlePad(id,String(k));
+    p.appendChild(b);
+  });
+}
+function handlePad(id, k) {
+  let a = id==='send'?sendAmt:id==='dep'?depAmt:wdAmt;
+  if(k==='⌫') a=a.slice(0,-1);
+  else if(k==='.'&&a.includes('.')) return;
+  else if(a.split('.')[1]?.length>=2) return;
+  else a+=k;
+  if(id==='send') sendAmt=a;
+  else if(id==='dep') depAmt=a;
+  else wdAmt=a;
+  updDisp(id);
+}
+function updDisp(id) {
+  const a=id==='send'?sendAmt:id==='dep'?depAmt:wdAmt;
+  document.getElementById(id+'-disp').textContent='$'+(a||'0');
+}
+
+function wdTab(btn, speed) {
+  wdSpeed=speed;
+  document.querySelectorAll('.tab-pill').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  document.getElementById('wd-fee-note').textContent = speed==='instant'?'Instant: 5.75% fee':'Standard ACH: 1.5% fee (1-3 business days)';
+}
+
+let tagCheckTimer;
+function checkTag(val) {
+  clearTimeout(tagCheckTimer);
+  const el=document.getElementById('tag-hint');
+  if(!val||val.length<3){el.textContent='';tagOk=false;return;}
+  el.textContent='Checking…'; el.className='hint';
+  tagCheckTimer=setTimeout(async()=>{
+    try{
+      const r=await fetch('/api/check-hashtag?tag='+encodeURIComponent(val));
+      const d=await r.json();
+      tagOk=d.available;
+      el.textContent=d.available?'✓ Available!':'✗ Already taken';
+      el.className='hint '+(d.available?'ok':'bad');
+    }catch{el.textContent='';}
+  },500);
+}
+
+// ── AUTH ──────────────────────────────────────────────────────────────────────
+async function doLogin() {
+  const id=document.getElementById('l-id').value.trim();
+  const pin=document.getElementById('l-pin').value.trim();
+  showErr('login-err','');
+  if(!id||!pin){showErr('login-err','Enter your hashtag/email and PIN.');return;}
+  const btn=document.getElementById('l-btn');
+  btn.textContent='Signing in…';btn.disabled=true;
+  try{
+    const r=await fetch('/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({identifier:id,pin})});
+    const d=await r.json();
+    if(d.status==='onboarding'){
+      // Resume Stripe onboarding
+      document.getElementById('onboard-btn').onclick=()=>resumeOnboard(d.stripe_account);
+      go('onboard'); return;
+    }
+    if(d.status==='pending'){go('pending');return;}
+    if(!d.success){showErr('login-err',d.error||'Login failed.');return;}
+    acct=d.account;
+    if(!d.has_payment){
+      document.getElementById('link-pm-btn').onclick=()=>linkPaymentMethod();
+      go('no-pm'); return;
+    }
+    loadDash();
+    go('dash');
+  }catch(e){showErr('login-err','Connection error. Try again.');}
+  finally{btn.textContent='Sign In →';btn.disabled=false;}
+}
+
+function signup1Next() {
+  const first=document.getElementById('s-first').value.trim();
+  const last=document.getElementById('s-last').value.trim();
+  const email=document.getElementById('s-email').value.trim();
+  const dob=document.getElementById('s-dob').value.trim();
+  if(!first||!last||!email||!dob){showErr('s1-err','Fill in all fields.');return;}
+  go('signup2');
+}
+
+async function signup2Next() {
+  const tag=document.getElementById('s-tag').value.trim().replace(/^#/,'');
+  const pin=document.getElementById('s-pin').value.trim();
+  const pin2=document.getElementById('s-pin2').value.trim();
+  if(!tag||!pin){showErr('s2-err','Fill in all fields.');return;}
+  if(pin!==pin2){showErr('s2-err','PINs do not match.');return;}
+  if(pin.length!==4||!/^\d+$/.test(pin)){showErr('s2-err','PIN must be exactly 4 digits.');return;}
+  if(!tagOk){showErr('s2-err','Choose an available hashtag.');return;}
+  // Build review
+  const first=document.getElementById('s-first').value.trim();
+  const last=document.getElementById('s-last').value.trim();
+  const email=document.getElementById('s-email').value.trim();
+  document.getElementById('s3-review').innerHTML=`
+    <b>${first} ${last}</b><br>
+    📧 ${email}<br>
+    🔫 #${tag}<br>
+    🎂 ${document.getElementById('s-dob').value}
+  `;
+  go('signup3');
+}
+
+async function doSignup() {
+  const btn=document.getElementById('s3-btn');
+  btn.textContent='Creating account…';btn.disabled=true;
+  showErr('s3-err','');
+  try{
+    const payload={
+      first_name: document.getElementById('s-first').value.trim(),
+      last_name:  document.getElementById('s-last').value.trim(),
+      email:      document.getElementById('s-email').value.trim().toLowerCase(),
+      phone:      document.getElementById('s-phone').value.trim(),
+      dob:        document.getElementById('s-dob').value.trim(),
+      hashtag:    document.getElementById('s-tag').value.trim().toLowerCase().replace(/^#/,''),
+      pin:        document.getElementById('s-pin').value.trim(),
+    };
+    const r=await fetch('/api/signup',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+    const d=await r.json();
+    if(d.success){
+      // Redirect to Stripe onboarding
+      window.location.href=d.onboarding_url;
+    }else{
+      showErr('s3-err',d.error||'Signup failed. Try again.');
+    }
+  }catch(e){showErr('s3-err','Connection error.');}
+  finally{btn.textContent='Create Account & Verify Identity →';btn.disabled=false;}
+}
+
+async function resumeOnboard(stripeAcctId) {
+  try{
+    const tag=document.getElementById('l-id').value.trim().replace(/^#/,'');
+    const r=await fetch('/onboard/refresh?tag='+encodeURIComponent(tag));
+    // redirect happens server-side
+  }catch(e){alert('Could not resume onboarding. Try signing in again.');}
+}
+
+async function linkPaymentMethod() {
+  if(!acct){return;}
+  try{
+    const r=await fetch('/api/setup-payment',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sg_account_id:acct.id})});
+    const d=await r.json();
+    if(d.client_secret){
+      if(!stripe){const cfg=await fetch('/api/config').then(r=>r.json()); stripe=Stripe(cfg.publishable_key);}
+      const result=await stripe.confirmCardSetup(d.client_secret,{payment_method:{card:cardElement}});
+      if(result.error){alert(result.error.message);}
+      else{loadDash();go('dash');}
+    }
+  }catch(e){alert('Error linking payment method.');}
+}
+
+function doLogout(){acct=null;go('splash');}
+
+// ── DASHBOARD ──────────────────────────────────────────────────────────────────
+function loadDash(){
+  if(!acct)return;
+  const bal=parseFloat(acct.balance||0);
+  const balEl=document.getElementById('dash-bal');
+  balEl.textContent=(bal<0?'-':'')+'$'+Math.abs(bal).toFixed(2);
+  balEl.className='bal-amt'+(bal<0?' neg':'');
+  document.getElementById('dash-tag').textContent='#'+acct.hashtag;
+  document.getElementById('dash-name').textContent=(acct.first_name+' '+acct.last_name).trim();
+  document.getElementById('btv-badge').style.display=acct.beat_v_enabled?'block':'none';
+  const card=acct.virtual_card_number||'';
+  document.getElementById('vc-num').textContent=card?'•••• •••• •••• '+card.slice(-4):'•••• •••• •••• ••••';
+  document.getElementById('vc-exp').textContent=acct.virtual_card_expiry||'••/••';
+  document.getElementById('vc-cvv').textContent='•••';
+  document.getElementById('bank-rt').textContent=acct.routing_number||'—';
+  document.getElementById('bank-ac').textContent=acct.account_number||'—';
+  loadTx();
+}
+
+function toggleCard(){
+  cardRevealed=!cardRevealed;
+  const card=acct?.virtual_card_number||'';
+  document.getElementById('vc-num').textContent=cardRevealed?(card.match(/.{1,4}/g)||[]).join(' '):'•••• •••• •••• '+card.slice(-4);
+  document.getElementById('vc-cvv').textContent=cardRevealed?(acct?.virtual_card_cvv||'•••'):'•••';
+  document.querySelector('.reveal-btn').textContent=cardRevealed?'🙈 Hide Card':'👁 Reveal Card';
+}
+
+async function loadTx(){
+  if(!acct)return;
+  try{
+    const r=await fetch('/api/transactions/'+acct.id);
+    const d=await r.json();
+    const el=document.getElementById('tx-list');
+    if(!d.transactions||!d.transactions.length){
+      el.innerHTML='<div class="empty"><div class="empty-ico">🎯</div>No transactions yet</div>';return;
+    }
+    el.innerHTML=d.transactions.map(tx=>{
+      const isSend=tx.from_account_id===acct.id;
+      const amt=parseFloat(tx.amount||0);
+      const fee=parseFloat(tx.fee||0)/2;
+      const net=isSend?-(amt+fee):(amt-fee);
+      const ico=tx.status==='completed'?(isSend?'💸':'🎯'):'💀';
+      const name=isSend?(tx.to_name||'#'+tx.to_hashtag||'—'):(tx.from_name||'External');
+      const date=new Date(tx.created_date||Date.now()).toLocaleDateString('en-US',{month:'short',day:'numeric'});
+      return `<div class="tx-row">
+        <div class="tx-ico">${ico}</div>
+        <div class="tx-info"><div class="tx-name">${isSend?'To':'From'} ${name}</div><div class="tx-note">${tx.note||tx.type||''}</div></div>
+        <div class="tx-right"><div class="tx-amt ${net>=0?'cr':'db'}">${net>=0?'+':''}\$${Math.abs(net).toFixed(2)}</div><div class="tx-time">${date}</div></div>
+      </div>`;
+    }).join('');
+  }catch(e){console.error(e);}
+}
+
+// ── SEND ───────────────────────────────────────────────────────────────────────
+async function doSend(){
+  const to=document.getElementById('send-to').value.trim().replace(/^#/,'');
+  const amt=parseFloat(sendAmt);
+  const note=document.getElementById('send-note').value.trim();
+  if(!to||!amt||amt<=0){showErr('send-err','Enter recipient and amount.');return;}
+  const btn=document.getElementById('send-btn');
+  btn.textContent='Sending…';btn.disabled=true;
+  try{
+    const r=await fetch('/api/send',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({from_account_id:acct.id,to_hashtag:to,amount:amt,note})});
+    const d=await r.json();
+    if(d.success){acct.balance=d.new_balance;closeModal('send');loadDash();toast('💸 Sent $'+amt.toFixed(2)+' to #'+to);}
+    else showErr('send-err',d.error||'Transfer failed.');
+  }catch(e){showErr('send-err','Connection error.');}
+  finally{btn.textContent='🔫 Shoot It';btn.disabled=false;}
+}
+
+// ── DEPOSIT ────────────────────────────────────────────────────────────────────
+async function doDeposit(){
+  const amt=parseFloat(depAmt);
+  if(!amt||amt<1){showErr('dep-err','Minimum deposit is $1.');return;}
+  const btn=document.getElementById('dep-btn');
+  btn.textContent='Processing…';btn.disabled=true;
+  try{
+    if(!stripe||!cardElement){showErr('dep-err','Payment form not loaded.');btn.textContent='Load Funds →';btn.disabled=false;return;}
+    // Create PaymentMethod from card element
+    const {paymentMethod, error}=await stripe.createPaymentMethod({type:'card',card:cardElement});
+    if(error){showErr('dep-err',error.message);btn.textContent='Load Funds →';btn.disabled=false;return;}
+    const r=await fetch('/api/deposit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sg_account_id:acct.id,amount:amt,payment_method_id:paymentMethod.id})});
+    const d=await r.json();
+    if(d.success){
+      acct.balance=d.new_balance;
+      closeModal('deposit');loadDash();
+      toast('✅ $'+amt.toFixed(2)+' loaded! Fee: $'+d.fee.toFixed(2));
+    }else{
+      showErr('dep-err',d.error||'Deposit failed.'+(d.rejection_fee?' $5 rejection fee applied.':''));
+    }
+  }catch(e){showErr('dep-err','Connection error.');}
+  finally{btn.textContent='Load Funds →';btn.disabled=false;}
+}
+
+// ── WITHDRAW ───────────────────────────────────────────────────────────────────
+async function doWithdraw(){
+  const amt=parseFloat(wdAmt);
+  if(!amt||amt<1){showErr('wd-err','Enter an amount.');return;}
+  const btn=document.getElementById('wd-btn');
+  btn.textContent='Processing…';btn.disabled=true;
+  try{
+    const r=await fetch('/api/withdraw',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sg_account_id:acct.id,amount:amt,speed:wdSpeed})});
+    const d=await r.json();
+    if(d.success){acct.balance=d.new_balance;closeModal('withdraw');loadDash();toast('🏦 $'+d.net.toFixed(2)+' on its way to your bank!');}
+    else showErr('wd-err',d.error||'Withdrawal failed.');
+  }catch(e){showErr('wd-err','Connection error.');}
+  finally{btn.textContent='Withdraw →';btn.disabled=false;}
+}
+
+// ── REQUEST ────────────────────────────────────────────────────────────────────
+function doShareReq(){
+  const amt=document.getElementById('req-amt').value;
+  const note=document.getElementById('req-note').value;
+  const url=window.location.origin+'/?pay='+encodeURIComponent(acct.hashtag)+(amt?'&amount='+amt:'')+(note?'&note='+encodeURIComponent(note):'');
+  if(navigator.share){navigator.share({title:'Pay me on Shotgun',url});}
+  else{navigator.clipboard.writeText(url).then(()=>toast('🔗 Link copied!'));}
+  closeModal('request');
+}
+
+// ── SOS ────────────────────────────────────────────────────────────────────────
+async function doSOS(){
+  const amt=parseFloat(document.getElementById('sos-amt').value);
+  const msg=document.getElementById('sos-msg').value.trim();
+  if(!amt||amt<=0){showErr('sos-err','Enter an amount.');return;}
+  try{
+    const r=await fetch('/api/shotgun/sos',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({account_id:acct.id,amount_requested:amt,message:msg})});
+    const d=await r.json();
+    if(d.success){closeModal('sos');toast('🆘 SOS sent to your contacts!');}
+    else showErr('sos-err',d.error||'Failed.');
+  }catch{showErr('sos-err','Connection error.');}
+}
+
+// ── TOAST ──────────────────────────────────────────────────────────────────────
+function toast(msg){
+  const t=document.createElement('div');
+  t.textContent=msg;
+  t.style.cssText='position:fixed;bottom:88px;left:50%;transform:translateX(-50%);background:#1c1c26;border:1px solid rgba(255,255,255,.12);color:#f1f5f9;padding:12px 20px;border-radius:20px;font-size:13px;font-weight:700;z-index:9999;box-shadow:0 8px 24px rgba(0,0,0,.5);white-space:nowrap;';
+  document.body.appendChild(t);
+  setTimeout(()=>t.remove(),3000);
+}
+
+// ── INIT ───────────────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded',()=>{
+  const p=new URLSearchParams(window.location.search);
+  if(p.get('pay')){go('login');setTimeout(()=>{document.getElementById('send-to').value=p.get('pay');},100);}
+  document.querySelectorAll('.modal').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('on');}));
+  document.getElementById('l-pin').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
+});
+</script>
+</body>
+</html>
