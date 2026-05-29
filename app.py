@@ -13,7 +13,7 @@ stripe.api_key = STRIPE_SK
 
 # ── BASE44 ────────────────────────────────────────────────────────────────────
 B44_KEY  = os.environ.get("BASE44_API_KEY","")
-B44_APP  = "6a13ae4b43ea85cec629af77"
+B44_APP  = "6a14ef767988d1ef0baff5aa"
 B44_BASE = f"https://app.base44.com/api/apps/{B44_APP}/entities"
 SG_URL   = f"{B44_BASE}/ShotgunAccount"
 TX_URL   = f"{B44_BASE}/ShotgunTransaction"
