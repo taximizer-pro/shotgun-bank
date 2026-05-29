@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Shotgun Bank</title>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
   * { margin:0; padding:0; box-sizing:border-box; font-family:'Inter',sans-serif; }
   html,body { height:100%; }
@@ -13,16 +13,13 @@
   .top-section {
     flex:1; background:#0a2218;
     display:flex; flex-direction:column; align-items:center;
-    justify-content:flex-start; padding:52px 28px 32px;
+    justify-content:flex-start; padding:48px 28px 32px;
   }
 
   /* ── Logo ── */
-  .logo-wrap { display:flex; flex-direction:column; align-items:center; gap:14px; margin-bottom:40px; }
-  .logo-img { width:140px; height:140px; object-fit:contain; filter:drop-shadow(0 8px 24px rgba(34,197,94,0.35)); }
-  .logo-text { color:#fff; font-size:22px; font-weight:800; letter-spacing:3px; text-transform:uppercase; }
-
-  /* ── Greeting ── */
-  .greeting { color:rgba(255,255,255,0.6); font-size:28px; font-weight:300; margin-bottom:28px; text-align:center; letter-spacing:-0.3px; }
+  .logo-wrap { display:flex; flex-direction:column; align-items:center; gap:16px; margin-bottom:36px; }
+  .logo-img { width:130px; height:130px; object-fit:contain; filter:drop-shadow(0 8px 28px rgba(34,197,94,0.5)); display:block; }
+  .logo-text { color:#fff; font-size:21px; font-weight:800; letter-spacing:4px; text-transform:uppercase; }
 
   /* ── Tabs ── */
   .tab-row {
@@ -30,7 +27,7 @@
     background:rgba(255,255,255,0.07); border-radius:8px; padding:4px; margin-bottom:28px;
   }
   .tab {
-    flex:1; padding:10px; text-align:center; border-radius:6px;
+    flex:1; padding:11px; text-align:center; border-radius:6px;
     font-size:14px; font-weight:600; color:rgba(255,255,255,0.4); cursor:pointer; transition:all 0.2s; letter-spacing:0.3px;
   }
   .tab.active { background:#16a34a; color:#fff; }
@@ -44,7 +41,7 @@
   }
   .field-wrap input {
     width:100%; padding:16px 48px 16px 16px; background:transparent;
-    border:1.5px solid rgba(255,255,255,0.3); border-radius:6px;
+    border:1.5px solid rgba(255,255,255,0.25); border-radius:8px;
     color:#fff; font-size:16px; outline:none; transition:border-color 0.2s; -webkit-appearance:none;
   }
   .field-wrap input::placeholder { color:transparent; }
@@ -57,7 +54,7 @@
   /* ── Button ── */
   .btn-main {
     width:100%; max-width:400px; padding:17px; margin-top:8px;
-    background:#16a34a; border:none; border-radius:6px;
+    background:#16a34a; border:none; border-radius:8px;
     color:#fff; font-size:16px; font-weight:700; letter-spacing:1px;
     cursor:pointer; transition:background 0.2s; -webkit-appearance:none;
   }
@@ -77,43 +74,39 @@
   .bottom-bar a { color:rgba(255,255,255,0.45); font-size:11px; font-weight:600; letter-spacing:1.2px; text-transform:uppercase; text-decoration:none; display:flex; align-items:center; gap:6px; }
   .bottom-bar a:hover { color:#fff; }
 
-  /* ── Info cards ── */
-  .cards-section { background:#f0fdf4; padding:16px; display:flex; gap:12px; }
-  .card { flex:1; background:#fff; border-radius:10px; padding:16px; min-height:90px; display:flex; flex-direction:column; justify-content:space-between; box-shadow:0 1px 4px rgba(0,0,0,0.07); }
-  .card-dot { width:8px; height:8px; background:#16a34a; border-radius:50%; }
-  .card-text { color:#15803d; font-size:13px; font-weight:500; line-height:1.4; }
-
   /* ── Alerts ── */
-  .error-msg { background:rgba(239,68,68,0.12); border:1px solid rgba(239,68,68,0.35); color:#fca5a5; border-radius:6px; padding:10px 14px; font-size:13px; width:100%; max-width:400px; margin-bottom:12px; text-align:center; }
+  .error-msg { background:rgba(239,68,68,0.12); border:1px solid rgba(239,68,68,0.35); color:#fca5a5; border-radius:8px; padding:10px 14px; font-size:13px; width:100%; max-width:400px; margin-bottom:14px; text-align:center; }
 
   /* ── Signup extras ── */
   .hashtag-status { font-size:11px; margin-top:4px; padding-left:4px; min-height:16px; }
   .hashtag-ok { color:#4ade80; }
   .hashtag-taken { color:#f87171; }
-  #signupSection { display:none; }
+
+  /* SECTIONS — login visible by default, signup hidden */
+  #loginSection  { width:100%; max-width:400px; display:flex; flex-direction:column; align-items:center; }
+  #signupSection { width:100%; max-width:400px; display:none;  flex-direction:column; align-items:center; }
 </style>
 </head>
 <body>
 <div class="top-section">
 
+  <!-- LOGO -->
   <div class="logo-wrap">
-    <img src="https://media.base44.com/images/public/6a14ef767988d1ef0baff5aa/clean/shotgun_bank_main_logo_clean.png"
-         class="logo-img" alt="Shotgun Bank"
-         onerror="this.style.display='none'">
+    <img src="https://base44.app/api/apps/6a14ef767988d1ef0baff5aa/files/mp/public/6a14ef767988d1ef0baff5aa/95e1e7553_shotgun_bank_main_logo_clean.png" class="logo-img" alt="Shotgun Bank"
+         onerror="this.src='https://media.base44.com/images/public/6a14ef767988d1ef0baff5aa/clean/shotgun_bank_main_logo_clean.png'">
     <div class="logo-text">SHOTGUN BANK</div>
   </div>
 
-  <div class="greeting" id="greeting">Good Morning</div>
-
+  <!-- TABS -->
   <div class="tab-row">
-    <div class="tab active" id="tabLogin" onclick="switchTab('login')">Sign In</div>
-    <div class="tab" id="tabSignup" onclick="switchTab('signup')">Create Account</div>
+    <div class="tab active" id="tabLogin"  onclick="switchTab('login')">Sign In</div>
+    <div class="tab"        id="tabSignup" onclick="switchTab('signup')">Create Account</div>
   </div>
 
   {% if error %}<div class="error-msg">{{ error }}</div>{% endif %}
 
-  <!-- LOGIN -->
-  <div id="loginSection" style="width:100%;max-width:400px;display:flex;flex-direction:column;align-items:center;">
+  <!-- LOGIN SECTION (shown by default) -->
+  <div id="loginSection">
     <form method="POST" action="/login" style="width:100%">
       <div class="field-wrap">
         <input type="text" name="hashtag" id="loginHashtag" placeholder="$Hashtag or Email" autocomplete="username" required>
@@ -127,12 +120,13 @@
       <button type="submit" class="btn-main">Sign In</button>
     </form>
     <div class="links-row">
+      <a href="#" onclick="switchTab('signup');return false;">Don't have an account? Create one</a>
       <a href="/forgot-pin">Forgot PIN?</a>
     </div>
   </div>
 
-  <!-- SIGNUP -->
-  <div id="signupSection" style="width:100%;max-width:400px;display:flex;flex-direction:column;align-items:center;">
+  <!-- SIGNUP SECTION (hidden until tab clicked) -->
+  <div id="signupSection">
     <form method="POST" action="/signup" style="width:100%">
       <div class="field-wrap">
         <input type="text" name="first_name" placeholder="First Name" required>
@@ -159,37 +153,28 @@
       <button type="submit" class="btn-main">Create Account</button>
     </form>
     <div class="links-row">
-      <a href="#" onclick="switchTab('login')">Already have an account? Sign In</a>
+      <a href="#" onclick="switchTab('login');return false;">Already have an account? Sign In</a>
     </div>
   </div>
-</div>
+
+</div><!-- /top-section -->
 
 <div class="bottom-bar">
-  <a href="mailto:support@shotgunbank.com">📞 &nbsp;SUPPORT</a>
-  <a href="/admin/login">🔒 &nbsp;ADMIN</a>
-</div>
-
-<div class="cards-section">
-  <div class="card">
-    <div class="card-dot"></div>
-    <div class="card-text">Send money instantly with your $hashtag</div>
-  </div>
-  <div class="card">
-    <div class="card-dot"></div>
-    <div class="card-text">Get your tax refund deposited directly to Shotgun</div>
-  </div>
+  <a href="mailto:support@shotgunbank.com">SUPPORT</a>
+  <a href="/admin/login">ADMIN</a>
 </div>
 
 <script>
-  const h = new Date().getHours();
-  document.getElementById('greeting').textContent =
-    h < 12 ? 'Good Morning' : h < 17 ? 'Good Afternoon' : 'Good Evening';
+  // Time-based greeting (optional — remove if not needed)
+  // const h = new Date().getHours();
+  // document.getElementById('greeting').textContent =
+  //   h < 12 ? 'Good Morning' : h < 17 ? 'Good Afternoon' : 'Good Evening';
 
   function switchTab(tab) {
     const isLogin = tab === 'login';
-    document.getElementById('loginSection').style.display = isLogin ? 'flex' : 'none';
-    document.getElementById('signupSection').style.display = isLogin ? 'none' : 'flex';
-    document.getElementById('tabLogin').classList.toggle('active', isLogin);
+    document.getElementById('loginSection').style.display  = isLogin ? 'flex' : 'none';
+    document.getElementById('signupSection').style.display = isLogin ? 'none'  : 'flex';
+    document.getElementById('tabLogin').classList.toggle('active',  isLogin);
     document.getElementById('tabSignup').classList.toggle('active', !isLogin);
   }
 
@@ -203,20 +188,17 @@
   function checkHashtag(val) {
     const el = document.getElementById('hashtagStatus');
     clearTimeout(hashtagTimer);
-    val = val.trim().replace(/^[$#]/,'');
-    if (!val) { el.textContent = ''; return; }
-    el.textContent = 'Checking...'; el.className = 'hashtag-status';
+    if (!val || val.length < 2) { el.textContent = ''; return; }
     hashtagTimer = setTimeout(async () => {
       try {
-        const r = await fetch('/api/check-hashtag?tag=' + encodeURIComponent(val));
-        const d = await r.json();
-        if (d.available) { el.textContent = '✓ $' + val.toUpperCase() + ' is available'; el.className = 'hashtag-status hashtag-ok'; }
-        else { el.textContent = '✗ Already taken'; el.className = 'hashtag-status hashtag-taken'; }
-      } catch { el.textContent = ''; }
+        const tag = val.startsWith('$') ? val : '$' + val;
+        const res = await fetch('/check-tag?tag=' + encodeURIComponent(tag));
+        const d   = await res.json();
+        el.className = 'hashtag-status ' + (d.available ? 'hashtag-ok' : 'hashtag-taken');
+        el.textContent = d.available ? '✓ ' + tag + ' is available' : '✗ ' + tag + ' is taken';
+      } catch(e) { el.textContent = ''; }
     }, 500);
   }
-
-  if (window.location.hash === '#signup') switchTab('signup');
 </script>
 </body>
 </html>
