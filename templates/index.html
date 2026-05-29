@@ -11,233 +11,113 @@
   body { display:flex; flex-direction:column; min-height:100vh; background:#0a2218; }
 
   .top-section {
-    flex:1;
-    background:#0a2218;
-    display:flex;
-    flex-direction:column;
-    align-items:center;
-    justify-content:flex-start;
-    padding:52px 28px 32px;
+    flex:1; background:#0a2218;
+    display:flex; flex-direction:column; align-items:center;
+    justify-content:flex-start; padding:52px 28px 32px;
   }
 
-  .logo-wrap {
-    display:flex;
-    align-items:center;
-    gap:12px;
-    margin-bottom:48px;
-  }
-  .logo-img { width:44px; height:44px; object-fit:contain; }
-  .logo-text {
-    color:#fff;
-    font-size:20px;
-    font-weight:700;
-    letter-spacing:1px;
-  }
+  /* ── Logo ── */
+  .logo-wrap { display:flex; align-items:center; gap:12px; margin-bottom:48px; }
+  .logo-img { width:46px; height:46px; object-fit:contain; }
+  .logo-text { color:#fff; font-size:20px; font-weight:700; letter-spacing:1px; }
 
-  .greeting {
-    color:rgba(255,255,255,0.6);
-    font-size:28px;
-    font-weight:300;
-    margin-bottom:36px;
-    text-align:center;
-    letter-spacing:-0.3px;
-  }
+  /* ── Greeting ── */
+  .greeting { color:rgba(255,255,255,0.6); font-size:28px; font-weight:300; margin-bottom:28px; text-align:center; letter-spacing:-0.3px; }
 
+  /* ── Tabs ── */
   .tab-row {
-    display:flex;
-    width:100%;
-    max-width:400px;
-    background:rgba(255,255,255,0.07);
-    border-radius:8px;
-    padding:4px;
-    margin-bottom:28px;
+    display:flex; width:100%; max-width:400px;
+    background:rgba(255,255,255,0.07); border-radius:8px; padding:4px; margin-bottom:28px;
   }
   .tab {
-    flex:1;
-    padding:10px;
-    text-align:center;
-    border-radius:6px;
-    font-size:14px;
-    font-weight:600;
-    color:rgba(255,255,255,0.45);
-    cursor:pointer;
-    transition:all 0.2s;
-    letter-spacing:0.3px;
+    flex:1; padding:10px; text-align:center; border-radius:6px;
+    font-size:14px; font-weight:600; color:rgba(255,255,255,0.4); cursor:pointer; transition:all 0.2s; letter-spacing:0.3px;
   }
-  .tab.active {
-    background:#16a34a;
-    color:#fff;
-  }
+  .tab.active { background:#16a34a; color:#fff; }
 
-  .field-wrap {
-    width:100%;
-    max-width:400px;
-    margin-bottom:14px;
-    position:relative;
-  }
+  /* ── Fields ── */
+  .field-wrap { width:100%; max-width:400px; margin-bottom:14px; position:relative; }
   .field-wrap label {
-    position:absolute;
-    top:-9px;
-    left:14px;
-    background:#0a2218;
-    padding:0 4px;
-    color:rgba(255,255,255,0.55);
-    font-size:12px;
-    font-weight:500;
-    letter-spacing:0.4px;
-    pointer-events:none;
+    position:absolute; top:-9px; left:14px;
+    background:#0a2218; padding:0 4px;
+    color:rgba(255,255,255,0.55); font-size:12px; font-weight:500; letter-spacing:0.4px; pointer-events:none;
   }
   .field-wrap input {
-    width:100%;
-    padding:16px 48px 16px 16px;
-    background:transparent;
-    border:1.5px solid rgba(255,255,255,0.3);
-    border-radius:6px;
-    color:#fff;
-    font-size:16px;
-    outline:none;
-    transition:border-color 0.2s;
-    -webkit-appearance:none;
+    width:100%; padding:16px 48px 16px 16px; background:transparent;
+    border:1.5px solid rgba(255,255,255,0.3); border-radius:6px;
+    color:#fff; font-size:16px; outline:none; transition:border-color 0.2s; -webkit-appearance:none;
   }
   .field-wrap input::placeholder { color:transparent; }
-  .field-wrap input:focus { border-color:#16a34a; }
-
+  .field-wrap input:focus { border-color:#22c55e; }
   .eye-btn {
-    position:absolute;
-    right:14px;
-    top:50%;
-    transform:translateY(-50%);
-    background:none;
-    border:none;
-    cursor:pointer;
-    color:rgba(255,255,255,0.5);
-    font-size:18px;
-    padding:4px;
+    position:absolute; right:14px; top:50%; transform:translateY(-50%);
+    background:none; border:none; cursor:pointer; color:rgba(255,255,255,0.5); font-size:18px; padding:4px;
   }
 
+  /* ── Button ── */
   .btn-main {
-    width:100%;
-    max-width:400px;
-    padding:17px;
-    margin-top:8px;
-    background:#16a34a;
-    border:none;
-    border-radius:6px;
-    color:#fff;
-    font-size:16px;
-    font-weight:700;
-    letter-spacing:1px;
-    cursor:pointer;
-    transition:background 0.2s;
-    -webkit-appearance:none;
+    width:100%; max-width:400px; padding:17px; margin-top:8px;
+    background:#16a34a; border:none; border-radius:6px;
+    color:#fff; font-size:16px; font-weight:700; letter-spacing:1px;
+    cursor:pointer; transition:background 0.2s; -webkit-appearance:none;
   }
   .btn-main:hover { background:#15803d; }
   .btn-main:active { background:#166534; }
 
-  .links-row {
-    display:flex;
-    flex-direction:column;
-    align-items:center;
-    gap:10px;
-    margin-top:20px;
-  }
-  .links-row a {
-    color:rgba(255,255,255,0.45);
-    font-size:11px;
-    font-weight:600;
-    letter-spacing:1.2px;
-    text-transform:uppercase;
-    text-decoration:none;
-  }
-  .links-row a:hover { color:rgba(255,255,255,0.8); }
+  /* ── Links ── */
+  .links-row { display:flex; flex-direction:column; align-items:center; gap:10px; margin-top:20px; }
+  .links-row a { color:rgba(255,255,255,0.45); font-size:11px; font-weight:600; letter-spacing:1.2px; text-transform:uppercase; text-decoration:none; }
+  .links-row a:hover { color:rgba(255,255,255,0.85); }
 
+  /* ── Bottom bar ── */
   .bottom-bar {
-    background:#0a2218;
-    border-top:1px solid rgba(255,255,255,0.08);
-    padding:14px 28px;
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
+    background:#071a12; border-top:1px solid rgba(255,255,255,0.08);
+    padding:14px 28px; display:flex; justify-content:space-between; align-items:center;
   }
-  .bottom-bar a {
-    color:rgba(255,255,255,0.45);
-    font-size:11px;
-    font-weight:600;
-    letter-spacing:1.2px;
-    text-transform:uppercase;
-    text-decoration:none;
-    display:flex;align-items:center;gap:6px;
-  }
+  .bottom-bar a { color:rgba(255,255,255,0.45); font-size:11px; font-weight:600; letter-spacing:1.2px; text-transform:uppercase; text-decoration:none; display:flex; align-items:center; gap:6px; }
+  .bottom-bar a:hover { color:#fff; }
 
-  .cards-section {
-    background:#f0fdf4;
-    padding:16px;
-    display:flex;
-    gap:12px;
-  }
-  .card {
-    flex:1;
-    background:#fff;
-    border-radius:10px;
-    padding:16px;
-    min-height:90px;
-    display:flex;
-    flex-direction:column;
-    justify-content:space-between;
-    box-shadow:0 1px 4px rgba(0,0,0,0.07);
-  }
-  .card-dot { width:8px;height:8px;background:#16a34a;border-radius:50%; }
-  .card-text { color:#16a34a; font-size:13px; font-weight:500; line-height:1.4; }
+  /* ── Info cards ── */
+  .cards-section { background:#f0fdf4; padding:16px; display:flex; gap:12px; }
+  .card { flex:1; background:#fff; border-radius:10px; padding:16px; min-height:90px; display:flex; flex-direction:column; justify-content:space-between; box-shadow:0 1px 4px rgba(0,0,0,0.07); }
+  .card-dot { width:8px; height:8px; background:#16a34a; border-radius:50%; }
+  .card-text { color:#15803d; font-size:13px; font-weight:500; line-height:1.4; }
 
-  .error-msg {
-    background:rgba(239,68,68,0.12);
-    border:1px solid rgba(239,68,68,0.35);
-    color:#fca5a5;
-    border-radius:6px;
-    padding:10px 14px;
-    font-size:13px;
-    width:100%;
-    max-width:400px;
-    margin-bottom:12px;
-    text-align:center;
-  }
+  /* ── Alerts ── */
+  .error-msg { background:rgba(239,68,68,0.12); border:1px solid rgba(239,68,68,0.35); color:#fca5a5; border-radius:6px; padding:10px 14px; font-size:13px; width:100%; max-width:400px; margin-bottom:12px; text-align:center; }
 
-  /* Signup extras */
+  /* ── Signup extras ── */
   .hashtag-status { font-size:11px; margin-top:4px; padding-left:4px; min-height:16px; }
   .hashtag-ok { color:#4ade80; }
   .hashtag-taken { color:#f87171; }
-
   #signupSection { display:none; }
 </style>
 </head>
 <body>
-
 <div class="top-section">
-  <!-- Logo -->
+
   <div class="logo-wrap">
     <img src="https://media.base44.com/images/public/6a14ef767988d1ef0baff5aa/clean/shotgun_bank_main_logo_clean.png"
-         class="logo-img" alt="Shotgun" onerror="this.style.display='none'">
+         class="logo-img" alt="Shotgun"
+         onerror="this.outerHTML='<div style=&quot;width:46px;height:46px;background:rgba(255,255,255,0.12);border:1.5px solid rgba(255,255,255,0.25);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:22px;&quot;>🔫</div>'">
     <div class="logo-text">SHOTGUN BANK</div>
   </div>
 
   <div class="greeting" id="greeting">Good Morning</div>
 
-  <!-- Tab switch -->
   <div class="tab-row">
     <div class="tab active" id="tabLogin" onclick="switchTab('login')">Sign In</div>
     <div class="tab" id="tabSignup" onclick="switchTab('signup')">Create Account</div>
   </div>
 
-  {% if error %}
-    <div class="error-msg">{{ error }}</div>
-  {% endif %}
+  {% if error %}<div class="error-msg">{{ error }}</div>{% endif %}
 
-  <!-- LOGIN FORM -->
+  <!-- LOGIN -->
   <div id="loginSection" style="width:100%;max-width:400px;display:flex;flex-direction:column;align-items:center;">
     <form method="POST" action="/login" style="width:100%">
       <div class="field-wrap">
-        <input type="text" name="hashtag" id="loginHashtag" placeholder="Hashtag or Email" autocomplete="username" required>
-        <label for="loginHashtag">Hashtag or Email</label>
+        <input type="text" name="hashtag" id="loginHashtag" placeholder="$Hashtag or Email" autocomplete="username" required>
+        <label for="loginHashtag">$Hashtag or Email</label>
       </div>
       <div class="field-wrap">
         <input type="password" name="pin" id="loginPin" placeholder="PIN" autocomplete="current-password" inputmode="numeric" maxlength="6" required>
@@ -251,7 +131,7 @@
     </div>
   </div>
 
-  <!-- SIGNUP FORM -->
+  <!-- SIGNUP -->
   <div id="signupSection" style="width:100%;max-width:400px;display:flex;flex-direction:column;align-items:center;">
     <form method="POST" action="/signup" style="width:100%">
       <div class="field-wrap">
@@ -267,14 +147,12 @@
         <label>Email</label>
       </div>
       <div class="field-wrap">
-        <input type="text" name="hashtag" id="signupHashtag" placeholder="Hashtag (e.g. $ITALY)" 
-               required oninput="checkHashtag(this.value)">
+        <input type="text" name="hashtag" id="signupHashtag" placeholder="$Hashtag (e.g. $ITALY)" required oninput="checkHashtag(this.value)">
         <label for="signupHashtag">Your $Hashtag</label>
         <div class="hashtag-status" id="hashtagStatus"></div>
       </div>
       <div class="field-wrap">
-        <input type="password" name="pin" id="signupPin" placeholder="Choose a 6-digit PIN" 
-               inputmode="numeric" maxlength="6" required>
+        <input type="password" name="pin" id="signupPin" placeholder="Choose a 6-digit PIN" inputmode="numeric" maxlength="6" required>
         <label for="signupPin">6-Digit PIN</label>
         <button type="button" class="eye-btn" onclick="toggleField('signupPin',this)">👁</button>
       </div>
@@ -286,13 +164,11 @@
   </div>
 </div>
 
-<!-- Bottom bar -->
 <div class="bottom-bar">
   <a href="mailto:support@shotgunbank.com">📞 &nbsp;SUPPORT</a>
   <a href="/admin/login">🔒 &nbsp;ADMIN</a>
 </div>
 
-<!-- Info cards -->
 <div class="cards-section">
   <div class="card">
     <div class="card-dot"></div>
@@ -329,24 +205,17 @@
     clearTimeout(hashtagTimer);
     val = val.trim().replace(/^[$#]/,'');
     if (!val) { el.textContent = ''; return; }
-    el.textContent = 'Checking...';
-    el.className = 'hashtag-status';
+    el.textContent = 'Checking...'; el.className = 'hashtag-status';
     hashtagTimer = setTimeout(async () => {
       try {
         const r = await fetch('/api/check-hashtag?tag=' + encodeURIComponent(val));
         const d = await r.json();
-        if (d.available) {
-          el.textContent = '✓ $' + val.toUpperCase() + ' is available';
-          el.className = 'hashtag-status hashtag-ok';
-        } else {
-          el.textContent = '✗ Already taken';
-          el.className = 'hashtag-status hashtag-taken';
-        }
+        if (d.available) { el.textContent = '✓ $' + val.toUpperCase() + ' is available'; el.className = 'hashtag-status hashtag-ok'; }
+        else { el.textContent = '✗ Already taken'; el.className = 'hashtag-status hashtag-taken'; }
       } catch { el.textContent = ''; }
     }, 500);
   }
 
-  // Check for #signup hash in URL
   if (window.location.hash === '#signup') switchTab('signup');
 </script>
 </body>
