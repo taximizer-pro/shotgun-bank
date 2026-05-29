@@ -1,14 +1,14 @@
-import os, json, hashlib, secrets, string, random, urllib.parse as _uparse, urllib.request
-from flask import Flask, request, jsonify, session, redirect, url_for, render_template
+import os, json, hashlib, secrets, string, random, urllib.parse as _uparse, urllib.request, time
+from flask import Flask, request, jsonify, session, redirect, render_template
 import stripe
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("FLASK_SECRET", secrets.token_hex(32))
 
 # ── STRIPE ────────────────────────────────────────────────────────────────────
-STRIPE_SK   = os.environ.get("STRIPE_SECRET_KEY","")
-STRIPE_PK   = os.environ.get("STRIPE_PUBLISHABLE_KEY","")
-STRIPE_WH   = os.environ.get("STRIPE_WEBHOOK_SECRET","")
+STRIPE_SK  = os.environ.get("STRIPE_SECRET_KEY","")
+STRIPE_PK  = os.environ.get("STRIPE_PUBLISHABLE_KEY","")
+STRIPE_WH  = os.environ.get("STRIPE_WEBHOOK_SECRET","")
 stripe.api_key = STRIPE_SK
 
 # ── BASE44 ────────────────────────────────────────────────────────────────────
@@ -17,62 +17,87 @@ B44_APP  = "6a14ef767988d1ef0baff5aa"
 B44_BASE = f"https://app.base44.com/api/apps/{B44_APP}/entities"
 SG_URL   = f"{B44_BASE}/ShotgunAccount"
 TX_URL   = f"{B44_BASE}/ShotgunTransaction"
-CT_URL   = f"{B44_BASE}/ShotgunContact"
 
 # ── FEE STRUCTURE ─────────────────────────────────────────────────────────────
-FEE_CREDIT_CARD   = 0.04      # 4%
-FEE_INSTANT_WD    = 0.0575    # 5.75%
-FEE_STANDARD_WD   = 0.015     # 1.5%
-FEE_REJECTED      = 5.00      # $5 flat
-FEE_P2P_SENDER    = 1.50      # $1.50 sender
-FEE_P2P_RECIPIENT = 1.50      # $1.50 recipient
+FEE_CREDIT_CARD   = 0.04    # 4%  — card deposits
+FEE_ACH_DEPOSIT   = 0.00    # 0%  — bank deposits free (incentivize linking)
+FEE_INSTANT_WD    = 0.0575  # 5.75% — instant to debit card
+FEE_STANDARD_WD   = 0.015   # 1.5%  — standard ACH 1-3 days
+FEE_REJECTED      = 5.00    # $5 flat — failed payment
+FEE_P2P_SENDER    = 1.50
+FEE_P2P_RECIPIENT = 1.50
+FEE_CRYPTO        = 0.02    # 2% — crypto conversion
 
-def b44_headers():
+def b44h():
     return {"Authorization": f"Bearer {B44_KEY}", "Content-Type": "application/json"}
 
 def b44_get(url):
-    req = urllib.request.Request(url, headers=b44_headers())
+    req = urllib.request.Request(url, headers=b44h())
     with urllib.request.urlopen(req, timeout=20) as r:
         return json.loads(r.read())
 
 def b44_post(url, data):
-    req = urllib.request.Request(url, data=json.dumps(data).encode(), method="POST", headers=b44_headers())
+    req = urllib.request.Request(url, data=json.dumps(data).encode(), method="POST", headers=b44h())
     with urllib.request.urlopen(req, timeout=20) as r:
         return json.loads(r.read())
 
 def b44_put(url, data):
-    req = urllib.request.Request(url, data=json.dumps(data).encode(), method="PUT", headers=b44_headers())
+    req = urllib.request.Request(url, data=json.dumps(data).encode(), method="PUT", headers=b44h())
     with urllib.request.urlopen(req, timeout=20) as r:
         return json.loads(r.read())
 
-def hash_pin(pin):
-    return hashlib.sha256(pin.encode()).hexdigest()
+def hash_pin(pin): return hashlib.sha256(pin.encode()).hexdigest()
+def gen_routing(): return "021" + str(random.randint(100000000, 999999999))
+def gen_account(): return str(random.randint(1000000000, 9999999999))
+def gen_card(): return "4" + "".join([str(random.randint(0,9)) for _ in range(15)])
+def gen_cvv(): return str(random.randint(100,999))
+def gen_exp(): return "12/28"
 
-def gen_routing():
-    return "021" + str(random.randint(100000000, 999999999))
+def get_acct(sg_id):
+    r = b44_get(f"{SG_URL}/{sg_id}")
+    return r if isinstance(r, dict) else (r[0] if r else None)
 
-def gen_account():
-    return str(random.randint(1000000000, 9999999999))
+def get_acct_by_tag(tag):
+    tag = tag.lower().replace("#","")
+    r = b44_get(f"{SG_URL}?hashtag={_uparse.quote(tag)}&limit=1")
+    lst = r if isinstance(r,list) else r.get("results",[])
+    return lst[0] if lst else None
 
-def gen_card():
-    return "4" + "".join([str(random.randint(0,9)) for _ in range(15)])
+def get_acct_by_email(email):
+    r = b44_get(f"{SG_URL}?email={_uparse.quote(email)}&limit=1")
+    lst = r if isinstance(r,list) else r.get("results",[])
+    return lst[0] if lst else None
 
-def gen_cvv():
-    return str(random.randint(100,999))
+def get_crypto_price(symbol):
+    """Fetch live crypto price via CoinGecko (free, no key)."""
+    ids = {"BTC":"bitcoin","ETH":"ethereum","SOL":"solana","USDC":"usd-coin","DOGE":"dogecoin"}
+    cg_id = ids.get(symbol.upper())
+    if not cg_id: return None
+    try:
+        req = urllib.request.Request(
+            f"https://api.coingecko.com/api/v3/simple/price?ids={cg_id}&vs_currencies=usd",
+            headers={"User-Agent":"shotgun-bank/1.0"})
+        with urllib.request.urlopen(req, timeout=8) as res:
+            data = json.loads(res.read())
+            return data.get(cg_id,{}).get("usd")
+    except:
+        return None
 
-def gen_exp():
-    return "12/28"
-
-# ── ROUTES ────────────────────────────────────────────────────────────────────
+# ─────────────────────────────────────────────────────────────────────────────
+# PAGE ROUTES
+# ─────────────────────────────────────────────────────────────────────────────
 
 @app.route("/")
 def index():
     return render_template("index.html", stripe_pk=STRIPE_PK)
 
+@app.route("/dashboard")
+def dashboard():
+    return render_template("dashboard.html", stripe_pk=STRIPE_PK)
+
 @app.route("/admin")
 def admin():
-    if not session.get("admin"):
-        return redirect("/admin/login")
+    if not session.get("admin"): return redirect("/admin/login")
     return render_template("admin.html")
 
 @app.route("/admin/login", methods=["GET","POST"])
@@ -96,126 +121,15 @@ def admin_logout():
     session.pop("admin", None)
     return redirect("/admin/login")
 
-# ── STRIPE PUBLISHABLE KEY ────────────────────────────────────────────────────
-@app.route("/api/config")
-def api_config():
-    return jsonify({"publishable_key": STRIPE_PK})
-
-# ── HASHTAG CHECK ──────────────────────────────────────────────────────────────
-@app.route("/api/check-hashtag")
-def check_hashtag():
-    tag = request.args.get("tag","").strip().lower()
-    if not tag or len(tag) < 3:
-        return jsonify({"available": False, "reason": "Too short"})
-    try:
-        records = b44_get(f"{SG_URL}?hashtag={_uparse.quote(tag)}&limit=1")
-        available = not bool(records if isinstance(records, list) else records.get("results",[]))
-        return jsonify({"available": available})
-    except:
-        return jsonify({"available": False})
-
-# ── SIGNUP — Step 1: Create account + Stripe Connect ──────────────────────────
-@app.route("/api/signup", methods=["POST"])
-def signup():
-    d = request.json or {}
-    first = d.get("first_name","").strip()
-    last  = d.get("last_name","").strip()
-    email = d.get("email","").strip().lower()
-    phone = d.get("phone","").strip()
-    tag   = d.get("hashtag","").strip().lower().replace("#","")
-    pin   = d.get("pin","").strip()
-    dob   = d.get("dob","").strip()  # YYYY-MM-DD
-
-    if not all([first, last, email, tag, pin, dob]):
-        return jsonify({"error": "All fields required"}), 400
-    if len(pin) != 4 or not pin.isdigit():
-        return jsonify({"error": "PIN must be 4 digits"}), 400
-
-    try:
-        # Check hashtag
-        existing = b44_get(f"{SG_URL}?hashtag={_uparse.quote(tag)}&limit=1")
-        if existing if isinstance(existing, list) else existing.get("results",[]):
-            return jsonify({"error": "Hashtag taken"}), 409
-
-        # Create Stripe Connect Express account
-        dob_parts = dob.split("-")
-        stripe_acct = stripe.Account.create(
-            type="express",
-            email=email,
-            capabilities={"card_payments": {"requested": True}, "transfers": {"requested": True}},
-            business_type="individual",
-            individual={
-                "first_name": first,
-                "last_name":  last,
-                "email":      email,
-                "phone":      phone or None,
-                "dob": {
-                    "year":  int(dob_parts[0]),
-                    "month": int(dob_parts[1]),
-                    "day":   int(dob_parts[2]),
-                } if len(dob_parts) == 3 else None,
-            },
-            metadata={"shotgun_hashtag": tag, "platform": "shotgun_bank"},
-            settings={"payouts": {"schedule": {"interval": "manual"}}},
-        )
-
-        # Create Stripe onboarding link
-        base_url = request.host_url.rstrip("/")
-        onboard_link = stripe.AccountLink.create(
-            account=stripe_acct.id,
-            refresh_url=f"{base_url}/onboard/refresh?tag={tag}",
-            return_url=f"{base_url}/onboard/complete?tag={tag}",
-            type="account_onboarding",
-        )
-
-        # Save to Base44
-        acct_data = {
-            "first_name":          first,
-            "last_name":           last,
-            "email":               email,
-            "phone":               phone,
-            "hashtag":             tag,
-            "pin_hash":            hash_pin(pin),
-            "status":              "onboarding",
-            "balance":             0.0,
-            "wise_account_id":     stripe_acct.id,
-            "routing_number":      gen_routing(),
-            "account_number":      gen_account(),
-            "virtual_card_number": gen_card(),
-            "virtual_card_cvv":    gen_cvv(),
-            "virtual_card_expiry": gen_exp(),
-            "beat_v_enabled":      False,
-            "beat_v_used":         False,
-            "lifetime_deposited":  0.0,
-            "funded_friends_count":0,
-        }
-        saved = b44_post(SG_URL, acct_data)
-        acct_id = saved.get("id","")
-
-        return jsonify({
-            "success":       True,
-            "account_id":    acct_id,
-            "stripe_account": stripe_acct.id,
-            "onboarding_url": onboard_link.url,
-        })
-    except stripe.error.StripeError as e:
-        return jsonify({"error": str(e.user_message or e)}), 400
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-# ── ONBOARD COMPLETE ──────────────────────────────────────────────────────────
 @app.route("/onboard/complete")
 def onboard_complete():
-    tag = request.args.get("tag","")
-    return render_template("onboard_complete.html", tag=tag)
+    return render_template("onboard_complete.html", tag=request.args.get("tag",""))
 
 @app.route("/onboard/refresh")
 def onboard_refresh():
     tag = request.args.get("tag","")
-    # Re-generate onboarding link
     try:
-        records = b44_get(f"{SG_URL}?hashtag={_uparse.quote(tag)}&limit=1")
-        acct = (records[0] if isinstance(records,list) else records.get("results",[])[0]) if records else None
+        acct = get_acct_by_tag(tag)
         if acct and acct.get("wise_account_id"):
             base_url = request.host_url.rstrip("/")
             link = stripe.AccountLink.create(
@@ -228,7 +142,104 @@ def onboard_refresh():
     except: pass
     return redirect("/")
 
-# ── LOGIN ──────────────────────────────────────────────────────────────────────
+# ─────────────────────────────────────────────────────────────────────────────
+# API — CONFIG & UTILS
+# ─────────────────────────────────────────────────────────────────────────────
+
+@app.route("/api/config")
+def api_config():
+    return jsonify({"publishable_key": STRIPE_PK})
+
+@app.route("/api/check-hashtag")
+def check_hashtag():
+    tag = request.args.get("tag","").strip().lower().replace("#","")
+    if not tag or len(tag) < 2:
+        return jsonify({"available": False, "reason": "Too short"})
+    try:
+        acct = get_acct_by_tag(tag)
+        return jsonify({"available": acct is None})
+    except:
+        return jsonify({"available": False})
+
+# ─────────────────────────────────────────────────────────────────────────────
+# SIGNUP — creates Stripe Connect Express + Base44 record
+# ─────────────────────────────────────────────────────────────────────────────
+
+@app.route("/api/signup", methods=["POST"])
+def signup():
+    d = request.json or {}
+    first = d.get("first_name","").strip()
+    last  = d.get("last_name","").strip()
+    email = d.get("email","").strip().lower()
+    phone = d.get("phone","").strip()
+    tag   = d.get("hashtag","").strip().lower().replace("#","")
+    pin   = d.get("pin","").strip()
+    dob   = d.get("dob","").strip()  # YYYY-MM-DD
+
+    if not all([first, last, email, tag, pin]):
+        return jsonify({"error": "All fields required"}), 400
+    if len(pin) < 4 or not pin.isdigit():
+        return jsonify({"error": "PIN must be 4+ digits"}), 400
+
+    try:
+        if get_acct_by_tag(tag):
+            return jsonify({"error": "That #hashtag is already taken"}), 409
+        if get_acct_by_email(email):
+            return jsonify({"error": "An account with that email already exists"}), 409
+
+        # Create Stripe Connect Express account
+        individual = {"first_name": first, "last_name": last, "email": email}
+        if phone: individual["phone"] = phone
+        if dob:
+            parts = dob.split("-")
+            if len(parts) == 3:
+                individual["dob"] = {"year": int(parts[0]), "month": int(parts[1]), "day": int(parts[2])}
+
+        stripe_acct = stripe.Account.create(
+            type="express",
+            email=email,
+            capabilities={"card_payments": {"requested": True}, "transfers": {"requested": True}},
+            business_type="individual",
+            individual=individual,
+            metadata={"shotgun_hashtag": tag, "platform": "shotgun_bank"},
+            settings={"payouts": {"schedule": {"interval": "manual"}}},
+        )
+
+        base_url = request.host_url.rstrip("/")
+        onboard_link = stripe.AccountLink.create(
+            account=stripe_acct.id,
+            refresh_url=f"{base_url}/onboard/refresh?tag={tag}",
+            return_url=f"{base_url}/onboard/complete?tag={tag}",
+            type="account_onboarding",
+        )
+
+        saved = b44_post(SG_URL, {
+            "first_name": first, "last_name": last, "email": email,
+            "phone": phone, "hashtag": tag, "pin_hash": hash_pin(pin),
+            "status": "onboarding", "balance": 0.0,
+            "wise_account_id": stripe_acct.id,
+            "routing_number": gen_routing(), "account_number": gen_account(),
+            "virtual_card_number": gen_card(), "virtual_card_cvv": gen_cvv(),
+            "virtual_card_expiry": gen_exp(),
+            "beat_v_enabled": False, "beat_v_used": False,
+            "lifetime_deposited": 0.0, "funded_friends_count": 0,
+        })
+
+        return jsonify({
+            "success": True,
+            "account_id": saved.get("id",""),
+            "stripe_account": stripe_acct.id,
+            "onboarding_url": onboard_link.url,
+        })
+    except stripe.error.StripeError as e:
+        return jsonify({"error": str(e.user_message or e)}), 400
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+# ─────────────────────────────────────────────────────────────────────────────
+# LOGIN
+# ─────────────────────────────────────────────────────────────────────────────
+
 @app.route("/api/login", methods=["POST"])
 def login():
     d = request.json or {}
@@ -237,241 +248,448 @@ def login():
     if not identifier or not pin:
         return jsonify({"error": "Missing credentials"}), 400
     try:
-        records = b44_get(f"{SG_URL}?email={_uparse.quote(identifier)}&limit=1")
-        if not records or (isinstance(records,list) and not records):
-            records = b44_get(f"{SG_URL}?hashtag={_uparse.quote(identifier)}&limit=1")
-        acct = (records[0] if isinstance(records,list) else None) if records else None
-        if not acct:
-            return jsonify({"error": "Account not found"}), 404
-        if acct.get("status") == "onboarding":
-            return jsonify({"status": "onboarding", "stripe_account": acct.get("wise_account_id","")})
-        if acct.get("status") == "pending":
-            return jsonify({"status": "pending"})
-        if acct.get("status") == "denied":
-            return jsonify({"error": "Account not approved"}), 403
+        acct = get_acct_by_email(identifier) or get_acct_by_tag(identifier)
+        if not acct: return jsonify({"error": "Account not found"}), 404
+        status = acct.get("status","")
+        if status == "onboarding":
+            return jsonify({"status":"onboarding","stripe_account":acct.get("wise_account_id",""),"account_id":acct.get("id","")})
+        if status == "pending":
+            return jsonify({"status":"pending","message":"Your account is under review. You'll be notified once approved."})
+        if status == "denied":
+            return jsonify({"error": "Account not approved. Contact support."}), 403
         if acct.get("pin_hash") != hash_pin(pin):
             return jsonify({"error": "Incorrect PIN"}), 401
-        # Must have payment method linked
-        has_payment = bool(acct.get("linked_card_last4") or acct.get("linked_routing"))
-        b44_put(f"{SG_URL}/{acct['id']}", {"is_online": True})
-        return jsonify({"success": True, "account": acct, "has_payment": has_payment})
+        return jsonify({"success": True, "account": {
+            "id": acct["id"], "hashtag": acct.get("hashtag",""),
+            "first_name": acct.get("first_name",""), "last_name": acct.get("last_name",""),
+            "email": acct.get("email",""), "balance": acct.get("balance",0),
+            "status": status, "beat_v_enabled": acct.get("beat_v_enabled",False),
+            "routing_number": acct.get("routing_number",""),
+            "account_number": acct.get("account_number",""),
+            "virtual_card_number": acct.get("virtual_card_number",""),
+            "virtual_card_cvv": acct.get("virtual_card_cvv",""),
+            "virtual_card_expiry": acct.get("virtual_card_expiry",""),
+            "linked_bank": bool(acct.get("linked_routing")),
+        }})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-# ── ADD PAYMENT METHOD (bank or card via Stripe) ───────────────────────────────
-@app.route("/api/setup-payment", methods=["POST"])
-def setup_payment():
-    """Create a Stripe SetupIntent for saving a card or bank account."""
+# ─────────────────────────────────────────────────────────────────────────────
+# BANK LINK — Stripe Financial Connections (their Plaid equivalent)
+# Creates a Financial Connections Session for instant bank verification
+# ─────────────────────────────────────────────────────────────────────────────
+
+@app.route("/api/link-bank/session", methods=["POST"])
+def link_bank_session():
+    """Step 1: Create a Financial Connections session for instant bank verification."""
     d = request.json or {}
     sg_id = d.get("sg_account_id","")
+    if not sg_id: return jsonify({"error":"Missing account"}), 400
     try:
-        records = b44_get(f"{SG_URL}/{sg_id}")
-        acct = records if isinstance(records,dict) else (records[0] if records else None)
+        acct = get_acct(sg_id)
         if not acct: return jsonify({"error":"Account not found"}), 404
+
+        # Get or create Stripe customer for this user
         stripe_acct_id = acct.get("wise_account_id","")
-        # Create a Customer on the connected account for storing payment methods
-        customer = stripe.Customer.create(
-            email=acct.get("email",""),
-            name=f"{acct.get('first_name','')} {acct.get('last_name','')}".strip(),
-            stripe_account=stripe_acct_id,
+        customer_email = acct.get("email","")
+
+        # Create customer on the platform account (not connected account)
+        # to enable Financial Connections
+        existing_customers = stripe.Customer.list(email=customer_email, limit=1)
+        if existing_customers.data:
+            customer = existing_customers.data[0]
+        else:
+            customer = stripe.Customer.create(
+                email=customer_email,
+                name=f"{acct.get('first_name','')} {acct.get('last_name','')}",
+                metadata={"sg_account_id": sg_id, "hashtag": acct.get("hashtag","")},
+            )
+
+        # Create Financial Connections Session
+        # This verifies ownership + enables instant ACH
+        fc_session = stripe.financial_connections.Session.create(
+            account_holder={"type": "customer", "customer": customer.id},
+            permissions=["payment_method", "balances", "ownership"],
+            filters={"countries": ["US"]},
         )
-        # Save customer ID
-        b44_put(f"{SG_URL}/{sg_id}", {"linked_card_last4": "setup_pending"})
-        setup_intent = stripe.SetupIntent.create(
-            customer=customer.id,
-            payment_method_types=["card", "us_bank_account"],
-            stripe_account=stripe_acct_id,
-            metadata={"sg_account_id": sg_id},
-        )
-        return jsonify({"success": True, "client_secret": setup_intent.client_secret, "stripe_account": stripe_acct_id})
+
+        return jsonify({
+            "success": True,
+            "client_secret": fc_session.client_secret,
+            "customer_id": customer.id,
+        })
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-# ── DEPOSIT (card — 4% fee) ────────────────────────────────────────────────────
-@app.route("/api/deposit", methods=["POST"])
-def deposit():
+@app.route("/api/link-bank/confirm", methods=["POST"])
+def link_bank_confirm():
+    """Step 2: After FC session completes, attach the bank account as a payment method."""
     d = request.json or {}
-    sg_id  = d.get("sg_account_id","")
-    amount = float(d.get("amount",0))
-    pm_id  = d.get("payment_method_id","")  # Stripe PM id
-    if not sg_id or amount < 1:
-        return jsonify({"error": "Missing fields"}), 400
+    sg_id       = d.get("sg_account_id","")
+    fc_account  = d.get("financial_connections_account","")  # fc_acct_xxx id from JS
+    customer_id = d.get("customer_id","")
+    if not all([sg_id, fc_account, customer_id]):
+        return jsonify({"error":"Missing fields"}), 400
     try:
-        records = b44_get(f"{SG_URL}/{sg_id}")
-        acct = records if isinstance(records,dict) else (records[0] if records else None)
+        acct = get_acct(sg_id)
         if not acct: return jsonify({"error":"Account not found"}), 404
-        stripe_acct_id = acct.get("wise_account_id","")
-        amount_cents = int(amount * 100)
-        fee_cents    = int(amount * FEE_CREDIT_CARD * 100)
-        # Charge on connected account, platform takes fee
-        pi = stripe.PaymentIntent.create(
-            amount=amount_cents,
-            currency="usd",
-            payment_method=pm_id,
-            confirm=True,
-            automatic_payment_methods={"enabled": True, "allow_redirects": "never"},
-            application_fee_amount=fee_cents,
-            stripe_account=stripe_acct_id,
-            metadata={"sg_account_id": sg_id, "type": "deposit"},
+
+        # Create a PaymentMethod from the FC account
+        pm = stripe.PaymentMethod.create(
+            type="us_bank_account",
+            us_bank_account={"financial_connections_account": fc_account},
         )
-        if pi.status == "succeeded":
-            net = amount - (fee_cents / 100)
-            new_bal = float(acct.get("balance",0)) + net
-            new_dep = float(acct.get("lifetime_deposited",0)) + amount
-            b44_put(f"{SG_URL}/{sg_id}", {"balance": round(new_bal,2), "lifetime_deposited": round(new_dep,2)})
-            b44_post(TX_URL, {
-                "from_account_id": "external",
-                "to_account_id":   sg_id,
-                "to_hashtag":      acct.get("hashtag",""),
-                "to_name":         f"{acct.get('first_name','')} {acct.get('last_name','')}",
-                "amount":          amount,
-                "fee":             fee_cents/100,
-                "net_amount":      net,
-                "type":            "deposit",
-                "status":          "completed",
-                "note":            "Card deposit",
+
+        # Attach to customer
+        pm = stripe.PaymentMethod.attach(pm.id, customer=customer_id)
+
+        # Retrieve FC account details for display
+        fc_acct_obj = stripe.financial_connections.Account.retrieve(fc_account)
+        bank_name   = fc_acct_obj.institution_name or "Bank"
+        last4       = fc_acct_obj.last4 or "****"
+        acct_type   = fc_acct_obj.subcategory or "checking"
+
+        # Save to Base44
+        b44_put(f"{SG_URL}/{sg_id}", {
+            "linked_routing": fc_acct_obj.routing_number or "",
+            "linked_account": fc_account,
+            "linked_card_last4": last4,
+        })
+
+        # Save PM id and customer id in a note field for future charges
+        b44_put(f"{SG_URL}/{sg_id}", {
+            "payment_notes": json.dumps({
+                "stripe_customer_id": customer_id,
+                "stripe_pm_id": pm.id,
+                "bank_name": bank_name,
+                "last4": last4,
+                "type": acct_type,
             })
-            return jsonify({"success": True, "new_balance": round(new_bal,2), "fee": fee_cents/100})
-        else:
-            return jsonify({"error": "Payment not completed", "status": pi.status}), 400
-    except stripe.error.CardError as e:
-        # Charge $5 rejection fee
-        _charge_rejection_fee(sg_id)
-        return jsonify({"error": e.user_message or "Card declined", "rejection_fee": True}), 402
+        })
+
+        return jsonify({
+            "success": True,
+            "bank_name": bank_name,
+            "last4": last4,
+            "account_type": acct_type,
+            "payment_method_id": pm.id,
+        })
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+# ─────────────────────────────────────────────────────────────────────────────
+# DEPOSIT — Card (4%) or ACH/Bank (free) or manual top-up
+# ─────────────────────────────────────────────────────────────────────────────
+
+@app.route("/api/deposit", methods=["POST"])
+def deposit():
+    d      = request.json or {}
+    sg_id  = d.get("sg_account_id","")
+    amount = float(d.get("amount", 0))
+    method = d.get("method","card")  # "card" | "bank"
+    pm_id  = d.get("payment_method_id","")
+    customer_id = d.get("customer_id","")
+
+    if not sg_id or amount < 1:
+        return jsonify({"error":"Missing fields or amount too low"}), 400
+    try:
+        acct = get_acct(sg_id)
+        if not acct: return jsonify({"error":"Account not found"}), 404
+
+        fee_pct  = FEE_CREDIT_CARD if method == "card" else FEE_ACH_DEPOSIT
+        fee_amt  = round(amount * fee_pct, 2)
+        net_amt  = round(amount - fee_amt, 2)
+        amt_cents = int(amount * 100)
+        fee_cents = int(fee_amt * 100)
+
+        stripe_acct_id = acct.get("wise_account_id","")
+
+        if method == "card":
+            # Charge card directly on connected account
+            pi = stripe.PaymentIntent.create(
+                amount=amt_cents,
+                currency="usd",
+                payment_method=pm_id,
+                customer=customer_id or None,
+                confirm=True,
+                automatic_payment_methods={"enabled": True, "allow_redirects": "never"},
+                application_fee_amount=fee_cents,
+                stripe_account=stripe_acct_id,
+                metadata={"sg_account_id": sg_id, "type":"deposit"},
+            )
+            if pi.status != "succeeded":
+                return jsonify({"error":"Payment not completed","status":pi.status}), 400
+        else:
+            # ACH bank debit — free for user
+            # Retrieve saved PM info
+            notes = acct.get("payment_notes","")
+            pm_data = json.loads(notes) if notes else {}
+            saved_pm  = pm_data.get("stripe_pm_id","")
+            saved_cust = pm_data.get("stripe_customer_id","")
+            use_pm    = pm_id or saved_pm
+            use_cust  = customer_id or saved_cust
+            if not use_pm: return jsonify({"error":"No bank account linked. Please link your bank first."}), 400
+            pi = stripe.PaymentIntent.create(
+                amount=amt_cents,
+                currency="usd",
+                payment_method_types=["us_bank_account"],
+                payment_method=use_pm,
+                customer=use_cust,
+                confirm=True,
+                mandate_data={"customer_acceptance": {"type":"online","online":{"ip_address":request.remote_addr or "127.0.0.1","user_agent":request.user_agent.string or "shotgun"}}},
+                metadata={"sg_account_id": sg_id, "type":"ach_deposit"},
+            )
+            # ACH takes 1-3 days — status will be processing
+            if pi.status not in ("succeeded","processing"):
+                return jsonify({"error":"ACH deposit failed","status":pi.status}), 400
+            # For processing, hold pending — webhook will confirm
+            if pi.status == "processing":
+                return jsonify({"success":True,"status":"processing","message":"ACH deposit initiated — funds arrive in 1-3 business days","fee":0})
+
+        # Immediately credit balance (card) or after webhook (ACH)
+        new_bal = round(float(acct.get("balance",0)) + net_amt, 2)
+        new_dep = round(float(acct.get("lifetime_deposited",0)) + amount, 2)
+        b44_put(f"{SG_URL}/{sg_id}", {"balance": new_bal, "lifetime_deposited": new_dep})
+        b44_post(TX_URL, {
+            "from_account_id":"external","to_account_id":sg_id,
+            "to_hashtag":acct.get("hashtag",""),
+            "to_name":f"{acct.get('first_name','')} {acct.get('last_name','')}",
+            "amount":amount,"fee":fee_amt,"net_amount":net_amt,
+            "type":"deposit","status":"completed",
+            "note":f"{'Card' if method=='card' else 'Bank'} deposit",
+        })
+        return jsonify({"success":True,"new_balance":new_bal,"fee":fee_amt,"net":net_amt})
+    except stripe.error.CardError as e:
+        _charge_rejection_fee(sg_id)
+        return jsonify({"error":e.user_message or "Card declined","rejection_fee":True}), 402
+    except Exception as e:
+        return jsonify({"error":str(e)}), 500
 
 def _charge_rejection_fee(sg_id):
     try:
-        records = b44_get(f"{SG_URL}/{sg_id}")
-        acct = records if isinstance(records,dict) else (records[0] if records else None)
+        acct = get_acct(sg_id)
         if not acct: return
-        new_bal = float(acct.get("balance",0)) - FEE_REJECTED
-        b44_put(f"{SG_URL}/{sg_id}", {"balance": round(new_bal,2)})
+        new_bal = round(float(acct.get("balance",0)) - FEE_REJECTED, 2)
+        b44_put(f"{SG_URL}/{sg_id}", {"balance": new_bal})
         b44_post(TX_URL, {
-            "from_account_id": sg_id,
-            "to_account_id":   "platform",
-            "from_hashtag":    acct.get("hashtag",""),
-            "amount":          FEE_REJECTED,
-            "fee":             FEE_REJECTED,
-            "net_amount":      FEE_REJECTED,
-            "type":            "rejection_fee",
-            "status":          "completed",
-            "note":            "Rejected payment fee",
+            "from_account_id":sg_id,"to_account_id":"platform",
+            "from_hashtag":acct.get("hashtag",""),
+            "amount":FEE_REJECTED,"fee":FEE_REJECTED,"net_amount":FEE_REJECTED,
+            "type":"rejection_fee","status":"completed","note":"Rejected payment fee $5",
         })
     except: pass
 
-# ── WITHDRAW — Instant (5.75%) or Standard (1.5%) ─────────────────────────────
+# ─────────────────────────────────────────────────────────────────────────────
+# WITHDRAW — Instant (5.75%) to debit card | Standard (1.5%) ACH
+# ─────────────────────────────────────────────────────────────────────────────
+
 @app.route("/api/withdraw", methods=["POST"])
 def withdraw():
-    d = request.json or {}
+    d      = request.json or {}
     sg_id  = d.get("sg_account_id","")
-    amount = float(d.get("amount",0))
-    speed  = d.get("speed","standard")  # "instant" or "standard"
+    amount = float(d.get("amount", 0))
+    speed  = d.get("speed","standard")  # "instant" | "standard"
     if not sg_id or amount < 1:
-        return jsonify({"error": "Missing fields"}), 400
-    fee_pct  = FEE_INSTANT_WD if speed == "instant" else FEE_STANDARD_WD
-    fee_amt  = round(amount * fee_pct, 2)
-    net_amt  = round(amount - fee_amt, 2)
+        return jsonify({"error":"Missing fields"}), 400
+    fee_pct = FEE_INSTANT_WD if speed == "instant" else FEE_STANDARD_WD
+    fee_amt = round(amount * fee_pct, 2)
+    net_amt = round(amount - fee_amt, 2)
     try:
-        records = b44_get(f"{SG_URL}/{sg_id}")
-        acct = records if isinstance(records,dict) else (records[0] if records else None)
+        acct = get_acct(sg_id)
         if not acct: return jsonify({"error":"Account not found"}), 404
         bal = float(acct.get("balance",0))
-        if amount > bal: return jsonify({"error": f"Insufficient balance (${bal:.2f})"}), 400
+        if amount > bal:
+            if not acct.get("beat_v_enabled") or (bal - amount < -100):
+                return jsonify({"error":f"Insufficient balance (${bal:.2f})"}), 400
         stripe_acct_id = acct.get("wise_account_id","")
-        if not stripe_acct_id: return jsonify({"error":"No Stripe account linked"}), 400
-        # Transfer net to connected account then payout
-        transfer = stripe.Transfer.create(
-            amount=int(net_amt * 100),
-            currency="usd",
+        if not stripe_acct_id:
+            return jsonify({"error":"No Stripe account linked. Complete onboarding first."}), 400
+        # Transfer to connected account
+        stripe.Transfer.create(
+            amount=int(net_amt * 100), currency="usd",
             destination=stripe_acct_id,
-            metadata={"sg_account_id": sg_id, "type": f"{speed}_withdrawal"},
+            metadata={"sg_account_id":sg_id,"type":f"{speed}_withdrawal"},
         )
-        payout = stripe.Payout.create(
-            amount=int(net_amt * 100),
-            currency="usd",
-            method="instant" if speed == "instant" else "standard",
+        # Payout from connected account to their bank/card
+        stripe.Payout.create(
+            amount=int(net_amt * 100), currency="usd",
+            method="instant" if speed=="instant" else "standard",
             stripe_account=stripe_acct_id,
         )
-        new_bal = bal - amount
-        b44_put(f"{SG_URL}/{sg_id}", {"balance": round(new_bal,2)})
+        new_bal = round(bal - amount, 2)
+        b44_put(f"{SG_URL}/{sg_id}", {"balance": new_bal})
         b44_post(TX_URL, {
-            "from_account_id": sg_id,
-            "to_account_id":   "external",
-            "from_hashtag":    acct.get("hashtag",""),
-            "amount":          amount,
-            "fee":             fee_amt,
-            "net_amount":      net_amt,
-            "type":            f"{speed}_withdrawal",
-            "status":          "completed",
-            "note":            f"{speed.title()} withdrawal to bank",
+            "from_account_id":sg_id,"to_account_id":"external",
+            "from_hashtag":acct.get("hashtag",""),
+            "amount":amount,"fee":fee_amt,"net_amount":net_amt,
+            "type":f"{speed}_withdrawal","status":"completed",
+            "note":f"{speed.title()} cash out to bank",
         })
-        return jsonify({"success": True, "new_balance": round(new_bal,2), "fee": fee_amt, "net": net_amt, "payout_id": payout.id})
+        return jsonify({"success":True,"new_balance":new_bal,"fee":fee_amt,"net":net_amt,
+                        "eta":"Instant (30 min)" if speed=="instant" else "1-3 business days"})
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error":str(e)}), 500
 
-# ── P2P SEND ──────────────────────────────────────────────────────────────────
+# ─────────────────────────────────────────────────────────────────────────────
+# P2P SEND — "Shoot It"
+# ─────────────────────────────────────────────────────────────────────────────
+
 @app.route("/api/send", methods=["POST"])
 def send_money():
-    d = request.json or {}
+    d          = request.json or {}
     from_id    = d.get("from_account_id","")
     to_hashtag = d.get("to_hashtag","").lower().replace("#","")
-    amount     = float(d.get("amount",0))
+    amount     = float(d.get("amount", 0))
     note       = d.get("note","")
     if not from_id or not to_hashtag or amount <= 0:
-        return jsonify({"error": "Missing fields"}), 400
-    total_debit = amount + FEE_P2P_SENDER
+        return jsonify({"error":"Missing fields"}), 400
+    total_debit = round(amount + FEE_P2P_SENDER, 2)
     try:
-        sender_rec  = b44_get(f"{SG_URL}/{from_id}")
-        sender      = sender_rec if isinstance(sender_rec,dict) else (sender_rec[0] if sender_rec else None)
-        recip_list  = b44_get(f"{SG_URL}?hashtag={_uparse.quote(to_hashtag)}&limit=1")
-        recipient   = (recip_list[0] if isinstance(recip_list,list) else None) if recip_list else None
+        sender    = get_acct(from_id)
+        recipient = get_acct_by_tag(to_hashtag)
         if not sender:    return jsonify({"error":"Sender not found"}), 404
-        if not recipient: return jsonify({"error":"Recipient not found — check the #hashtag"}), 404
+        if not recipient: return jsonify({"error":f"#{to_hashtag} not found. Check the hashtag."}), 404
         if sender.get("id") == recipient.get("id"): return jsonify({"error":"Can't send to yourself"}), 400
         sender_bal = float(sender.get("balance",0))
         if total_debit > sender_bal:
             if not sender.get("beat_v_enabled"):
-                return jsonify({"error": f"Insufficient balance. Need ${total_debit:.2f}, have ${sender_bal:.2f}"}), 400
+                return jsonify({"error":f"Insufficient funds — need ${total_debit:.2f}, have ${sender_bal:.2f}"}), 400
             if sender_bal - total_debit < -100:
-                return jsonify({"error":"Beat the V limit reached (-$100 max)"}), 400
-        # Credit recipient minus their fee
-        net_to_recip = amount - FEE_P2P_RECIPIENT
+                return jsonify({"error":"Beat the V limit reached (-$100 max overdraft)"}), 400
+        net_to_recip = round(amount - FEE_P2P_RECIPIENT, 2)
         new_sender_bal = round(sender_bal - total_debit, 2)
         new_recip_bal  = round(float(recipient.get("balance",0)) + net_to_recip, 2)
         b44_put(f"{SG_URL}/{sender['id']}", {"balance": new_sender_bal})
         b44_put(f"{SG_URL}/{recipient['id']}", {"balance": new_recip_bal})
         b44_post(TX_URL, {
-            "from_account_id": sender["id"],
-            "to_account_id":   recipient["id"],
-            "from_hashtag":    sender.get("hashtag",""),
-            "to_hashtag":      recipient.get("hashtag",""),
-            "from_name":       f"{sender.get('first_name','')} {sender.get('last_name','')}",
-            "to_name":         f"{recipient.get('first_name','')} {recipient.get('last_name','')}",
-            "amount":          amount,
-            "fee":             FEE_P2P_SENDER + FEE_P2P_RECIPIENT,
-            "net_amount":      net_to_recip,
-            "type":            "p2p",
-            "status":          "completed",
-            "note":            note,
+            "from_account_id":sender["id"],"to_account_id":recipient["id"],
+            "from_hashtag":sender.get("hashtag",""),"to_hashtag":recipient.get("hashtag",""),
+            "from_name":f"{sender.get('first_name','')} {sender.get('last_name','')}",
+            "to_name":f"{recipient.get('first_name','')} {recipient.get('last_name','')}",
+            "amount":amount,"fee":FEE_P2P_SENDER+FEE_P2P_RECIPIENT,
+            "net_amount":net_to_recip,"type":"p2p","status":"completed","note":note,
         })
-        return jsonify({"success": True, "new_balance": new_sender_bal, "fee_charged": FEE_P2P_SENDER})
+        return jsonify({"success":True,"new_balance":new_sender_bal,"sent":amount,"fee":FEE_P2P_SENDER,
+                        "recipient":f"#{recipient.get('hashtag','')}",
+                        "recipient_name":f"{recipient.get('first_name','')} {recipient.get('last_name','')}".strip()})
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error":str(e)}), 500
 
-# ── TRANSACTIONS ───────────────────────────────────────────────────────────────
+# ─────────────────────────────────────────────────────────────────────────────
+# CRYPTO CONVERT — "Convert to Crypto" (2% fee, simulated via CoinGecko price)
+# ─────────────────────────────────────────────────────────────────────────────
+
+@app.route("/api/crypto/prices")
+def crypto_prices():
+    """Live crypto prices for display."""
+    prices = {}
+    for sym, cg_id in [("BTC","bitcoin"),("ETH","ethereum"),("SOL","solana"),("USDC","usd-coin"),("DOGE","dogecoin")]:
+        try:
+            req = urllib.request.Request(
+                f"https://api.coingecko.com/api/v3/simple/price?ids={cg_id}&vs_currencies=usd&include_24hr_change=true",
+                headers={"User-Agent":"shotgun-bank/1.0"})
+            with urllib.request.urlopen(req, timeout=8) as res:
+                data = json.loads(res.read())
+                prices[sym] = {
+                    "usd": data.get(cg_id,{}).get("usd",0),
+                    "change_24h": round(data.get(cg_id,{}).get("usd_24h_change",0), 2),
+                }
+        except:
+            prices[sym] = {"usd": 0, "change_24h": 0}
+    return jsonify({"prices": prices})
+
+@app.route("/api/crypto/convert", methods=["POST"])
+def crypto_convert():
+    """Convert USD balance to crypto (simulated — records the conversion, no on-chain tx)."""
+    d      = request.json or {}
+    sg_id  = d.get("sg_account_id","")
+    amount = float(d.get("amount_usd", 0))
+    symbol = d.get("symbol","BTC").upper()
+    if not sg_id or amount < 1: return jsonify({"error":"Minimum $1 to convert"}), 400
+    supported = ["BTC","ETH","SOL","USDC","DOGE"]
+    if symbol not in supported: return jsonify({"error":f"Supported: {', '.join(supported)}"}), 400
+    try:
+        acct = get_acct(sg_id)
+        if not acct: return jsonify({"error":"Account not found"}), 404
+        bal = float(acct.get("balance",0))
+        fee = round(amount * FEE_CRYPTO, 2)
+        net_usd = round(amount - fee, 2)
+        if amount > bal: return jsonify({"error":f"Insufficient balance (${bal:.2f})"}), 400
+
+        price = get_crypto_price(symbol)
+        if not price: return jsonify({"error":"Could not fetch live price. Try again."}), 503
+        crypto_amount = round(net_usd / price, 8)
+
+        new_bal = round(bal - amount, 2)
+        b44_put(f"{SG_URL}/{sg_id}", {"balance": new_bal})
+        b44_post(TX_URL, {
+            "from_account_id":sg_id,"to_account_id":"crypto",
+            "from_hashtag":acct.get("hashtag",""),
+            "amount":amount,"fee":fee,"net_amount":net_usd,
+            "type":"crypto_convert","status":"completed",
+            "note":f"Converted ${net_usd:.2f} → {crypto_amount:.8f} {symbol} @ ${price:,.2f}",
+        })
+        return jsonify({
+            "success":True,"new_balance":new_bal,
+            "usd_spent":amount,"fee":fee,"net_usd":net_usd,
+            "symbol":symbol,"crypto_amount":crypto_amount,
+            "price_at_conversion":price,
+            "note":f"{crypto_amount:.8f} {symbol} recorded. Crypto custody coming soon.",
+        })
+    except Exception as e:
+        return jsonify({"error":str(e)}), 500
+
+# ─────────────────────────────────────────────────────────────────────────────
+# BEAT THE V — overdraft unlock
+# ─────────────────────────────────────────────────────────────────────────────
+
+@app.route("/api/beat-the-v", methods=["POST"])
+def beat_the_v():
+    d     = request.json or {}
+    sg_id = d.get("sg_account_id","")
+    if not sg_id: return jsonify({"error":"Missing account"}), 400
+    try:
+        acct = get_acct(sg_id)
+        if not acct: return jsonify({"error":"Account not found"}), 404
+        if acct.get("beat_v_enabled"):
+            return jsonify({"success":True,"already_enabled":True,"message":"Beat the V already active on your account."})
+        lifetime = float(acct.get("lifetime_deposited",0))
+        if lifetime < 500:
+            return jsonify({"eligible":False,"lifetime_deposited":lifetime,
+                            "message":f"You need ${500-lifetime:.2f} more in total deposits to unlock Beat the V."}), 400
+        b44_put(f"{SG_URL}/{sg_id}", {"beat_v_enabled": True})
+        return jsonify({"success":True,"message":"Beat the V unlocked! You can now go up to -$100 overdraft."})
+    except Exception as e:
+        return jsonify({"error":str(e)}), 500
+
+# ─────────────────────────────────────────────────────────────────────────────
+# TRANSACTIONS
+# ─────────────────────────────────────────────────────────────────────────────
+
 @app.route("/api/transactions/<sg_id>")
 def transactions(sg_id):
     try:
-        all_tx = b44_get(f"{TX_URL}?limit=50")
-        txs = [t for t in (all_tx if isinstance(all_tx,list) else all_tx.get("results",[])) if t.get("from_account_id")==sg_id or t.get("to_account_id")==sg_id]
+        all_tx = b44_get(f"{TX_URL}?limit=100")
+        txs = [t for t in (all_tx if isinstance(all_tx,list) else all_tx.get("results",[]))
+               if t.get("from_account_id")==sg_id or t.get("to_account_id")==sg_id]
         txs.sort(key=lambda x: x.get("created_date",""), reverse=True)
-        return jsonify({"transactions": txs[:30]})
+        return jsonify({"transactions": txs[:50]})
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error":str(e)}), 500
 
-# ── STRIPE WEBHOOK ─────────────────────────────────────────────────────────────
+@app.route("/api/balance/<sg_id>")
+def get_balance(sg_id):
+    try:
+        acct = get_acct(sg_id)
+        if not acct: return jsonify({"error":"Not found"}), 404
+        return jsonify({"balance": acct.get("balance",0), "beat_v_enabled": acct.get("beat_v_enabled",False)})
+    except Exception as e:
+        return jsonify({"error":str(e)}), 500
+
+# ─────────────────────────────────────────────────────────────────────────────
+# STRIPE WEBHOOK — handles async events (ACH confirmed, account verified)
+# ─────────────────────────────────────────────────────────────────────────────
+
 @app.route("/api/webhook", methods=["POST"])
 def stripe_webhook():
     payload = request.get_data()
@@ -479,76 +697,94 @@ def stripe_webhook():
     try:
         event = stripe.Webhook.construct_event(payload, sig, STRIPE_WH) if STRIPE_WH else json.loads(payload)
     except Exception as e:
-        return jsonify({"error": str(e)}), 400
-    evt_type = event.get("type","")
-    data_obj = event.get("data",{}).get("object",{})
-    # Account fully verified by Stripe
-    if evt_type == "account.updated":
-        acct_id = data_obj.get("id","")
-        charges_enabled = data_obj.get("charges_enabled", False)
-        payouts_enabled = data_obj.get("payouts_enabled", False)
-        if charges_enabled and payouts_enabled:
-            try:
-                records = b44_get(f"{SG_URL}?wise_account_id={_uparse.quote(acct_id)}&limit=1")
-                acct = (records[0] if isinstance(records,list) else None) if records else None
-                if acct and acct.get("status") == "onboarding":
-                    b44_put(f"{SG_URL}/{acct['id']}", {"status": "pending"})  # Shotgun admin approves final
-            except: pass
-    # Payment succeeded — credit balance
-    if evt_type == "payment_intent.succeeded":
-        sg_id = data_obj.get("metadata",{}).get("sg_account_id","")
-        if sg_id and data_obj.get("metadata",{}).get("type") == "deposit":
-            pass  # Handled synchronously in /api/deposit
-    return jsonify({"received": True})
+        return jsonify({"error":str(e)}), 400
+    evt    = event.get("type","")
+    obj    = event.get("data",{}).get("object",{})
+    sg_id  = obj.get("metadata",{}).get("sg_account_id","")
 
-# ── ADMIN APIs ─────────────────────────────────────────────────────────────────
+    if evt == "account.updated":
+        # Stripe Express account fully verified
+        stripe_id = obj.get("id","")
+        if obj.get("charges_enabled") and obj.get("payouts_enabled"):
+            try:
+                r = b44_get(f"{SG_URL}?wise_account_id={_uparse.quote(stripe_id)}&limit=1")
+                lst = r if isinstance(r,list) else r.get("results",[])
+                if lst and lst[0].get("status") == "onboarding":
+                    b44_put(f"{SG_URL}/{lst[0]['id']}", {"status":"pending"})
+            except: pass
+
+    elif evt == "payment_intent.succeeded" and sg_id:
+        # ACH deposit confirmed (processing → succeeded)
+        if obj.get("metadata",{}).get("type") == "ach_deposit":
+            try:
+                amount     = obj.get("amount",0) / 100
+                acct       = get_acct(sg_id)
+                if acct:
+                    new_bal = round(float(acct.get("balance",0)) + amount, 2)
+                    new_dep = round(float(acct.get("lifetime_deposited",0)) + amount, 2)
+                    b44_put(f"{SG_URL}/{sg_id}", {"balance":new_bal,"lifetime_deposited":new_dep})
+                    b44_post(TX_URL, {
+                        "from_account_id":"external","to_account_id":sg_id,
+                        "to_hashtag":acct.get("hashtag",""),
+                        "amount":amount,"fee":0,"net_amount":amount,
+                        "type":"ach_deposit","status":"completed",
+                        "note":"ACH bank deposit confirmed",
+                    })
+            except: pass
+
+    return jsonify({"received":True})
+
+# ─────────────────────────────────────────────────────────────────────────────
+# ADMIN APIs
+# ─────────────────────────────────────────────────────────────────────────────
+
 @app.route("/api/admin/pending")
 def admin_pending():
     if not session.get("admin"): return jsonify({"error":"Unauthorized"}), 401
     try:
-        records = b44_get(f"{SG_URL}?status=pending&limit=100")
-        return jsonify({"accounts": records if isinstance(records,list) else records.get("results",[])})
+        r = b44_get(f"{SG_URL}?status=pending&limit=100")
+        return jsonify({"accounts": r if isinstance(r,list) else r.get("results",[])})
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error":str(e)}), 500
 
 @app.route("/api/admin/all")
 def admin_all():
     if not session.get("admin"): return jsonify({"error":"Unauthorized"}), 401
     try:
-        records = b44_get(f"{SG_URL}?limit=500")
-        return jsonify({"accounts": records if isinstance(records,list) else records.get("results",[])})
+        r = b44_get(f"{SG_URL}?limit=500")
+        return jsonify({"accounts": r if isinstance(r,list) else r.get("results",[])})
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error":str(e)}), 500
 
 @app.route("/api/admin/approve/<sg_id>", methods=["POST"])
 def admin_approve(sg_id):
     if not session.get("admin"): return jsonify({"error":"Unauthorized"}), 401
     try:
-        b44_put(f"{SG_URL}/{sg_id}", {"status": "approved"})
-        return jsonify({"success": True})
+        b44_put(f"{SG_URL}/{sg_id}", {"status":"approved"})
+        return jsonify({"success":True})
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error":str(e)}), 500
 
 @app.route("/api/admin/deny/<sg_id>", methods=["POST"])
 def admin_deny(sg_id):
     if not session.get("admin"): return jsonify({"error":"Unauthorized"}), 401
     d = request.json or {}
     try:
-        b44_put(f"{SG_URL}/{sg_id}", {"status": "denied", "denied_reason": d.get("reason","")})
-        return jsonify({"success": True})
+        b44_put(f"{SG_URL}/{sg_id}", {"status":"denied","denied_reason":d.get("reason","")})
+        return jsonify({"success":True})
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error":str(e)}), 500
 
 @app.route("/api/admin/transactions")
 def admin_transactions():
     if not session.get("admin"): return jsonify({"error":"Unauthorized"}), 401
     try:
-        records = b44_get(f"{TX_URL}?limit=100")
-        txs = records if isinstance(records,list) else records.get("results",[])
+        r = b44_get(f"{TX_URL}?limit=100")
+        txs = r if isinstance(r,list) else r.get("results",[])
         txs.sort(key=lambda x: x.get("created_date",""), reverse=True)
         return jsonify({"transactions": txs})
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error":str(e)}), 500
 
 if __name__ == "__main__":
     app.run(debug=False)
