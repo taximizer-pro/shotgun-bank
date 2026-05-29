@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Shotgun Admin — Login</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;800;900&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:#07070f;color:#f1f5f9;font-family:'Inter',sans-serif;min-height:100vh;display:flex;align-items:center;justify-content:center;}
+.card{background:#0f0f1a;border:1px solid rgba(255,255,255,.07);border-radius:24px;padding:36px 32px;width:100%;max-width:380px;}
+.logo{display:flex;align-items:center;gap:10px;margin-bottom:24px;}
+.logo-icon{width:44px;height:44px;background:linear-gradient(135deg,#e94560,#c0392b);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px;}
+.title{font-size:20px;font-weight:900;}
+.sub{font-size:12px;color:#64748b;margin-top:2px;}
+.field{margin-bottom:14px;}
+.field label{font-size:11px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:6px;}
+.field input{width:100%;padding:13px 16px;background:rgba(255,255,255,.05);border:1.5px solid rgba(255,255,255,.08);border-radius:12px;color:#f1f5f9;font-size:14px;outline:none;font-family:inherit;}
+.field input:focus{border-color:rgba(233,69,96,.5);}
+.btn{width:100%;padding:15px;background:linear-gradient(135deg,#e94560,#c0392b);border:none;border-radius:12px;color:#fff;font-size:15px;font-weight:800;cursor:pointer;margin-top:6px;}
+.err{background:rgba(233,69,96,.1);border:1px solid rgba(233,69,96,.3);border-radius:10px;padding:10px 14px;font-size:12px;color:#f87171;margin-bottom:14px;}
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="logo">
+    <div class="logo-icon">🔫</div>
+    <div><div class="title">Shotgun Admin</div><div class="sub">Bisignano Holdings LLC</div></div>
+  </div>
+  {% if error %}<div class="err">{{ error }}</div>{% endif %}
+  <form method="POST">
+    <div class="field"><label>Email</label><input name="email" type="email" placeholder="admin@shotgunbank.com" required></div>
+    <div class="field"><label>Password</label><input name="password" type="password" placeholder="••••••••" required></div>
+    <button class="btn" type="submit">Sign In →</button>
+  </form>
+</div>
+</body>
+</html>
