@@ -17,9 +17,9 @@
   }
 
   /* ── Logo ── */
-  .logo-wrap { display:flex; align-items:center; gap:12px; margin-bottom:48px; }
-  .logo-img { width:46px; height:46px; object-fit:contain; }
-  .logo-text { color:#fff; font-size:20px; font-weight:700; letter-spacing:1px; }
+  .logo-wrap { display:flex; flex-direction:column; align-items:center; gap:14px; margin-bottom:40px; }
+  .logo-img { width:140px; height:140px; object-fit:contain; filter:drop-shadow(0 8px 24px rgba(34,197,94,0.35)); }
+  .logo-text { color:#fff; font-size:22px; font-weight:800; letter-spacing:3px; text-transform:uppercase; }
 
   /* ── Greeting ── */
   .greeting { color:rgba(255,255,255,0.6); font-size:28px; font-weight:300; margin-bottom:28px; text-align:center; letter-spacing:-0.3px; }
@@ -98,8 +98,8 @@
 
   <div class="logo-wrap">
     <img src="https://media.base44.com/images/public/6a14ef767988d1ef0baff5aa/clean/shotgun_bank_main_logo_clean.png"
-         class="logo-img" alt="Shotgun"
-         onerror="this.outerHTML='<div style=&quot;width:46px;height:46px;background:rgba(255,255,255,0.12);border:1.5px solid rgba(255,255,255,0.25);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:22px;&quot;>🔫</div>'">
+         class="logo-img" alt="Shotgun Bank"
+         onerror="this.style.display='none'">
     <div class="logo-text">SHOTGUN BANK</div>
   </div>
 
