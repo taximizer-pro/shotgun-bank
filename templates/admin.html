@@ -2,579 +2,973 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>Shotgun Bank — Admin</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <style>
-:root{--bg:#0a2218;--card:#0f2e1e;--border:#1a4a2e;--green:#16a34a;--gold:#eab308;--red:#dc2626;--text:#f0fdf4;--muted:#6b7280;}
-*{box-sizing:border-box;margin:0;padding:0;}
-body{background:var(--bg);color:var(--text);font-family:'Segoe UI',sans-serif;min-height:100vh;}
+*{margin:0;padding:0;box-sizing:border-box;font-family:'Inter',sans-serif;}
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+:root{--bg:#0a2218;--bg2:#0f2e1e;--bg3:#153d28;--green:#16a34a;--gold:#eab308;--red:#ef4444;--text:#f0fdf4;--muted:#6b7280;--border:#1f4d33;}
+body{background:var(--bg);color:var(--text);min-height:100vh;font-family:'Inter',system-ui,sans-serif;}
+
 /* TOP BAR */
-.topbar{background:var(--card);border-bottom:2px solid var(--gold);padding:12px 24px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;}
-.topbar img{height:42px;}
-.topbar-right{display:flex;align-items:center;gap:12px;}
-.topbar-right span{color:var(--gold);font-weight:700;font-size:13px;}
-.btn{padding:8px 18px;border-radius:8px;border:none;cursor:pointer;font-weight:700;font-size:13px;transition:.2s;}
-.btn-green{background:var(--green);color:#fff;}
-.btn-gold{background:var(--gold);color:#000;}
-.btn-red{background:var(--red);color:#fff;}
-.btn-ghost{background:transparent;border:1px solid var(--border);color:var(--muted);}
-.btn:hover{opacity:.85;}
-.btn-sm{padding:5px 12px;font-size:12px;}
-/* LAYOUT */
-.main{padding:24px;max-width:1400px;margin:0 auto;}
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:14px 24px;background:var(--bg2);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:100;}
+.topbar-logo{display:flex;align-items:center;gap:10px;}
+.topbar-logo img{height:36px;width:36px;object-fit:contain;}
+.topbar-title{font-size:16px;font-weight:800;color:var(--text);}
+.topbar-title span{color:var(--gold);}
+.topbar-right{display:flex;align-items:center;gap:10px;}
+.badge-live{background:#16a34a22;border:1px solid var(--green);color:var(--green);font-size:10px;font-weight:700;padding:3px 8px;border-radius:20px;letter-spacing:.5px;}
+
 /* STATS ROW */
-.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:16px;margin-bottom:24px;}
-.stat-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:18px;text-align:center;}
-.stat-card .num{font-size:28px;font-weight:900;color:var(--gold);}
-.stat-card .lbl{font-size:12px;color:var(--muted);margin-top:4px;}
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;padding:20px 24px;}
+.stat{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:14px 16px;text-align:center;}
+.stat .num{font-size:26px;font-weight:800;color:var(--text);}
+.stat .num.gold{color:var(--gold);}
+.stat .num.green{color:var(--green);}
+.stat .num.red{color:var(--red);}
+.stat .num.blue{color:#60a5fa;}
+.stat .lbl{font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-top:4px;}
+
 /* TABS */
-.tab-row{display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap;align-items:center;}
-.tab{background:var(--card);border:1px solid var(--border);border-radius:20px;padding:8px 18px;font-size:13px;font-weight:600;cursor:pointer;color:var(--muted);transition:.2s;}
-.tab.on{background:var(--green);color:#fff;border-color:var(--green);}
-.tab:hover{border-color:var(--green);color:var(--text);}
-.refresh-btn{margin-left:auto;background:var(--card);border:1px solid var(--gold);color:var(--gold);border-radius:20px;padding:8px 16px;font-size:13px;font-weight:700;cursor:pointer;transition:.2s;}
-.refresh-btn:hover{background:var(--gold);color:#000;}
-/* TABLE */
-.table-wrap{background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden;}
-table{width:100%;border-collapse:collapse;}
-th{background:#0d2820;padding:12px 16px;font-size:12px;color:var(--gold);text-align:left;font-weight:700;text-transform:uppercase;letter-spacing:.5px;}
-td{padding:12px 16px;font-size:13px;border-top:1px solid var(--border);vertical-align:middle;}
-tr:hover td{background:rgba(22,163,74,.06);cursor:pointer;}
-.badge{display:inline-block;padding:3px 10px;border-radius:12px;font-size:11px;font-weight:700;}
-.badge-pending{background:#78350f33;color:#fbbf24;}
-.badge-approved{background:#14532d33;color:#4ade80;}
-.badge-denied{background:#450a0a33;color:#f87171;}
-.badge-ghost{background:#1e1b4b33;color:#a78bfa;}
-.badge-suspended{background:#431407;color:#fb923c;}
-.badge-onboarding{background:#1c1917;color:#a8a29e;}
-.actions{display:flex;gap:6px;flex-wrap:wrap;}
-/* SEARCH */
-.search-bar{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:10px 16px;color:var(--text);font-size:14px;width:100%;margin-bottom:16px;outline:none;}
+.tabs{display:flex;gap:0;border-bottom:1px solid var(--border);padding:0 24px;overflow-x:auto;}
+.tab{padding:12px 18px;font-size:13px;font-weight:600;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap;transition:.2s;}
+.tab:hover{color:var(--text);}
+.tab.on{color:var(--green);border-bottom-color:var(--green);}
+
+/* CONTENT */
+.tab-content{padding:20px 24px;}
+.hidden{display:none!important;}
+
+/* FILTERS BAR */
+.filter-bar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;align-items:center;}
+.search-bar{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:9px 14px;color:var(--text);font-size:13px;outline:none;min-width:220px;}
 .search-bar:focus{border-color:var(--green);}
-/* MODAL OVERLAY */
-.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:500;align-items:center;justify-content:center;}
-.modal-overlay.open{display:flex;}
-.modal{background:var(--card);border:1px solid var(--gold);border-radius:16px;padding:28px;width:90%;max-width:640px;max-height:90vh;overflow-y:auto;position:relative;}
-.modal h2{color:var(--gold);margin-bottom:18px;font-size:20px;}
-.modal .close{position:absolute;top:14px;right:18px;cursor:pointer;font-size:22px;color:var(--muted);}
-.modal .close:hover{color:var(--text);}
-.info-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:18px;}
-.info-item label{display:block;font-size:11px;color:var(--muted);margin-bottom:3px;text-transform:uppercase;}
-.info-item span{font-size:14px;font-weight:600;}
-.section-title{font-size:13px;font-weight:700;color:var(--gold);margin:16px 0 8px;text-transform:uppercase;letter-spacing:.5px;}
-/* CHAT BUBBLE */
-.chat-wrap{background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:12px;height:200px;overflow-y:auto;margin-bottom:10px;}
-.chat-msg{margin-bottom:10px;}
-.chat-msg .who{font-size:11px;color:var(--muted);margin-bottom:2px;}
-.chat-msg .bubble{display:inline-block;padding:7px 12px;border-radius:10px;font-size:13px;max-width:85%;}
-.bubble.admin{background:var(--green);color:#fff;}
-.bubble.user{background:#1a3a2a;color:var(--text);}
-.chat-input-row{display:flex;gap:8px;}
-.chat-input{flex:1;background:#0a2218;border:1px solid var(--border);border-radius:8px;padding:9px 14px;color:var(--text);font-size:13px;outline:none;}
-.chat-input:focus{border-color:var(--green);}
-/* LIVE CHAT WIDGET (floating) */
-#livechat{position:fixed;bottom:24px;right:24px;z-index:999;}
-#lc-btn{width:56px;height:56px;border-radius:50%;background:var(--green);border:3px solid var(--gold);cursor:pointer;font-size:22px;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 20px rgba(0,0,0,.5);}
-#lc-badge{position:absolute;top:-4px;right:-4px;background:var(--red);color:#fff;border-radius:50%;width:20px;height:20px;font-size:11px;font-weight:900;display:none;align-items:center;justify-content:center;}
-#lc-badge.show{display:flex;}
-#lc-panel{display:none;position:absolute;bottom:70px;right:0;width:320px;background:var(--card);border:1px solid var(--gold);border-radius:16px;overflow:hidden;box-shadow:0 8px 40px rgba(0,0,0,.6);}
-#lc-panel.open{display:block;}
-#lc-header{background:#0d2820;padding:14px 18px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border);}
-#lc-header span{font-weight:700;color:var(--gold);}
-#lc-msgs{height:260px;overflow-y:auto;padding:12px;}
-#lc-msg-list .chat-msg{margin-bottom:8px;}
-#lc-footer{padding:10px;border-top:1px solid var(--border);display:flex;gap:8px;}
-#lc-input{flex:1;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text);font-size:13px;outline:none;}
-#lc-send{background:var(--green);color:#fff;border:none;border-radius:8px;padding:8px 14px;cursor:pointer;font-weight:700;}
-#lc-select{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:8px;color:var(--text);font-size:12px;margin-bottom:8px;}
+select.search-bar{cursor:pointer;}
+.filter-chip{background:var(--bg3);border:1px solid var(--border);border-radius:20px;padding:5px 12px;font-size:12px;font-weight:600;color:var(--muted);cursor:pointer;transition:.2s;}
+.filter-chip.on{background:#16a34a22;border-color:var(--green);color:var(--green);}
+
+/* TABLE */
+.tbl-wrap{overflow-x:auto;border-radius:10px;border:1px solid var(--border);}
+table{width:100%;border-collapse:collapse;}
+th{background:var(--bg3);padding:10px 14px;text-align:left;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;}
+td{padding:11px 14px;border-top:1px solid var(--border);font-size:13px;vertical-align:middle;}
+tr{transition:.15s;cursor:pointer;}
+tr:hover td{background:var(--bg2);}
+.empty{text-align:center;color:var(--muted);padding:32px;font-size:14px;}
+
+/* BADGES */
+.badge{display:inline-block;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:700;}
+.b-green{background:#16a34a22;color:var(--green);}
+.b-gold{background:#eab30822;color:var(--gold);}
+.b-red{background:#ef444422;color:var(--red);}
+.b-blue{background:#3b82f622;color:#60a5fa;}
+.b-purple{background:#7c3aed22;color:#a78bfa;}
+.b-gray{background:#37415122;color:var(--muted);}
+
+/* BUTTONS */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:7px 14px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;border:none;transition:.15s;}
+.btn:active{transform:scale(.97);}
+.btn-green{background:var(--green);color:#fff;}
+.btn-green:hover{background:#15803d;}
+.btn-red{background:#dc2626;color:#fff;}
+.btn-red:hover{background:#b91c1c;}
+.btn-gold{background:var(--gold);color:#000;}
+.btn-outline{background:transparent;border:1px solid var(--border);color:var(--text);}
+.btn-outline:hover{border-color:var(--green);color:var(--green);}
+.btn-ghost-toggle{background:transparent;border:1px solid var(--border);color:var(--muted);font-size:11px;}
+.btn-sm{padding:5px 10px;font-size:11px;}
+.btn-xs{padding:3px 8px;font-size:11px;}
+
+/* GHOST TOGGLE */
+.toggle-wrap{display:flex;align-items:center;gap:6px;}
+.toggle{position:relative;display:inline-block;width:36px;height:20px;cursor:pointer;}
+.toggle input{opacity:0;width:0;height:0;}
+.slider{position:absolute;inset:0;background:#374151;border-radius:20px;transition:.2s;}
+.slider:before{content:'';position:absolute;height:14px;width:14px;left:3px;bottom:3px;background:#fff;border-radius:50%;transition:.2s;}
+input:checked+.slider{background:var(--green);}
+input:checked+.slider:before{transform:translateX(16px);}
+
+/* MODAL */
+.modal-bg{position:fixed;inset:0;background:#000a;z-index:200;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:.2s;}
+.modal-bg.open{opacity:1;pointer-events:all;}
+.modal{background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:24px;width:min(94vw,520px);max-height:90vh;overflow-y:auto;position:relative;}
+.modal h3{font-size:17px;font-weight:800;margin-bottom:16px;}
+.modal-close{position:absolute;top:14px;right:16px;background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer;}
+.detail-row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px;}
+.detail-row .lbl{color:var(--muted);font-weight:500;}
+.detail-row .val{font-weight:700;text-align:right;max-width:60%;}
+.modal-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px;}
+
+/* FINANCIAL REPORT */
+.report-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px;margin-bottom:24px;}
+.report-card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:18px 20px;}
+.report-card .amt{font-size:24px;font-weight:800;color:var(--green);}
+.report-card .amt.gold{color:var(--gold);}
+.report-card .amt.red{color:var(--red);}
+.report-card .label{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-top:4px;}
+.chart-card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:16px 20px;margin-bottom:20px;}
+.chart-card h4{font-size:13px;font-weight:700;color:var(--muted);margin-bottom:12px;text-transform:uppercase;letter-spacing:.5px;}
+
+/* CRYPTO */
+.crypto-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px;margin-bottom:20px;}
+.crypto-card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:14px 16px;cursor:pointer;transition:.2s;}
+.crypto-card:hover{border-color:var(--green);}
+.crypto-card.selected{border-color:var(--gold);background:#eab30810;}
+.crypto-sym{font-size:16px;font-weight:900;color:var(--text);}
+.crypto-price{font-size:20px;font-weight:800;color:var(--green);margin:4px 0;}
+.crypto-change{font-size:12px;font-weight:700;}
+.crypto-change.up{color:var(--green);}
+.crypto-change.down{color:var(--red);}
+
+/* SUSPEND FORM */
+.textarea{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 14px;color:var(--text);font-size:13px;outline:none;resize:vertical;min-height:80px;}
+.textarea:focus{border-color:var(--green);}
+.input-field{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:9px 14px;color:var(--text);font-size:13px;outline:none;margin-bottom:10px;}
+.input-field:focus{border-color:var(--green);}
+label.field-lbl{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;display:block;margin-bottom:5px;}
+
 /* TOAST */
-.toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:#1a3a2a;border:1px solid var(--green);border-radius:10px;padding:12px 24px;color:var(--text);font-weight:600;font-size:14px;z-index:9999;display:none;}
-.toast.show{display:block;animation:fadeIn .3s;}
-@keyframes fadeIn{from{opacity:0;transform:translateX(-50%) translateY(10px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
-/* EMPTY STATE */
-.empty{text-align:center;padding:48px;color:var(--muted);}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#16a34a;color:#fff;padding:10px 20px;border-radius:24px;font-size:13px;font-weight:700;z-index:500;pointer-events:none;opacity:0;transition:.3s;}
+.toast.show{opacity:1;}
+.toast.err{background:#dc2626;}
+
+/* SUPPORT CHAT */
+.chat-box{background:var(--bg);border:1px solid var(--border);border-radius:10px;height:180px;overflow-y:auto;padding:12px;margin-bottom:10px;}
+.chat-msg{margin-bottom:8px;}
+.chat-who{font-size:10px;color:var(--muted);margin-bottom:2px;}
+.chat-bubble{display:inline-block;padding:7px 12px;border-radius:10px;font-size:13px;max-width:80%;}
+.chat-bubble.admin{background:#16a34a22;border:1px solid #16a34a44;}
+.chat-bubble.user{background:var(--bg2);border:1px solid var(--border);}
+.chat-row{display:flex;gap:8px;margin-top:8px;}
+.chat-input{flex:1;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:9px 12px;color:var(--text);font-size:13px;outline:none;}
+.chat-input:focus{border-color:var(--green);}
+
+/* SCROLLBAR */
+::-webkit-scrollbar{width:4px;height:4px;}
+::-webkit-scrollbar-track{background:var(--bg);}
+::-webkit-scrollbar-thumb{background:var(--green);border-radius:4px;}
 </style>
 </head>
 <body>
 
 <!-- TOP BAR -->
 <div class="topbar">
-  <img src="https://base44.app/api/apps/6a14ef767988d1ef0baff5aa/files/mp/public/6a14ef767988d1ef0baff5aa/7a46af0fc_shotgun_bank_REAL_logo.png" alt="Shotgun Bank" onerror="this.style.display='none'">
+  <div class="topbar-logo">
+    <img src="https://base44.app/api/apps/6a14ef767988d1ef0baff5aa/files/mp/public/6a14ef767988d1ef0baff5aa/7a46af0fc_shotgun_bank_REAL_logo.png" alt="">
+    <div class="topbar-title">Shotgun Bank <span>Admin</span></div>
+  </div>
   <div class="topbar-right">
-    <span>🛡️ ADMIN PORTAL</span>
-    <button class="btn btn-ghost btn-sm" onclick="location.href='/bank/admin/logout'">Sign Out</button>
+    <span class="badge-live">● LIVE</span>
+    <button class="btn btn-outline btn-sm" onclick="refreshCurrent()">🔄 Refresh</button>
+    <button class="btn btn-outline btn-sm" onclick="location.href='/bank/admin/logout'">Sign Out</button>
   </div>
 </div>
 
-<div class="main">
-
-  <!-- STATS -->
-  <div class="stats" id="statsRow">
-    <div class="stat-card"><div class="num" id="sPending">—</div><div class="lbl">Pending Approval</div></div>
-    <div class="stat-card"><div class="num" id="sApproved">—</div><div class="lbl">Approved Users</div></div>
-    <div class="stat-card"><div class="num" id="sGhost">—</div><div class="lbl">Ghost Accounts</div></div>
-    <div class="stat-card"><div class="num" id="sTx">—</div><div class="lbl">Total Transactions</div></div>
-    <div class="stat-card"><div class="num" id="sFees">—</div><div class="lbl">Fee Revenue ($)</div></div>
-  </div>
-
-  <!-- TABS + REFRESH -->
-  <div class="tab-row">
-    <div class="tab on"  onclick="switchTab('pending')">🕐 Pending</div>
-    <div class="tab" onclick="switchTab('all')">👥 All Accounts</div>
-    <div class="tab" onclick="switchTab('tx')">💸 Transactions</div>
-    <div class="tab" onclick="switchTab('support')">💬 Support Chats</div>
-    <button class="refresh-btn" onclick="refreshCurrent()">🔄 Refresh</button>
-  </div>
-
-  <!-- PENDING TAB -->
-  <div id="tab-pending">
-    <div class="table-wrap">
-      <table>
-        <thead><tr>
-          <th>User</th><th>Email</th><th>Hashtag</th><th>Joined</th><th>Actions</th>
-        </tr></thead>
-        <tbody id="pendingBody"><tr><td colspan="5" class="empty">Loading…</td></tr></tbody>
-      </table>
-    </div>
-  </div>
-
-  <!-- ALL ACCOUNTS TAB -->
-  <div id="tab-all" style="display:none">
-    <input class="search-bar" id="allSearch" placeholder="🔍 Search by name, email, hashtag…" oninput="filterAll()">
-    <div class="table-wrap">
-      <table>
-        <thead><tr>
-          <th>User</th><th>Email</th><th>Hashtag</th><th>Balance</th><th>Status</th><th>Actions</th>
-        </tr></thead>
-        <tbody id="allBody"><tr><td colspan="6" class="empty">Loading…</td></tr></tbody>
-      </table>
-    </div>
-  </div>
-
-  <!-- TRANSACTIONS TAB -->
-  <div id="tab-tx" style="display:none">
-    <div class="table-wrap">
-      <table>
-        <thead><tr>
-          <th>From</th><th>To</th><th>Amount</th><th>Fee</th><th>Type</th><th>Status</th><th>Date</th>
-        </tr></thead>
-        <tbody id="txBody"><tr><td colspan="7" class="empty">Loading…</td></tr></tbody>
-      </table>
-    </div>
-  </div>
-
-  <!-- SUPPORT CHATS TAB -->
-  <div id="tab-support" style="display:none">
-    <div class="table-wrap">
-      <table>
-        <thead><tr>
-          <th>User</th><th>Email</th><th>Last Message</th><th>Unread</th><th>Action</th>
-        </tr></thead>
-        <tbody id="supportBody"><tr><td colspan="5" class="empty">No support threads yet.</td></tr></tbody>
-      </table>
-    </div>
-  </div>
-
+<!-- STATS -->
+<div class="stats-grid">
+  <div class="stat"><div class="num gold" id="sPending">—</div><div class="lbl">Pending</div></div>
+  <div class="stat"><div class="num green" id="sApproved">—</div><div class="lbl">Approved</div></div>
+  <div class="stat"><div class="num blue" id="sGhost">—</div><div class="lbl">Ghost Accounts</div></div>
+  <div class="stat"><div class="num" id="sTx">—</div><div class="lbl">Total Transactions</div></div>
+  <div class="stat"><div class="num green" id="sGross">—</div><div class="lbl">Gross Revenue</div></div>
+  <div class="stat"><div class="num gold" id="sFees">—</div><div class="lbl">Fee Revenue</div></div>
+  <div class="stat"><div class="num red" id="sSuspended">—</div><div class="lbl">Suspended</div></div>
+  <div class="stat"><div class="num" id="sOnboarding">—</div><div class="lbl">In Onboarding</div></div>
 </div>
 
-<!-- USER DETAIL MODAL -->
-<div class="modal-overlay" id="userModal">
+<!-- TABS -->
+<div class="tabs">
+  <div class="tab on" onclick="switchTab('pending')">🕐 Pending Queue</div>
+  <div class="tab" onclick="switchTab('all')">👥 All Members</div>
+  <div class="tab" onclick="switchTab('approved')">✅ Approved</div>
+  <div class="tab" onclick="switchTab('suspended')">⏸ Suspended</div>
+  <div class="tab" onclick="switchTab('denied')">❌ Denied</div>
+  <div class="tab" onclick="switchTab('tx')">💸 Transactions</div>
+  <div class="tab" onclick="switchTab('financial')">📊 Financial Report</div>
+  <div class="tab" onclick="switchTab('crypto')">₿ Crypto Watch</div>
+  <div class="tab" onclick="switchTab('support')">💬 Support</div>
+</div>
+
+<!-- ── PENDING ──────────────────────────────────────────────────────── -->
+<div id="tab-pending" class="tab-content">
+  <div class="filter-bar">
+    <input class="search-bar" id="pendingSearch" placeholder="🔍 Search name, email, hashtag…" oninput="filterPending()">
+    <button class="btn btn-outline btn-sm" onclick="loadPending()">↻ Reload</button>
+  </div>
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>Name</th><th>Email</th><th>Hashtag</th><th>Joined</th><th>Status</th><th>Actions</th></tr></thead>
+      <tbody id="pendingBody"><tr><td colspan="6" class="empty">Loading…</td></tr></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ── ALL MEMBERS ─────────────────────────────────────────────────── -->
+<div id="tab-all" class="tab-content hidden">
+  <div class="filter-bar">
+    <input class="search-bar" id="allSearch" placeholder="🔍 Search name, email, #tag…" oninput="filterAll()">
+    <select class="search-bar" id="allStatus" onchange="filterAll()">
+      <option value="">All Statuses</option>
+      <option value="pending">Pending</option>
+      <option value="onboarding">Onboarding</option>
+      <option value="stripe_verified">Stripe Verified</option>
+      <option value="approved">Approved</option>
+      <option value="suspended">Suspended</option>
+      <option value="denied">Denied</option>
+    </select>
+    <span class="filter-chip on" id="chip-ghost" onclick="toggleGhostFilter()">👻 Show Ghost</span>
+  </div>
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>Name</th><th>Email</th><th>#Tag</th><th>Balance</th><th>Status</th><th>Ghost</th><th>Actions</th></tr></thead>
+      <tbody id="allBody"><tr><td colspan="7" class="empty">Loading…</td></tr></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ── APPROVED ────────────────────────────────────────────────────── -->
+<div id="tab-approved" class="tab-content hidden">
+  <div class="filter-bar">
+    <input class="search-bar" id="approvedSearch" placeholder="🔍 Search…" oninput="filterApproved()">
+    <select class="search-bar" id="approvedSort" onchange="filterApproved()">
+      <option value="">Sort: Newest</option>
+      <option value="balance_desc">Balance: High→Low</option>
+      <option value="balance_asc">Balance: Low→High</option>
+      <option value="lifetime_desc">Lifetime: High→Low</option>
+    </select>
+  </div>
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>Name</th><th>Email</th><th>#Tag</th><th>Balance</th><th>Lifetime Dep.</th><th>Beat the V</th><th>Ghost</th><th>Actions</th></tr></thead>
+      <tbody id="approvedBody"><tr><td colspan="8" class="empty">Loading…</td></tr></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ── SUSPENDED ───────────────────────────────────────────────────── -->
+<div id="tab-suspended" class="tab-content hidden">
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>Name</th><th>Email</th><th>#Tag</th><th>Balance</th><th>Reason</th><th>Actions</th></tr></thead>
+      <tbody id="suspendedBody"><tr><td colspan="6" class="empty">Loading…</td></tr></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ── DENIED ─────────────────────────────────────────────────────── -->
+<div id="tab-denied" class="tab-content hidden">
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>Name</th><th>Email</th><th>#Tag</th><th>Joined</th><th>Reason</th><th>Actions</th></tr></thead>
+      <tbody id="deniedBody"><tr><td colspan="6" class="empty">Loading…</td></tr></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ── TRANSACTIONS ────────────────────────────────────────────────── -->
+<div id="tab-tx" class="tab-content hidden">
+  <div class="filter-bar">
+    <input class="search-bar" id="txSearch" placeholder="🔍 Search hashtag, name, note…" oninput="filterTx()">
+    <select class="search-bar" id="txType" onchange="filterTx()">
+      <option value="">All Types</option>
+      <option value="send">Send</option>
+      <option value="deposit">Deposit</option>
+      <option value="withdraw">Withdraw</option>
+      <option value="crypto">Crypto</option>
+      <option value="request">Request</option>
+    </select>
+    <select class="search-bar" id="txStatus" onchange="filterTx()">
+      <option value="">All Statuses</option>
+      <option value="completed">Completed</option>
+      <option value="failed">Failed</option>
+      <option value="pending">Pending</option>
+    </select>
+    <span id="txTotalLabel" style="margin-left:auto;font-size:13px;color:var(--muted);"></span>
+  </div>
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>From</th><th>To</th><th>Amount</th><th>Fee</th><th>Net</th><th>Type</th><th>Status</th><th>Note</th><th>Date</th></tr></thead>
+      <tbody id="txBody"><tr><td colspan="9" class="empty">Loading…</td></tr></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ── FINANCIAL REPORT ────────────────────────────────────────────── -->
+<div id="tab-financial" class="tab-content hidden">
+  <div class="report-grid" id="reportCards">
+    <div class="report-card"><div class="amt green" id="rGross">$0.00</div><div class="label">Gross Transaction Volume</div></div>
+    <div class="report-card"><div class="amt gold" id="rFees">$0.00</div><div class="label">Total Fee Revenue (Platform)</div></div>
+    <div class="report-card"><div class="amt green" id="rNet">$0.00</div><div class="label">Net User Transfers</div></div>
+    <div class="report-card"><div class="amt" id="rTxCount">0</div><div class="label">Total Transactions</div></div>
+    <div class="report-card"><div class="amt gold" id="rAvgFee">$0.00</div><div class="label">Avg Fee Per Transaction</div></div>
+    <div class="report-card"><div class="amt green" id="rDeposits">$0.00</div><div class="label">Total Deposits</div></div>
+    <div class="report-card"><div class="amt red" id="rWithdraws">$0.00</div><div class="label">Total Withdrawals</div></div>
+    <div class="report-card"><div class="amt blue" id="rCrypto">$0.00</div><div class="label">Crypto Conversions</div></div>
+  </div>
+  <div class="chart-card">
+    <h4>📊 Transaction Volume by Type</h4>
+    <canvas id="chartByType" height="100"></canvas>
+  </div>
+  <div class="chart-card">
+    <h4>💰 Top 10 Users by Balance</h4>
+    <canvas id="chartTopUsers" height="120"></canvas>
+  </div>
+  <div class="chart-card">
+    <h4>📅 Daily Fee Revenue (Last 14 Days)</h4>
+    <canvas id="chartDailyFees" height="100"></canvas>
+  </div>
+</div>
+
+<!-- ── CRYPTO WATCH ────────────────────────────────────────────────── -->
+<div id="tab-crypto" class="tab-content hidden">
+  <div id="cryptoGrid" class="crypto-grid">
+    <div class="crypto-card"><div class="crypto-sym">Loading…</div></div>
+  </div>
+  <div class="chart-card">
+    <h4 id="cryptoChartTitle">₿ Select a coin to view chart</h4>
+    <canvas id="cryptoChart" height="120"></canvas>
+  </div>
+  <div style="font-size:11px;color:var(--muted);margin-top:8px;">Live prices via CoinGecko · Updates every 30 seconds</div>
+</div>
+
+<!-- ── SUPPORT ─────────────────────────────────────────────────────── -->
+<div id="tab-support" class="tab-content hidden">
+  <div class="filter-bar">
+    <input class="search-bar" id="supportSearch" placeholder="🔍 Filter by name or email…" oninput="filterSupport()">
+    <button class="btn btn-outline btn-sm" onclick="loadSupport()">↻ Reload</button>
+  </div>
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>User</th><th>Email</th><th>#Tag</th><th>Status</th><th>Action</th></tr></thead>
+      <tbody id="supportBody"><tr><td colspan="5" class="empty">No users found.</td></tr></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ── USER DETAIL MODAL ───────────────────────────────────────────── -->
+<div class="modal-bg" id="userModal">
   <div class="modal">
-    <span class="close" onclick="closeModal('userModal')">✕</span>
-    <h2 id="modalName">User Details</h2>
-    <div class="info-grid" id="modalInfo"></div>
-
-    <div class="section-title">💰 Balance & Account</div>
-    <div class="info-grid" id="modalBank"></div>
-
-    <div class="section-title">⚙️ Actions</div>
-    <div class="actions" id="modalActions" style="margin-bottom:18px;"></div>
-
-    <div class="section-title">💬 Send Support Message</div>
-    <textarea id="supportMsg" class="search-bar" style="height:80px;resize:vertical" placeholder="Type a message to this user…"></textarea>
-    <div style="display:flex;gap:8px;margin-top:8px;">
-      <button class="btn btn-green btn-sm" onclick="sendSupportMsg()">📤 Send Message</button>
-    </div>
+    <button class="modal-close" onclick="closeModal('userModal')">✕</button>
+    <h3 id="modalTitle">User Detail</h3>
+    <div id="modalBody"></div>
+    <div class="modal-actions" id="modalActions"></div>
   </div>
 </div>
 
-<!-- SUPPORT CHAT MODAL -->
-<div class="modal-overlay" id="chatModal">
+<!-- ── SUSPEND MODAL ───────────────────────────────────────────────── -->
+<div class="modal-bg" id="suspendModal">
   <div class="modal">
-    <span class="close" onclick="closeModal('chatModal')">✕</span>
-    <h2 id="chatModalName">Chat</h2>
-    <div class="chat-wrap" id="chatWrap">
-      <div id="chatMsgs"></div>
-    </div>
-    <div class="chat-input-row">
-      <input class="chat-input" id="chatInput" placeholder="Type reply…" onkeydown="if(event.key==='Enter')sendChat()">
-      <button class="btn btn-green btn-sm" onclick="sendChat()">Send</button>
-    </div>
-  </div>
-</div>
-
-<!-- LIVE CHAT WIDGET -->
-<div id="livechat">
-  <div id="lc-btn" onclick="toggleChat()">💬<div id="lc-badge">0</div></div>
-  <div id="lc-panel">
-    <div id="lc-header">
-      <span>🎯 Live Support</span>
-      <span style="cursor:pointer;color:var(--muted)" onclick="toggleChat()">✕</span>
-    </div>
-    <div id="lc-msgs">
-      <select id="lc-select" onchange="lcSelectUser()">
-        <option value="">— Select a user to chat —</option>
-      </select>
-      <div id="lc-msg-list"></div>
-    </div>
-    <div id="lc-footer">
-      <input id="lc-input" placeholder="Reply to user…" onkeydown="if(event.key==='Enter')lcSend()">
-      <button id="lc-send" onclick="lcSend()">↑</button>
+    <button class="modal-close" onclick="closeModal('suspendModal')">✕</button>
+    <h3>⏸ Suspend Account</h3>
+    <p style="font-size:13px;color:var(--muted);margin-bottom:14px;">The user will be emailed these steps to get their account unsuspended.</p>
+    <label class="field-lbl">Reason / Steps to Unsuspend</label>
+    <textarea class="textarea" id="suspendSteps" placeholder="1. Email support@shotgunbank.com with your ID&#10;2. Wait 24 hours for review&#10;3. ..."></textarea>
+    <div style="display:flex;gap:8px;margin-top:12px;">
+      <button class="btn btn-red" onclick="confirmSuspend()">⏸ Suspend Account</button>
+      <button class="btn btn-outline" onclick="closeModal('suspendModal')">Cancel</button>
     </div>
   </div>
 </div>
 
+<!-- ── SUPPORT CHAT MODAL ──────────────────────────────────────────── -->
+<div class="modal-bg" id="chatModal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('chatModal')">✕</button>
+    <h3 id="chatModalName">💬 Chat</h3>
+    <div class="chat-box" id="chatBox"></div>
+    <div class="chat-row">
+      <input class="chat-input" id="chatInput" placeholder="Type message…" onkeydown="if(event.key==='Enter')sendChatMsg()">
+      <button class="btn btn-green btn-sm" onclick="sendChatMsg()">Send</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
 <div class="toast" id="toast"></div>
 
 <script>
-const LOGO = "https://base44.app/api/apps/6a14ef767988d1ef0baff5aa/files/mp/public/6a14ef767988d1ef0baff5aa/7a46af0fc_shotgun_bank_REAL_logo.png";
-let _allAccounts = [];
-let _currentTab  = "pending";
-let _modalAcct   = null;
-let _lcThread    = {};   // {accountId: [{role,msg,ts}]}
-let _lcSelected  = null;
-let _unread      = 0;
+// ── STATE ──────────────────────────────────────────────────────────────────
+let _tab = 'pending';
+let _accounts = [];
+let _txns = [];
+let _selectedUserId = null;
+let _suspendTargetId = null;
+let _chatTargetId = null;
+let _chatTargetName = null;
+let _chatLogs = {};
+let _showGhostFilter = true;
+let _cryptoChartInst = null;
+let _cryptoHistory = {}; // coin -> [{t, price}]
+let _cryptoData = {};
+let _typeChartInst = null, _topUsersChartInst = null, _dailyFeesChartInst = null;
+
+// ── INIT ───────────────────────────────────────────────────────────────────
+window.onload = () => {
+  loadStats();
+  loadPending();
+  setInterval(loadStats, 30000);
+};
 
 // ── TAB SWITCHING ──────────────────────────────────────────────────────────
 function switchTab(name) {
-  document.querySelectorAll(".tab").forEach((t,i)=>{
-    const tabs=["pending","all","tx","support"];
-    t.classList.toggle("on", tabs[i]===name);
-  });
-  ["pending","all","tx","support"].forEach(n=>{
-    document.getElementById("tab-"+n).style.display = n===name ? "block" : "none";
-  });
-  _currentTab = name;
-  if(name==="pending") loadPending();
-  if(name==="all")     loadAll();
-  if(name==="tx")      loadTx();
-  if(name==="support") loadSupport();
+  _tab = name;
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('on'));
+  document.querySelectorAll('.tab')[['pending','all','approved','suspended','denied','tx','financial','crypto','support'].indexOf(name)]?.classList.add('on');
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.add('hidden'));
+  document.getElementById('tab-'+name).classList.remove('hidden');
+  if(name==='pending') loadPending();
+  if(name==='all') { if(!_accounts.length) loadAll(); else renderAll(); }
+  if(name==='approved') { if(!_accounts.length) loadAll(); else renderApproved(); }
+  if(name==='suspended') { if(!_accounts.length) loadAll(); else renderSuspended(); }
+  if(name==='denied') { if(!_accounts.length) loadAll(); else renderDenied(); }
+  if(name==='tx') { if(!_txns.length) loadTx(); else renderTx(_txns); }
+  if(name==='financial') buildFinancial();
+  if(name==='crypto') loadCrypto();
+  if(name==='support') loadSupport();
 }
 
-function refreshCurrent() { switchTab(_currentTab); showToast("🔄 Refreshed"); }
+function refreshCurrent() { 
+  _accounts=[]; _txns=[];
+  switchTab(_tab); 
+  loadStats();
+  toast('🔄 Refreshed'); 
+}
 
-// ── API HELPERS ─────────────────────────────────────────────────────────────
-async function api(path, method="GET", body=null){
-  const opts = {method, headers:{"Content-Type":"application/json"}};
+// ── API ────────────────────────────────────────────────────────────────────
+async function api(path, method='GET', body=null) {
+  const opts = { method, headers: { 'Content-Type': 'application/json' } };
   if(body) opts.body = JSON.stringify(body);
   const r = await fetch(path, opts);
-  return r.json();
+  return r.json().catch(() => ({}));
 }
 
-// ── STATS ───────────────────────────────────────────────────────────────────
-async function loadStats(){
-  const d = await api("/api/admin/stats");
+// ── STATS ──────────────────────────────────────────────────────────────────
+async function loadStats() {
+  const d = await api('/api/admin/stats');
   if(d.error) return;
-  document.getElementById("sPending").textContent  = d.pending  ?? "—";
-  document.getElementById("sApproved").textContent = d.approved ?? "—";
-  document.getElementById("sGhost").textContent    = d.ghost    ?? "—";
-  document.getElementById("sTx").textContent       = d.tx_count ?? "—";
-  document.getElementById("sFees").textContent     = d.fee_total ? "$"+d.fee_total.toFixed(2) : "$0.00";
+  document.getElementById('sPending').textContent   = d.pending ?? '—';
+  document.getElementById('sApproved').textContent  = d.approved ?? '—';
+  document.getElementById('sGhost').textContent     = d.ghost ?? '—';
+  document.getElementById('sTx').textContent        = d.tx_count ?? '—';
+  document.getElementById('sSuspended').textContent = d.suspended ?? '—';
+  document.getElementById('sOnboarding').textContent= d.onboarding ?? '—';
+  document.getElementById('sGross').textContent     = d.gross_volume ? '$'+d.gross_volume.toFixed(2) : '$0.00';
+  document.getElementById('sFees').textContent      = d.fee_total ? '$'+d.fee_total.toFixed(2) : '$0.00';
 }
 
-// ── PENDING ─────────────────────────────────────────────────────────────────
-async function loadPending(){
-  const d = await api("/api/admin/accounts?status=pending");
-  const rows = d.accounts || [];
-  const tb = document.getElementById("pendingBody");
-  if(!rows.length){tb.innerHTML='<tr><td colspan="5" class="empty">✅ No pending accounts</td></tr>';return;}
-  tb.innerHTML = rows.map(a => `
+// ── LOAD ALL ACCOUNTS ──────────────────────────────────────────────────────
+async function loadAll() {
+  const d = await api('/api/admin/all');
+  _accounts = d.accounts || [];
+  renderAll();
+  renderApproved();
+  renderSuspended();
+  renderDenied();
+  renderSupport();
+}
+
+// ── PENDING ────────────────────────────────────────────────────────────────
+let _pendingData = [];
+async function loadPending() {
+  const d = await api('/api/admin/accounts?status=pending');
+  const d2 = await api('/api/admin/accounts?status=onboarding');
+  const d3 = await api('/api/admin/accounts?status=stripe_verified');
+  _pendingData = [...(d.accounts||[]), ...(d2.accounts||[]), ...(d3.accounts||[])];
+  renderPending(_pendingData);
+}
+
+function renderPending(rows) {
+  const tb = document.getElementById('pendingBody');
+  if(!rows.length){tb.innerHTML='<tr><td colspan="6" class="empty">🎉 Queue is empty!</td></tr>';return;}
+  tb.innerHTML = rows.map(a=>`
     <tr onclick="openUser('${a.id}')">
       <td><strong>${a.first_name} ${a.last_name}</strong></td>
-      <td>${a.email}</td>
-      <td style="color:var(--gold)">$${a.hashtag}</td>
-      <td style="color:var(--muted);font-size:12px">${a.created_date?.slice(0,10)||""}</td>
-      <td><div class="actions" onclick="event.stopPropagation()">
-        <button class="btn btn-green btn-sm" onclick="approve('${a.id}')">✅ Approve</button>
-        <button class="btn btn-red btn-sm" onclick="deny('${a.id}')">❌ Deny</button>
-      </div></td>
-    </tr>`).join("");
-  loadStats();
+      <td style="color:var(--muted);font-size:12px">${a.email}</td>
+      <td><span class="badge b-gold">$${a.hashtag}</span></td>
+      <td style="font-size:11px;color:var(--muted)">${(a.created_date||'').slice(0,10)}</td>
+      <td>${statusBadge(a.status)}</td>
+      <td onclick="event.stopPropagation()" style="display:flex;gap:6px;flex-wrap:wrap;">
+        <button class="btn btn-green btn-xs" onclick="event.stopPropagation();approve('${a.id}')">✅ Approve</button>
+        <button class="btn btn-red btn-xs" onclick="event.stopPropagation();denyPrompt('${a.id}')">❌ Deny</button>
+        <button class="btn btn-outline btn-xs" onclick="event.stopPropagation();openChat('${a.id}','${a.first_name} ${a.last_name}')">💬</button>
+      </td>
+    </tr>`).join('');
 }
 
-// ── ALL ACCOUNTS ─────────────────────────────────────────────────────────────
-async function loadAll(){
-  const d = await api("/api/admin/accounts");
-  _allAccounts = d.accounts || [];
-  renderAll(_allAccounts);
-  loadStats();
+function filterPending() {
+  const q = document.getElementById('pendingSearch').value.toLowerCase();
+  const filtered = _pendingData.filter(a=>
+    (a.first_name+' '+a.last_name+' '+a.email+' '+a.hashtag).toLowerCase().includes(q));
+  renderPending(filtered);
 }
 
-function renderAll(list){
-  const tb = document.getElementById("allBody");
-  if(!list.length){tb.innerHTML='<tr><td colspan="6" class="empty">No accounts found</td></tr>';return;}
-  tb.innerHTML = list.map(a => {
-    const isGhost = a.is_silent;
-    return `<tr onclick="openUser('${a.id}')">
-      <td><strong>${a.first_name} ${a.last_name}</strong>${isGhost?' <span class="badge badge-ghost">👻 Ghost</span>':''}'</td>
-      <td>${a.email}</td>
-      <td style="color:var(--gold)">$${a.hashtag}</td>
-      <td style="color:var(--green)">$${(a.balance||0).toFixed(2)}</td>
-      <td><span class="badge badge-${a.status}">${a.status}</span></td>
-      <td><div class="actions" onclick="event.stopPropagation()">
-        ${a.status==="pending"?`<button class="btn btn-green btn-sm" onclick="approve('${a.id}')">✅</button>`:""}
-        <button class="btn btn-ghost btn-sm" onclick="toggleGhost('${a.id}',${!isGhost})">👻</button>
-      </div></td>
-    </tr>`;
-  }).join("");
+// ── ALL MEMBERS ────────────────────────────────────────────────────────────
+function renderAll() {
+  let rows = [..._accounts];
+  const q = (document.getElementById('allSearch')?.value||'').toLowerCase();
+  const st = document.getElementById('allStatus')?.value||'';
+  if(q) rows=rows.filter(a=>(a.first_name+' '+a.last_name+' '+a.email+' '+a.hashtag).toLowerCase().includes(q));
+  if(st) rows=rows.filter(a=>a.status===st);
+  if(!_showGhostFilter) rows=rows.filter(a=>!a.is_silent);
+  const tb = document.getElementById('allBody');
+  if(!rows.length){tb.innerHTML='<tr><td colspan="7" class="empty">No accounts found</td></tr>';return;}
+  tb.innerHTML = rows.map(a=>`
+    <tr onclick="openUser('${a.id}')">
+      <td><strong>${a.first_name} ${a.last_name}</strong></td>
+      <td style="color:var(--muted);font-size:12px">${a.email}</td>
+      <td><span class="badge b-gold">$${a.hashtag}</span></td>
+      <td style="color:var(--green);font-weight:700">$${(+(a.balance||0)).toFixed(2)}</td>
+      <td>${statusBadge(a.status)}</td>
+      <td onclick="event.stopPropagation()">
+        <label class="toggle">
+          <input type="checkbox" ${a.is_silent?'checked':''} onchange="toggleGhost('${a.id}',this.checked)">
+          <span class="slider"></span>
+        </label>
+      </td>
+      <td onclick="event.stopPropagation()" style="display:flex;gap:5px;">
+        <button class="btn btn-outline btn-xs" onclick="event.stopPropagation();openChat('${a.id}','${a.first_name} ${a.last_name}')">💬</button>
+        <button class="btn btn-red btn-xs" onclick="event.stopPropagation();openSuspend('${a.id}')">⏸</button>
+      </td>
+    </tr>`).join('');
+}
+function filterAll() { renderAll(); }
+
+// ── APPROVED ───────────────────────────────────────────────────────────────
+function renderApproved() {
+  let rows = _accounts.filter(a=>a.status==='approved');
+  const q = (document.getElementById('approvedSearch')?.value||'').toLowerCase();
+  const sort = document.getElementById('approvedSort')?.value||'';
+  if(q) rows=rows.filter(a=>(a.first_name+' '+a.last_name+' '+a.email+' '+a.hashtag).toLowerCase().includes(q));
+  if(sort==='balance_desc') rows.sort((a,b)=>(b.balance||0)-(a.balance||0));
+  if(sort==='balance_asc') rows.sort((a,b)=>(a.balance||0)-(b.balance||0));
+  if(sort==='lifetime_desc') rows.sort((a,b)=>(b.lifetime_deposited||0)-(a.lifetime_deposited||0));
+  const tb = document.getElementById('approvedBody');
+  if(!rows.length){tb.innerHTML='<tr><td colspan="8" class="empty">No approved members yet</td></tr>';return;}
+  tb.innerHTML = rows.map(a=>`
+    <tr onclick="openUser('${a.id}')">
+      <td><strong>${a.first_name} ${a.last_name}</strong></td>
+      <td style="color:var(--muted);font-size:12px">${a.email}</td>
+      <td><span class="badge b-gold">$${a.hashtag}</span></td>
+      <td style="color:var(--green);font-weight:700">$${(+(a.balance||0)).toFixed(2)}</td>
+      <td style="color:var(--muted)">$${(+(a.lifetime_deposited||0)).toFixed(2)}</td>
+      <td>${a.beat_v_enabled?'<span class="badge b-purple">On</span>':'<span class="badge b-gray">Off</span>'}</td>
+      <td onclick="event.stopPropagation()">
+        <label class="toggle">
+          <input type="checkbox" ${a.is_silent?'checked':''} onchange="toggleGhost('${a.id}',this.checked)">
+          <span class="slider"></span>
+        </label>
+      </td>
+      <td onclick="event.stopPropagation()" style="display:flex;gap:5px;">
+        <button class="btn btn-outline btn-xs" onclick="event.stopPropagation();openChat('${a.id}','${a.first_name} ${a.last_name}')">💬</button>
+        <button class="btn btn-red btn-xs" onclick="event.stopPropagation();openSuspend('${a.id}')">⏸ Suspend</button>
+      </td>
+    </tr>`).join('');
+}
+function filterApproved() { renderApproved(); }
+
+// ── SUSPENDED ──────────────────────────────────────────────────────────────
+function renderSuspended() {
+  const rows = _accounts.filter(a=>a.status==='suspended');
+  const tb = document.getElementById('suspendedBody');
+  if(!rows.length){tb.innerHTML='<tr><td colspan="6" class="empty">No suspended accounts</td></tr>';return;}
+  tb.innerHTML = rows.map(a=>`
+    <tr onclick="openUser('${a.id}')">
+      <td><strong>${a.first_name} ${a.last_name}</strong></td>
+      <td style="color:var(--muted);font-size:12px">${a.email}</td>
+      <td><span class="badge b-gold">$${a.hashtag}</span></td>
+      <td style="color:var(--red)">$${(+(a.balance||0)).toFixed(2)}</td>
+      <td style="font-size:12px;color:var(--muted)">${a.denied_reason||'—'}</td>
+      <td onclick="event.stopPropagation()">
+        <button class="btn btn-green btn-xs" onclick="event.stopPropagation();reinstate('${a.id}')">↩ Reinstate</button>
+      </td>
+    </tr>`).join('');
 }
 
-function filterAll(){
-  const q = document.getElementById("allSearch").value.toLowerCase();
-  renderAll(_allAccounts.filter(a=>
-    `${a.first_name} ${a.last_name} ${a.email} ${a.hashtag}`.toLowerCase().includes(q)
-  ));
+// ── DENIED ─────────────────────────────────────────────────────────────────
+function renderDenied() {
+  const rows = _accounts.filter(a=>a.status==='denied');
+  const tb = document.getElementById('deniedBody');
+  if(!rows.length){tb.innerHTML='<tr><td colspan="6" class="empty">No denied accounts</td></tr>';return;}
+  tb.innerHTML = rows.map(a=>`
+    <tr onclick="openUser('${a.id}')">
+      <td><strong>${a.first_name} ${a.last_name}</strong></td>
+      <td style="color:var(--muted);font-size:12px">${a.email}</td>
+      <td><span class="badge b-gold">$${a.hashtag}</span></td>
+      <td style="font-size:11px;color:var(--muted)">${(a.created_date||'').slice(0,10)}</td>
+      <td style="font-size:12px;color:var(--muted)">${a.denied_reason||'—'}</td>
+      <td onclick="event.stopPropagation()">
+        <button class="btn btn-green btn-xs" onclick="event.stopPropagation();approve('${a.id}')">↩ Reinstate</button>
+      </td>
+    </tr>`).join('');
 }
 
-// ── TRANSACTIONS ─────────────────────────────────────────────────────────────
-async function loadTx(){
-  const d = await api("/api/admin/transactions");
-  const rows = d.transactions || [];
-  const tb = document.getElementById("txBody");
-  if(!rows.length){tb.innerHTML='<tr><td colspan="7" class="empty">No transactions yet</td></tr>';return;}
-  tb.innerHTML = rows.map(t=>`
+// ── TRANSACTIONS ───────────────────────────────────────────────────────────
+async function loadTx() {
+  const d = await api('/api/admin/transactions');
+  _txns = d.transactions || [];
+  renderTx(_txns);
+}
+
+function renderTx(rows) {
+  const tb = document.getElementById('txBody');
+  if(!rows.length){tb.innerHTML='<tr><td colspan="9" class="empty">No transactions</td></tr>';return;}
+  const total = rows.reduce((s,t)=>s+(t.amount||0),0);
+  const fees  = rows.reduce((s,t)=>s+(t.fee||0),0);
+  document.getElementById('txTotalLabel').textContent = `${rows.length} txns · $${total.toFixed(2)} volume · $${fees.toFixed(2)} fees`;
+  tb.innerHTML = rows.slice(0,200).map(t=>`
     <tr>
-      <td>$${t.from_hashtag||"—"}</td>
-      <td>$${t.to_hashtag||"—"}</td>
-      <td style="color:var(--green)">$${(t.amount||0).toFixed(2)}</td>
-      <td style="color:var(--gold)">$${(t.fee||0).toFixed(2)}</td>
-      <td>${t.type||"—"}</td>
-      <td><span class="badge badge-${t.status==="completed"?"approved":t.status==="failed"?"denied":"pending"}">${t.status}</span></td>
-      <td style="color:var(--muted);font-size:12px">${(t.created_date||"").slice(0,16)}</td>
-    </tr>`).join("");
+      <td><span class="badge b-gold">$${t.from_hashtag||'—'}</span></td>
+      <td><span class="badge b-green">$${t.to_hashtag||'—'}</span></td>
+      <td style="color:var(--green);font-weight:700">$${(+(t.amount||0)).toFixed(2)}</td>
+      <td style="color:var(--gold)">$${(+(t.fee||0)).toFixed(2)}</td>
+      <td style="color:var(--muted)">$${(+(t.net_amount||t.amount||0)).toFixed(2)}</td>
+      <td>${t.type||'—'}</td>
+      <td>${statusBadge(t.status||'completed')}</td>
+      <td style="font-size:11px;color:var(--muted);max-width:100px;overflow:hidden;text-overflow:ellipsis">${t.note||'—'}</td>
+      <td style="font-size:11px;color:var(--muted)">${(t.created_date||'').slice(0,16)}</td>
+    </tr>`).join('');
 }
 
-// ── SUPPORT TAB ──────────────────────────────────────────────────────────────
-function loadSupport(){
-  const tb = document.getElementById("supportBody");
-  const threads = Object.keys(_lcThread);
-  if(!threads.length){tb.innerHTML='<tr><td colspan="5" class="empty">No support chats yet</td></tr>';return;}
-  tb.innerHTML = threads.map(aid => {
-    const msgs = _lcThread[aid]||[];
-    const last = msgs[msgs.length-1];
-    const acct = _allAccounts.find(a=>a.id===aid)||{};
-    const unread = msgs.filter(m=>m.role==="user"&&!m.read).length;
-    return `<tr>
-      <td>${acct.first_name||"Unknown"} ${acct.last_name||""}</td>
-      <td>${acct.email||""}</td>
-      <td style="color:var(--muted);font-size:12px">${last?.msg?.slice(0,60)||"—"}</td>
-      <td>${unread?`<span class="badge badge-pending">${unread} new</span>`:"✓"}</td>
-      <td><button class="btn btn-green btn-sm" onclick="openChat('${aid}')">💬 Open</button></td>
-    </tr>`;
-  }).join("");
+function filterTx() {
+  const q  = document.getElementById('txSearch').value.toLowerCase();
+  const ty = document.getElementById('txType').value;
+  const st = document.getElementById('txStatus').value;
+  let rows = [..._txns];
+  if(q) rows=rows.filter(t=>(t.from_hashtag+' '+t.to_hashtag+' '+(t.note||'')+' '+t.from_name+' '+t.to_name).toLowerCase().includes(q));
+  if(ty) rows=rows.filter(t=>t.type===ty);
+  if(st) rows=rows.filter(t=>t.status===st);
+  renderTx(rows);
 }
 
-// ── USER MODAL ───────────────────────────────────────────────────────────────
-async function openUser(id){
-  const d = await api("/api/admin/account/"+id);
-  const a = d.account;
-  if(!a) return;
-  _modalAcct = a;
-  document.getElementById("modalName").textContent = `${a.first_name} ${a.last_name} · $${a.hashtag}`;
-  document.getElementById("modalInfo").innerHTML = `
-    <div class="info-item"><label>Email</label><span>${a.email}</span></div>
-    <div class="info-item"><label>Phone</label><span>${a.phone||"—"}</span></div>
-    <div class="info-item"><label>Status</label><span><span class="badge badge-${a.status}">${a.status}</span></span></div>
-    <div class="info-item"><label>Ghost Mode</label><span>${a.is_silent?"👻 ON":"—"}</span></div>
-    <div class="info-item"><label>Beat the V</label><span>${a.beat_v_enabled?"✅ Unlocked":"🔒 Locked"}</span></div>
-    <div class="info-item"><label>Joined</label><span>${(a.created_date||"").slice(0,10)}</span></div>
+// ── FINANCIAL REPORT ───────────────────────────────────────────────────────
+async function buildFinancial() {
+  if(!_txns.length) { const d=await api('/api/admin/transactions'); _txns=d.transactions||[]; }
+  if(!_accounts.length) { const d=await api('/api/admin/all'); _accounts=d.accounts||[]; }
+  const txs = _txns;
+  const gross    = txs.reduce((s,t)=>s+(t.amount||0),0);
+  const fees     = txs.reduce((s,t)=>s+(t.fee||0),0);
+  const net      = txs.reduce((s,t)=>s+(t.net_amount||t.amount||0),0);
+  const deposits = txs.filter(t=>t.type==='deposit').reduce((s,t)=>s+(t.amount||0),0);
+  const withdraws= txs.filter(t=>t.type==='withdraw').reduce((s,t)=>s+(t.amount||0),0);
+  const crypto   = txs.filter(t=>t.type==='crypto').reduce((s,t)=>s+(t.amount||0),0);
+  const avgFee   = txs.length ? fees/txs.length : 0;
+
+  document.getElementById('rGross').textContent   = '$'+gross.toFixed(2);
+  document.getElementById('rFees').textContent    = '$'+fees.toFixed(2);
+  document.getElementById('rNet').textContent     = '$'+net.toFixed(2);
+  document.getElementById('rTxCount').textContent = txs.length;
+  document.getElementById('rAvgFee').textContent  = '$'+avgFee.toFixed(2);
+  document.getElementById('rDeposits').textContent= '$'+deposits.toFixed(2);
+  document.getElementById('rWithdraws').textContent='$'+withdraws.toFixed(2);
+  document.getElementById('rCrypto').textContent  = '$'+crypto.toFixed(2);
+
+  // Chart: by type
+  const types = {};
+  txs.forEach(t=>{ types[t.type||'other']=(types[t.type||'other']||0)+(t.amount||0); });
+  drawOrUpdate('chartByType', _typeChartInst, 'bar',
+    Object.keys(types), Object.values(types).map(v=>+v.toFixed(2)),
+    'Transaction Volume by Type', '#16a34a');
+
+  // Chart: top 10 users by balance
+  const sorted = [..._accounts].filter(a=>a.status==='approved').sort((a,b)=>(b.balance||0)-(a.balance||0)).slice(0,10);
+  drawOrUpdate('chartTopUsers', _topUsersChartInst, 'bar',
+    sorted.map(a=>'$'+a.hashtag), sorted.map(a=>+(a.balance||0).toFixed(2)),
+    'Top Users by Balance', '#eab308');
+
+  // Chart: daily fees last 14 days
+  const now = Date.now();
+  const days = Array.from({length:14},(_,i)=>{
+    const d=new Date(now - (13-i)*86400000);
+    return d.toISOString().slice(0,10);
+  });
+  const dailyFees = {};
+  days.forEach(d=>dailyFees[d]=0);
+  txs.forEach(t=>{
+    const day=(t.created_date||'').slice(0,10);
+    if(dailyFees[day]!==undefined) dailyFees[day]+=(t.fee||0);
+  });
+  drawOrUpdate('chartDailyFees', _dailyFeesChartInst, 'line',
+    days.map(d=>d.slice(5)), Object.values(dailyFees).map(v=>+v.toFixed(2)),
+    'Daily Fee Revenue', '#eab308');
+}
+
+function drawOrUpdate(canvasId, inst, type, labels, data, label, color) {
+  const ctx = document.getElementById(canvasId)?.getContext('2d');
+  if(!ctx) return;
+  if(inst) inst.destroy();
+  const newInst = new Chart(ctx, {
+    type,
+    data: {
+      labels,
+      datasets:[{ label, data, backgroundColor: color+'88', borderColor: color, borderWidth:2, tension:.4, fill: type==='line' }]
+    },
+    options:{
+      responsive:true, plugins:{ legend:{labels:{color:'#9ca3af'}} },
+      scales:{ x:{ticks:{color:'#9ca3af'}, grid:{color:'#1f4d3366'}}, y:{ticks:{color:'#9ca3af'}, grid:{color:'#1f4d3366'}} }
+    }
+  });
+  if(canvasId==='chartByType') _typeChartInst=newInst;
+  if(canvasId==='chartTopUsers') _topUsersChartInst=newInst;
+  if(canvasId==='chartDailyFees') _dailyFeesChartInst=newInst;
+}
+
+// ── CRYPTO WATCH ───────────────────────────────────────────────────────────
+const COINS = ['BTC','ETH','SOL','BNB','XRP','DOGE','AVAX','ADA','LINK','LTC'];
+let _cryptoRefreshInterval = null;
+
+async function loadCrypto() {
+  await fetchCryptoPrices();
+  clearInterval(_cryptoRefreshInterval);
+  _cryptoRefreshInterval = setInterval(fetchCryptoPrices, 30000);
+}
+
+async function fetchCryptoPrices() {
+  const d = await api('/api/crypto/prices');
+  _cryptoData = d.prices || {};
+  renderCryptoGrid();
+}
+
+function renderCryptoGrid() {
+  const grid = document.getElementById('cryptoGrid');
+  const prices = _cryptoData;
+  grid.innerHTML = Object.entries(prices).map(([sym, info])=>{
+    const price = info.usd || 0;
+    const change = info.change_24h || 0;
+    const up = change >= 0;
+    // Store history
+    if(!_cryptoHistory[sym]) _cryptoHistory[sym]=[];
+    _cryptoHistory[sym].push({ t: Date.now(), price });
+    if(_cryptoHistory[sym].length > 60) _cryptoHistory[sym].shift();
+    return `<div class="crypto-card" id="cc-${sym}" onclick="selectCoin('${sym}')">
+      <div class="crypto-sym">${sym}</div>
+      <div class="crypto-price">$${price>=1?price.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}):price.toFixed(6)}</div>
+      <div class="crypto-change ${up?'up':'down'}">${up?'▲':'▼'} ${Math.abs(change).toFixed(2)}% (24h)</div>
+    </div>`;
+  }).join('') || '<div style="color:var(--muted);padding:20px">Loading prices…</div>';
+}
+
+function selectCoin(sym) {
+  document.querySelectorAll('.crypto-card').forEach(c=>c.classList.remove('selected'));
+  document.getElementById('cc-'+sym)?.classList.add('selected');
+  document.getElementById('cryptoChartTitle').textContent = `${sym}/USD — Live Price History`;
+  const hist = _cryptoHistory[sym] || [];
+  if(_cryptoChartInst) _cryptoChartInst.destroy();
+  const ctx = document.getElementById('cryptoChart').getContext('2d');
+  _cryptoChartInst = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: hist.map((_,i)=>`-${hist.length-1-i}m`),
+      datasets:[{
+        label: sym+'/USD',
+        data: hist.map(h=>h.price),
+        borderColor:'#16a34a', backgroundColor:'#16a34a22',
+        borderWidth:2, tension:.4, fill:true, pointRadius:3
+      }]
+    },
+    options:{
+      responsive:true,
+      plugins:{ legend:{labels:{color:'#9ca3af'}} },
+      scales:{
+        x:{ticks:{color:'#9ca3af'},grid:{color:'#1f4d3366'}},
+        y:{ticks:{color:'#9ca3af',callback:v=>'$'+v.toLocaleString()},grid:{color:'#1f4d3366'}}
+      }
+    }
+  });
+}
+
+// ── SUPPORT ────────────────────────────────────────────────────────────────
+function renderSupport() {
+  const q = (document.getElementById('supportSearch')?.value||'').toLowerCase();
+  let rows = _accounts.filter(a=>a.status==='approved'||a.status==='suspended');
+  if(q) rows=rows.filter(a=>(a.first_name+' '+a.last_name+' '+a.email).toLowerCase().includes(q));
+  const tb = document.getElementById('supportBody');
+  if(!rows.length){tb.innerHTML='<tr><td colspan="5" class="empty">No users</td></tr>';return;}
+  tb.innerHTML = rows.map(a=>`
+    <tr>
+      <td><strong>${a.first_name} ${a.last_name}</strong></td>
+      <td style="font-size:12px;color:var(--muted)">${a.email}</td>
+      <td><span class="badge b-gold">$${a.hashtag}</span></td>
+      <td>${statusBadge(a.status)}</td>
+      <td><button class="btn btn-outline btn-xs" onclick="openChat('${a.id}','${a.first_name} ${a.last_name}')">💬 Message</button></td>
+    </tr>`).join('');
+}
+function loadSupport() { if(!_accounts.length) loadAll(); else renderSupport(); }
+function filterSupport() { renderSupport(); }
+
+// ── USER DETAIL MODAL ──────────────────────────────────────────────────────
+async function openUser(id) {
+  const a = _accounts.find(x=>x.id===id);
+  if(!a) { const d=await api('/api/admin/account/'+id); if(d.account) openUserFromData(d.account); return; }
+  openUserFromData(a);
+}
+
+function openUserFromData(a) {
+  _selectedUserId = a.id;
+  document.getElementById('modalTitle').textContent = `${a.first_name} ${a.last_name} · $${a.hashtag}`;
+  document.getElementById('modalBody').innerHTML = `
+    <div class="detail-row"><span class="lbl">Status</span><span>${statusBadge(a.status)}</span></div>
+    <div class="detail-row"><span class="lbl">Email</span><span class="val">${a.email}</span></div>
+    <div class="detail-row"><span class="lbl">Phone</span><span class="val">${a.phone||'—'}</span></div>
+    <div class="detail-row"><span class="lbl">DOB</span><span class="val">${a.dob||'—'}</span></div>
+    <div class="detail-row"><span class="lbl">Balance</span><span class="val" style="color:var(--green)">$${(+(a.balance||0)).toFixed(2)}</span></div>
+    <div class="detail-row"><span class="lbl">Lifetime Deposited</span><span class="val">$${(+(a.lifetime_deposited||0)).toFixed(2)}</span></div>
+    <div class="detail-row"><span class="lbl">Routing #</span><span class="val">${a.routing_number||'—'}</span></div>
+    <div class="detail-row"><span class="lbl">Account #</span><span class="val">${a.account_number||'—'}</span></div>
+    <div class="detail-row"><span class="lbl">Virtual Card</span><span class="val">•••• ${(a.virtual_card_number||'').slice(-4)||'—'}</span></div>
+    <div class="detail-row"><span class="lbl">Beat the V</span><span class="val">${a.beat_v_enabled?'✅ Enabled':'❌ Off'}</span></div>
+    <div class="detail-row"><span class="lbl">Ghost</span><span class="val">${a.is_silent?'👻 Yes':'No'}</span></div>
+    <div class="detail-row"><span class="lbl">Joined</span><span class="val">${(a.created_date||'').slice(0,10)}</span></div>
   `;
-  document.getElementById("modalBank").innerHTML = `
-    <div class="info-item"><label>Balance</label><span style="color:var(--green);font-size:18px">$${(a.balance||0).toFixed(2)}</span></div>
-    <div class="info-item"><label>Lifetime Deposited</label><span>$${(a.lifetime_deposited||0).toFixed(2)}</span></div>
-    <div class="info-item"><label>Routing</label><span>${a.routing_number||"—"}</span></div>
-    <div class="info-item"><label>Account #</label><span>${a.account_number||"—"}</span></div>
-    <div class="info-item"><label>Virtual Card</label><span>${a.virtual_card_number?.slice(-4)??"—"} (exp ${a.virtual_card_expiry||"—"})</span></div>
-    <div class="info-item"><label>Beat V Used</label><span>${a.beat_v_used?"Yes":"No"}</span></div>
-  `;
-  const acts = document.getElementById("modalActions");
-  acts.innerHTML = "";
-  if(a.status==="pending"){
-    acts.innerHTML += `<button class="btn btn-green btn-sm" onclick="approve('${a.id}',true)">✅ Approve</button>`;
-    acts.innerHTML += `<button class="btn btn-red btn-sm" onclick="deny('${a.id}',true)">❌ Deny</button>`;
+  const btns = [];
+  if(a.status==='pending'||a.status==='onboarding'||a.status==='stripe_verified') {
+    btns.push(`<button class="btn btn-green btn-sm" onclick="approve('${a.id}',true)">✅ Approve</button>`);
+    btns.push(`<button class="btn btn-red btn-sm" onclick="denyPrompt('${a.id}')">❌ Deny</button>`);
   }
-  if(a.status==="approved"){
-    acts.innerHTML += `<button class="btn btn-red btn-sm" onclick="deny('${a.id}',true)">🚫 Suspend</button>`;
+  if(a.status==='approved') {
+    btns.push(`<button class="btn btn-red btn-sm" onclick="openSuspend('${a.id}')">⏸ Suspend</button>`);
+    const btvLabel = a.beat_v_enabled ? '🔫 Revoke Beat the V' : '🔫 Grant Beat the V';
+    btns.push(`<button class="btn btn-outline btn-sm" onclick="toggleBeatV('${a.id}',${!a.beat_v_enabled})">${btvLabel}</button>`);
   }
-  acts.innerHTML += `<button class="btn btn-ghost btn-sm" onclick="toggleGhost('${a.id}',${!a.is_silent},true)">👻 ${a.is_silent?"Disable":"Enable"} Ghost</button>`;
-  acts.innerHTML += `<button class="btn btn-gold btn-sm" onclick="openChat('${a.id}')">💬 Live Chat</button>`;
-  document.getElementById("supportMsg").value = "";
-  document.getElementById("userModal").classList.add("open");
+  if(a.status==='suspended'||a.status==='denied') {
+    btns.push(`<button class="btn btn-green btn-sm" onclick="reinstate('${a.id}')">↩ Reinstate</button>`);
+  }
+  btns.push(`<button class="btn btn-outline btn-sm" onclick="openChat('${a.id}','${a.first_name} ${a.last_name}')">💬 Message</button>`);
+  btns.push(`<button class="btn btn-gold btn-sm" onclick="toggleGhost('${a.id}',${!a.is_silent})">👻 ${a.is_silent?'Un-ghost':'Ghost'}</button>`);
+  document.getElementById('modalActions').innerHTML = btns.join('');
+  document.getElementById('userModal').classList.add('open');
 }
 
-function closeModal(id){ document.getElementById(id).classList.remove("open"); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
 
-// ── APPROVE / DENY ───────────────────────────────────────────────────────────
-async function approve(id, fromModal=false){
-  const d = await api(`/api/admin/approve/${id}`,"POST");
-  if(d.success){ showToast("✅ Account approved!"); if(fromModal) closeModal("userModal"); loadPending(); loadStats(); }
-  else showToast("❌ Error: "+d.error, true);
+// ── ACTIONS ────────────────────────────────────────────────────────────────
+async function approve(id, fromModal=false) {
+  const d = await api(`/api/admin/approve/${id}`, 'POST');
+  if(d.success) {
+    toast('✅ Account approved!');
+    if(fromModal) closeModal('userModal');
+    const acct = _accounts.find(a=>a.id===id);
+    if(acct) acct.status='approved';
+    refreshCurrent();
+  } else toast(d.error||'Error approving', true);
 }
 
-let _denyTargetId = null;
-let _denyFromModal = false;
-function deny(id, fromModal=false){
-  _denyTargetId=id; _denyFromModal=fromModal;
-  document.getElementById("suspendReason").value="";
-  document.getElementById("suspendSteps").value="";
-  document.getElementById("suspendAction").value="suspend";
-  document.getElementById("suspendModal").classList.add("open");
-}
-async function confirmSuspend(){
-  const reason = document.getElementById("suspendReason").value.trim();
-  const steps  = document.getElementById("suspendSteps").value.trim();
-  const action = document.getElementById("suspendAction").value;
-  const d = await api(`/api/admin/deny/${_denyTargetId}`,"POST",{reason,steps,action});
-  closeModal("suspendModal");
-  if(d.success){ showToast(`🚫 Account ${action}ed & email sent`); if(_denyFromModal) closeModal("userModal"); loadPending(); loadAll(); loadStats(); }
-  else showToast("❌ Error: "+d.error, true);
+function denyPrompt(id) {
+  const reason = prompt('Reason for denial (shown to user):');
+  if(reason===null) return;
+  doDeny(id, reason);
 }
 
-// ── GHOST TOGGLE ─────────────────────────────────────────────────────────────
-async function toggleGhost(id, makeGhost, fromModal=false){
-  const d = await api(`/api/admin/ghost/${id}`,"POST",{is_silent:makeGhost});
-  if(d.success){ showToast(`👻 Ghost ${makeGhost?"enabled":"disabled"}`); if(fromModal) closeModal("userModal"); loadAll(); loadStats(); }
-  else showToast("❌ "+d.error, true);
+async function doDeny(id, reason) {
+  const d = await api(`/api/admin/deny/${id}`, 'POST', {reason});
+  if(d.success) {
+    toast('❌ Account denied');
+    const acct = _accounts.find(a=>a.id===id);
+    if(acct) { acct.status='denied'; acct.denied_reason=reason; }
+    refreshCurrent();
+  } else toast(d.error||'Error', true);
 }
 
-// ── SEND SUPPORT MSG ─────────────────────────────────────────────────────────
-async function sendSupportMsg(){
-  const msg = document.getElementById("supportMsg").value.trim();
-  if(!msg||!_modalAcct) return;
-  const d = await api("/api/admin/support-msg","POST",{account_id:_modalAcct.id, message:msg});
-  if(d.success){ showToast("📤 Message sent!"); document.getElementById("supportMsg").value=""; }
-  else showToast("❌ "+d.error, true);
+async function reinstate(id) {
+  const d = await api(`/api/admin/approve/${id}`, 'POST');
+  if(d.success) { toast('✅ Account reinstated'); refreshCurrent(); }
+  else toast(d.error||'Error', true);
 }
 
-// ── LIVE CHAT ─────────────────────────────────────────────────────────────────
-function toggleChat(){
-  document.getElementById("lc-panel").classList.toggle("open");
-  _unread=0; document.getElementById("lc-badge").classList.remove("show");
-  loadLcUsers();
+function openSuspend(id) {
+  _suspendTargetId = id;
+  document.getElementById('suspendSteps').value='';
+  closeModal('userModal');
+  document.getElementById('suspendModal').classList.add('open');
 }
 
-async function loadLcUsers(){
-  if(!_allAccounts.length){ const d=await api("/api/admin/accounts"); _allAccounts=d.accounts||[]; }
-  const sel = document.getElementById("lc-select");
-  sel.innerHTML = '<option value="">— Select a user —</option>' +
-    _allAccounts.filter(a=>a.status==="approved").map(a=>`<option value="${a.id}">${a.first_name} ${a.last_name} ($${a.hashtag})</option>`).join("");
+async function confirmSuspend() {
+  const steps = document.getElementById('suspendSteps').value.trim();
+  if(!steps){ toast('Enter steps for the user to unsuspend', true); return; }
+  const d = await api(`/api/admin/deny/${_suspendTargetId}`, 'POST', {reason: steps, status: 'suspended'});
+  if(d.success || d.result) {
+    toast('⏸ Account suspended, user emailed');
+    closeModal('suspendModal');
+    const acct = _accounts.find(a=>a.id===_suspendTargetId);
+    if(acct) { acct.status='suspended'; acct.denied_reason=steps; }
+    refreshCurrent();
+  } else toast(d.error||'Error', true);
 }
 
-function lcSelectUser(){
-  const id = document.getElementById("lc-select").value;
-  _lcSelected = id;
-  renderLcMsgs();
+async function toggleGhost(id, makeGhost) {
+  const d = await api(`/api/admin/ghost/${id}`, 'POST', {is_silent: makeGhost});
+  if(d.success) {
+    toast(makeGhost ? '👻 Ghosted' : '👁 Un-ghosted');
+    const acct = _accounts.find(a=>a.id===id);
+    if(acct) acct.is_silent = makeGhost;
+  } else toast(d.error||'Error', true);
 }
 
-function renderLcMsgs(){
-  if(!_lcSelected) return;
-  const msgs = _lcThread[_lcSelected]||[];
-  msgs.forEach(m=>m.read=true);
-  document.getElementById("lc-msg-list").innerHTML = msgs.map(m=>`
+async function toggleBeatV(id, enable) {
+  const d = await api(`/api/admin/ghost/${id}`, 'POST', {beat_v_enabled: enable});
+  toast(enable ? '🔫 Beat the V granted' : '🔫 Beat the V revoked');
+  closeModal('userModal');
+  const acct = _accounts.find(a=>a.id===id);
+  if(acct) acct.beat_v_enabled = enable;
+}
+
+function toggleGhostFilter() {
+  _showGhostFilter = !_showGhostFilter;
+  document.getElementById('chip-ghost').classList.toggle('on', _showGhostFilter);
+  renderAll();
+}
+
+// ── SUPPORT CHAT ───────────────────────────────────────────────────────────
+function openChat(id, name) {
+  _chatTargetId = id;
+  _chatTargetName = name;
+  document.getElementById('chatModalName').textContent = '💬 ' + name;
+  if(!_chatLogs[id]) _chatLogs[id] = [];
+  renderChatBox();
+  document.getElementById('chatModal').classList.add('open');
+}
+
+function renderChatBox() {
+  const msgs = _chatLogs[_chatTargetId] || [];
+  const box = document.getElementById('chatBox');
+  if(!msgs.length){ box.innerHTML='<div style="color:var(--muted);font-size:13px;text-align:center;padding-top:40px">No messages yet</div>'; return; }
+  box.innerHTML = msgs.map(m=>`
     <div class="chat-msg">
-      <div class="who">${m.role==="admin"?"🛡️ You":("💬 User")}</div>
-      <div class="bubble ${m.role==="admin"?"admin":"user"}">${m.msg}</div>
-    </div>`).join("") || '<div style="color:var(--muted);font-size:13px;text-align:center;padding:20px">No messages yet — say hi!</div>';
-  const wrap = document.getElementById("lc-msgs");
-  wrap.scrollTop = wrap.scrollHeight;
+      <div class="chat-who">${m.from}</div>
+      <div class="chat-bubble ${m.isAdmin?'admin':'user'}">${m.text}</div>
+    </div>`).join('');
+  box.scrollTop = box.scrollHeight;
 }
 
-async function lcSend(){
-  const msg = document.getElementById("lc-input").value.trim();
-  if(!msg||!_lcSelected) return;
-  if(!_lcThread[_lcSelected]) _lcThread[_lcSelected]=[];
-  _lcThread[_lcSelected].push({role:"admin",msg,ts:Date.now(),read:true});
-  document.getElementById("lc-input").value="";
-  renderLcMsgs();
-  // Send via support API
-  await api("/api/admin/support-msg","POST",{account_id:_lcSelected, message:msg});
-  loadSupport();
+async function sendChatMsg() {
+  const input = document.getElementById('chatInput');
+  const text = input.value.trim();
+  if(!text) return;
+  const d = await api('/api/admin/support-msg', 'POST', {account_id: _chatTargetId, message: text});
+  if(d.success || d.result) {
+    if(!_chatLogs[_chatTargetId]) _chatLogs[_chatTargetId] = [];
+    _chatLogs[_chatTargetId].push({from:'Admin (Italy)', text, isAdmin:true});
+    input.value='';
+    renderChatBox();
+    toast('📤 Message sent');
+  } else toast(d.error||'Error sending', true);
 }
 
-// ── CHAT MODAL ────────────────────────────────────────────────────────────────
-function openChat(id){
-  closeModal("userModal");
-  _lcSelected = id;
-  const acct = _allAccounts.find(a=>a.id===id)||{};
-  document.getElementById("chatModalName").textContent = `💬 ${acct.first_name||"User"} ${acct.last_name||""}`;
-  if(!_lcThread[id]) _lcThread[id]=[];
-  renderChatModal();
-  document.getElementById("chatModal").classList.add("open");
+// ── HELPERS ────────────────────────────────────────────────────────────────
+function statusBadge(s) {
+  const map = {
+    approved:'b-green', pending:'b-gold', onboarding:'b-blue',
+    stripe_verified:'b-purple', suspended:'b-red', denied:'b-red', ghost:'b-gray'
+  };
+  return `<span class="badge ${map[s]||'b-gray'}">${s||'—'}</span>`;
 }
 
-function renderChatModal(){
-  const msgs = _lcThread[_lcSelected]||[];
-  msgs.forEach(m=>m.read=true);
-  document.getElementById("chatMsgs").innerHTML = msgs.map(m=>`
-    <div class="chat-msg">
-      <div class="who">${m.role==="admin"?"🛡️ You":"💬 User"}</div>
-      <div class="bubble ${m.role==="admin"?"admin":"user"}">${m.msg}</div>
-    </div>`).join("") || '<div style="color:var(--muted);text-align:center;padding:16px;font-size:13px">No messages yet</div>';
-  const w=document.getElementById("chatWrap");
-  w.scrollTop=w.scrollHeight;
+function toast(msg, isErr=false) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = 'toast show' + (isErr?' err':'');
+  setTimeout(()=>el.classList.remove('show'), 3000);
 }
-
-async function sendChat(){
-  const msg = document.getElementById("chatInput").value.trim();
-  if(!msg||!_lcSelected) return;
-  if(!_lcThread[_lcSelected]) _lcThread[_lcSelected]=[];
-  _lcThread[_lcSelected].push({role:"admin",msg,ts:Date.now(),read:true});
-  document.getElementById("chatInput").value="";
-  renderChatModal();
-  await api("/api/admin/support-msg","POST",{account_id:_lcSelected, message:msg});
-}
-
-// ── TOAST ─────────────────────────────────────────────────────────────────────
-function showToast(msg, isErr=false){
-  const t=document.getElementById("toast");
-  t.textContent=msg;
-  t.style.background=isErr?"#450a0a":"#1a3a2a";
-  t.style.borderColor=isErr?"var(--red)":"var(--green)";
-  t.classList.add("show");
-  setTimeout(()=>t.classList.remove("show"),3000);
-}
-
-// ── INIT ──────────────────────────────────────────────────────────────────────
-loadPending();
-loadStats();
-loadAll(); // preload for live chat user selector
 </script>
-
-<!-- SUSPEND MODAL -->
-<div class="modal-overlay" id="suspendModal">
-  <div class="modal" style="max-width:500px">
-    <span class="close" onclick="closeModal('suspendModal')">✕</span>
-    <h2 style="color:var(--red)">🚫 Suspend / Deny Account</h2>
-    <div style="margin-bottom:14px">
-      <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:6px">Action</label>
-      <select id="suspendAction" class="search-bar" style="height:auto;padding:10px">
-        <option value="suspend">Suspend (can be reinstated)</option>
-        <option value="deny">Deny (permanent rejection)</option>
-      </select>
-    </div>
-    <div style="margin-bottom:14px">
-      <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:6px">Reason <span style="color:var(--red)">*</span></label>
-      <textarea id="suspendReason" class="search-bar" style="height:80px;resize:vertical" placeholder="e.g. Suspicious activity, failed identity verification…"></textarea>
-    </div>
-    <div style="margin-bottom:20px">
-      <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:6px">Steps to Unsuspend (sent to user)</label>
-      <textarea id="suspendSteps" class="search-bar" style="height:100px;resize:vertical" placeholder="e.g. 1. Submit a government-issued ID to taximizerpro@gmail.com&#10;2. Wait 24-48 hours for review&#10;3. Do not create a new account during this period"></textarea>
-    </div>
-    <div style="display:flex;gap:10px">
-      <button class="btn btn-red" onclick="confirmSuspend()" style="flex:1">🚫 Confirm & Email User</button>
-      <button class="btn btn-ghost" onclick="closeModal('suspendModal')" style="flex:1">Cancel</button>
-    </div>
-  </div>
-</div>
 </body>
 </html>
