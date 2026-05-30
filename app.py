@@ -15,7 +15,7 @@ STRIPE_WH  = os.environ.get("STRIPE_WEBHOOK_SECRET","")
 stripe.api_key = STRIPE_SK
 
 # ── BASE44 ────────────────────────────────────────────────────────────────────
-B44_KEY  = os.environ.get("BASE44_API_KEY","")
+B44_KEY  = os.environ.get("BASE44_API_KEY","")  # kept for compat; b44h() reads live
 B44_APP  = "6a14ef767988d1ef0baff5aa"
 B44_BASE = f"https://app.base44.com/api/apps/{B44_APP}/entities"
 SG_URL   = f"{B44_BASE}/ShotgunAccount"
@@ -33,7 +33,7 @@ FEE_CRYPTO        = 0.02    # 2% — crypto conversion
 
 def b44h():
     return {
-        "Authorization": f"Bearer {B44_KEY}",
+        "Authorization": f"Bearer {os.environ.get('BASE44_API_KEY', '')}",  # read fresh each call
         "Content-Type": "application/json",
         "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
         "Accept": "application/json, */*",
