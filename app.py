@@ -114,6 +114,41 @@ def get_crypto_price(symbol):
 def index():
     return render_template("index.html", stripe_pk=STRIPE_PK)
 
+
+# ── VIRTUAL CARD DESIGN ───────────────────────────────────────────────────────
+@app.route("/api/card/design", methods=["POST"])
+def save_card_design():
+    d = request.json or {}
+    acct_id = session.get("account_id") or d.get("account_id","")
+    if not acct_id: return jsonify({"error":"Not authenticated"}), 401
+    design = {
+        "card_bg_color":   d.get("bg_color","#0a2218"),
+        "card_bg_image":   d.get("bg_image",""),
+        "card_text_color": d.get("text_color","#eab308"),
+        "card_pattern":    d.get("pattern","none"),
+        "card_updated":    __import__("datetime").datetime.utcnow().isoformat(),
+    }
+    try:
+        b44_put(f"{SG_URL}/{acct_id}", design)
+        return jsonify({"success":True})
+    except Exception as e:
+        return jsonify({"error":str(e)}), 500
+
+@app.route("/api/card/design", methods=["GET"])
+def get_card_design():
+    acct_id = session.get("account_id","")
+    if not acct_id: return jsonify({"error":"Not authenticated"}), 401
+    try:
+        acct = b44_get(f"{SG_URL}/{acct_id}")
+        return jsonify({
+            "bg_color":   acct.get("card_bg_color","#0a2218"),
+            "bg_image":   acct.get("card_bg_image",""),
+            "text_color": acct.get("card_text_color","#eab308"),
+            "pattern":    acct.get("card_pattern","none"),
+        })
+    except Exception as e:
+        return jsonify({"error":str(e)}), 500
+
 @app.route("/dashboard")
 def dashboard():
     return render_template("dashboard.html", stripe_pk=STRIPE_PK)
