@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<title>Shotgun Bank — Client Demo Walkthrough</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --green:#16a34a;--gold:#eab308;--bg:#0a2218;--card:#0f2d1e;
+  --border:rgba(255,255,255,.12);--muted:rgba(255,255,255,.5);
+  --purple:#7c3aed;
+}
+body{background:var(--bg);color:#fff;font-family:'Segoe UI',system-ui,sans-serif;min-height:100vh;}
+
+/* ── DEMO BAR ── */
+#demo-bar{
+  position:fixed;top:0;left:0;right:0;z-index:9999;
+  background:var(--purple);
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 20px;height:48px;
+  box-shadow:0 2px 16px rgba(124,58,237,.6);
+  font-size:13px;font-weight:700;letter-spacing:.03em;
+}
+#demo-bar .left{display:flex;align-items:center;gap:12px;}
+#demo-bar .badge{background:rgba(255,255,255,.15);border-radius:20px;padding:3px 10px;font-size:11px;}
+#demo-bar .exit{background:#dc2626;border:none;color:#fff;padding:6px 14px;border-radius:7px;cursor:pointer;font-weight:700;font-size:12px;}
+#demo-bar .exit:hover{background:#b91c1c;}
+
+/* ── STEP TRACKER ── */
+#step-tracker{
+  position:fixed;top:48px;left:0;right:0;z-index:9998;
+  background:#0d1f15;border-bottom:1px solid var(--border);
+  padding:12px 20px;display:flex;align-items:center;gap:0;
+  overflow-x:auto;
+}
+.step-item{
+  display:flex;align-items:center;gap:6px;
+  font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;
+  color:var(--muted);white-space:nowrap;padding:0 10px;
+  transition:color .3s;
+}
+.step-item.active{color:#fff;}
+.step-item.done{color:var(--green);}
+.step-item .dot{
+  width:22px;height:22px;border-radius:50%;
+  background:rgba(255,255,255,.1);
+  display:flex;align-items:center;justify-content:center;
+  font-size:11px;font-weight:800;transition:all .3s;flex-shrink:0;
+}
+.step-item.active .dot{background:var(--green);color:#fff;box-shadow:0 0 12px rgba(22,163,74,.6);}
+.step-item.done .dot{background:var(--green);color:#fff;}
+.step-arrow{color:var(--border);margin:0 2px;font-size:14px;flex-shrink:0;}
+
+/* ── MAIN CONTENT ── */
+#main{margin-top:100px;padding:20px;max-width:480px;margin-left:auto;margin-right:auto;}
+.screen{display:none;animation:fadeIn .3s ease;}
+.screen.active{display:block;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+
+.screen-title{font-size:22px;font-weight:800;margin-bottom:6px;}
+.screen-sub{color:var(--muted);font-size:14px;margin-bottom:24px;line-height:1.5;}
+
+/* card */
+.card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:24px;margin-bottom:16px;}
+.card-title{font-size:14px;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:.08em;margin-bottom:14px;}
+
+/* form */
+.field{margin-bottom:14px;}
+.field label{display:block;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px;}
+.field input,.field select{
+  width:100%;padding:13px 16px;background:rgba(255,255,255,.05);
+  border:1.5px solid var(--border);border-radius:10px;color:#fff;font-size:15px;
+}
+.field input:focus,.field select:focus{outline:none;border-color:var(--green);}
+.field input::placeholder{color:var(--muted);}
+.field select option{background:#0f2d1e;color:#fff;}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+
+/* btn */
+.btn{width:100%;padding:15px;border:none;border-radius:12px;font-size:16px;font-weight:800;cursor:pointer;transition:all .2s;margin-top:8px;}
+.btn-green{background:var(--green);color:#fff;}
+.btn-green:hover{background:#15803d;}
+.btn-gold{background:var(--gold);color:#000;}
+.btn-gold:hover{filter:brightness(1.1);}
+.btn-outline{background:transparent;border:2px solid var(--border);color:var(--muted);}
+.btn:disabled{opacity:.5;cursor:not-allowed;}
+
+/* status */
+.status-box{border-radius:12px;padding:16px;margin-bottom:16px;font-size:14px;line-height:1.6;}
+.status-info{background:rgba(234,179,8,.1);border:1px solid rgba(234,179,8,.3);color:#fde68a;}
+.status-success{background:rgba(22,163,74,.1);border:1px solid rgba(22,163,74,.3);color:#86efac;}
+.status-purple{background:rgba(124,58,237,.1);border:1px solid rgba(124,58,237,.3);color:#c4b5fd;}
+
+/* virtual card preview */
+.vcard{
+  background:linear-gradient(135deg,#0a3d1e,#1a5c30);
+  border-radius:18px;padding:24px 22px 20px;
+  position:relative;overflow:hidden;margin-bottom:20px;
+  box-shadow:0 8px 32px rgba(0,0,0,.4);
+  border:1px solid rgba(255,255,255,.15);
+}
+.vcard::before{content:'';position:absolute;top:-40px;right:-40px;width:150px;height:150px;background:rgba(234,179,8,.08);border-radius:50%;}
+.vcard-logo{display:flex;align-items:center;gap:8px;margin-bottom:30px;}
+.vcard-logo img{height:32px;}
+.vcard-logo span{font-size:13px;font-weight:800;letter-spacing:2px;color:#86efac;}
+.vcard-num{font-size:19px;letter-spacing:4px;font-weight:700;color:#fff;margin-bottom:20px;font-family:monospace;}
+.vcard-row{display:flex;justify-content:space-between;align-items:flex-end;}
+.vcard-label{font-size:9px;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:1px;margin-bottom:3px;}
+.vcard-val{font-size:14px;font-weight:700;color:#fff;}
+
+/* highlight row */
+.info-row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border);font-size:14px;}
+.info-row:last-child{border-bottom:none;}
+.info-row .lbl{color:var(--muted);}
+.info-row .val{font-weight:700;color:#fff;}
+
+/* OTP boxes */
+.otp-row{display:flex;gap:10px;justify-content:center;margin:20px 0;}
+.otp-box{width:48px;height:56px;text-align:center;font-size:22px;font-weight:800;
+  background:rgba(255,255,255,.05);border:2px solid var(--border);
+  border-radius:10px;color:#fff;}
+.otp-box:focus{outline:none;border-color:var(--green);}
+
+/* balance display */
+.balance-big{font-size:52px;font-weight:900;text-align:center;color:#fff;margin:10px 0;}
+.balance-sub{text-align:center;color:var(--muted);font-size:13px;margin-bottom:24px;}
+
+/* toast */
+#toast{
+  position:fixed;bottom:30px;left:50%;transform:translateX(-50%);
+  background:#16a34a;color:#fff;padding:12px 28px;border-radius:50px;
+  font-weight:700;font-size:14px;opacity:0;transition:opacity .3s;
+  z-index:99999;white-space:nowrap;pointer-events:none;
+}
+#toast.show{opacity:1;}
+
+/* auto-fill chip */
+.autofill-chip{
+  display:inline-flex;align-items:center;gap:6px;
+  background:rgba(234,179,8,.15);border:1px solid rgba(234,179,8,.3);
+  color:var(--gold);border-radius:20px;padding:5px 12px;
+  font-size:12px;font-weight:700;cursor:pointer;margin-bottom:14px;
+}
+.autofill-chip:hover{background:rgba(234,179,8,.25);}
+</style>
+</head>
+<body>
+
+<!-- DEMO BAR -->
+<div id="demo-bar">
+  <div class="left">
+    <span>🎬 CLIENT DEMO MODE</span>
+    <span class="badge" id="stepLabel">Step 1 of 7</span>
+  </div>
+  <button class="exit" onclick="exitDemo()">✖ Exit Demo</button>
+</div>
+
+<!-- STEP TRACKER -->
+<div id="step-tracker">
+  <div class="step-item active" id="st0"><div class="dot">1</div><span>Sign Up</span></div>
+  <div class="step-arrow">›</div>
+  <div class="step-item" id="st1"><div class="dot">2</div><span>Verify</span></div>
+  <div class="step-arrow">›</div>
+  <div class="step-item" id="st2"><div class="dot">3</div><span>Approval</span></div>
+  <div class="step-arrow">›</div>
+  <div class="step-item" id="st3"><div class="dot">4</div><span>Login</span></div>
+  <div class="step-arrow">›</div>
+  <div class="step-item" id="st4"><div class="dot">5</div><span>PIN + 2FA</span></div>
+  <div class="step-arrow">›</div>
+  <div class="step-item" id="st5"><div class="dot">6</div><span>Account</span></div>
+  <div class="step-arrow">›</div>
+  <div class="step-item" id="st6"><div class="dot">7</div><span>Send/Deposit</span></div>
+</div>
+
+<div id="main">
+
+  <!-- ── STEP 1: SIGN UP ── -->
+  <div class="screen active" id="screen-0">
+    <div class="screen-title">📝 Step 1 — Create Account</div>
+    <div class="screen-sub">This is exactly what a new client sees at shotgun-bank.onrender.com. Auto-filled with demo data so you can click through fast.</div>
+
+    <div class="autofill-chip" onclick="autofill()">⚡ Auto-Fill Demo Data</div>
+
+    <div class="card">
+      <div class="card-title">New Account</div>
+      <div class="field-row">
+        <div class="field"><label>First Name</label><input id="d_first" placeholder="First Name"></div>
+        <div class="field"><label>Last Name</label><input id="d_last" placeholder="Last Name"></div>
+      </div>
+      <div class="field"><label>Email</label><input id="d_email" type="email" placeholder="you@email.com"></div>
+      <div class="field"><label>Phone</label><input id="d_phone" placeholder="7725551234"></div>
+      <div class="field"><label>Date of Birth</label><input id="d_dob" placeholder="YYYY-MM-DD"></div>
+      <div class="field"><label>Hashtag (your $handle)</label><input id="d_tag" placeholder="$YOURTAG" oninput="checkTag(this.value)">
+        <div id="tag_status" style="font-size:12px;margin-top:4px;"></div>
+      </div>
+      <div class="field"><label>Password</label><input id="d_pw" type="password" placeholder="Min 6 chars"></div>
+      <div class="field"><label>6-Digit PIN</label><input id="d_pin" type="password" inputmode="numeric" maxlength="6" placeholder="e.g. 123456"></div>
+    </div>
+
+    <button class="btn btn-green" onclick="doSignup()">Create Account →</button>
+    <div id="signup_err" style="color:#f87171;font-size:13px;margin-top:10px;"></div>
+  </div>
+
+  <!-- ── STEP 2: CARD VERIFY ── -->
+  <div class="screen" id="screen-1">
+    <div class="screen-title">💳 Step 2 — Verify Identity</div>
+    <div class="screen-sub">In real life, clients enter their card here (Stripe SetupIntent). In demo mode we skip the Stripe step — account is instantly moved to <strong>pending</strong> admin review.</div>
+
+    <div class="status-box status-info">
+      ⚡ <strong>Demo bypass:</strong> Stripe card entry skipped. Account is now <strong>pending</strong> — waiting for your admin approval.
+    </div>
+
+    <div class="card">
+      <div class="card-title">Account Created</div>
+      <div class="info-row"><span class="lbl">Name</span><span class="val" id="v_name">—</span></div>
+      <div class="info-row"><span class="lbl">$Tag</span><span class="val" id="v_tag">—</span></div>
+      <div class="info-row"><span class="lbl">Email</span><span class="val" id="v_email">—</span></div>
+      <div class="info-row"><span class="lbl">Status</span><span class="val" style="color:#fbbf24">⏳ Pending Approval</span></div>
+    </div>
+
+    <div class="status-box status-purple">
+      🛡️ In production: client enters their debit/credit card via Stripe Elements. Stripe verifies it → webhook fires → account moves to <strong>pending</strong> automatically.
+    </div>
+
+    <button class="btn btn-green" onclick="goStep(2)">Simulate Admin Approval →</button>
+  </div>
+
+  <!-- ── STEP 3: ADMIN APPROVAL ── -->
+  <div class="screen" id="screen-2">
+    <div class="screen-title">✅ Step 3 — Admin Approval</div>
+    <div class="screen-sub">As admin, you see this account in your pending queue. One click approves it and the client gets an email.</div>
+
+    <div class="card">
+      <div class="card-title">Admin Dashboard — Pending Queue</div>
+      <div style="background:rgba(255,255,255,.04);border-radius:10px;padding:14px;margin-bottom:14px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <div>
+            <div style="font-weight:800" id="ap_name">Demo User</div>
+            <div style="color:var(--muted);font-size:13px;" id="ap_tag">$DEMOTAG</div>
+          </div>
+          <span style="background:rgba(251,191,36,.15);color:#fbbf24;border-radius:20px;padding:4px 12px;font-size:12px;font-weight:700;">PENDING</span>
+        </div>
+      </div>
+      <button class="btn btn-green" onclick="doApprove()" id="approve_btn">✅ Approve This Account</button>
+    </div>
+
+    <div class="status-box status-purple">
+      🔗 Real admin panel: <a href="/admin" target="_blank" style="color:#c4b5fd;">shotgun-bank.onrender.com/admin</a> — go there to approve/deny any account.
+    </div>
+  </div>
+
+  <!-- ── STEP 4: LOGIN ── -->
+  <div class="screen" id="screen-3">
+    <div class="screen-title">🔐 Step 4 — Client Login</div>
+    <div class="screen-sub">Approved clients return to the app and sign in with their hashtag (or email) + password.</div>
+
+    <div class="status-box status-success">✅ Account approved! Client received an email notification.</div>
+
+    <div class="card">
+      <div class="card-title">Sign In</div>
+      <div class="field"><label>$Hashtag or Email</label><input id="l_id" placeholder="$YOURTAG or email"></div>
+      <div class="field"><label>Password</label><input id="l_pw" type="password" placeholder="Password"></div>
+    </div>
+
+    <button class="btn btn-green" onclick="doLogin()">Sign In →</button>
+    <div id="login_err" style="color:#f87171;font-size:13px;margin-top:10px;"></div>
+  </div>
+
+  <!-- ── STEP 5: PIN + 2FA ── -->
+  <div class="screen" id="screen-4">
+    <div class="screen-title">🔑 Step 5 — PIN + 2FA</div>
+    <div class="screen-sub">After password, clients enter their PIN and a one-time code sent to their email.</div>
+
+    <div class="card">
+      <div class="card-title">Enter Your PIN</div>
+      <div class="field"><label>6-Digit PIN</label><input id="pin_input" type="password" inputmode="numeric" maxlength="6" placeholder="Your PIN"></div>
+      <button class="btn btn-green" style="margin-top:8px" onclick="doPin()">Confirm PIN →</button>
+    </div>
+
+    <div class="card" id="otp_card" style="display:none">
+      <div class="card-title">Email Verification Code</div>
+      <div style="color:var(--muted);font-size:13px;margin-bottom:14px;">A 6-digit code was sent to <span id="otp_email" style="color:#fff;font-weight:700;"></span></div>
+      <div class="otp-row">
+        <input class="otp-box" type="text" maxlength="1" inputmode="numeric" id="oo0" oninput="otpNext(0)">
+        <input class="otp-box" type="text" maxlength="1" inputmode="numeric" id="oo1" oninput="otpNext(1)">
+        <input class="otp-box" type="text" maxlength="1" inputmode="numeric" id="oo2" oninput="otpNext(2)">
+        <input class="otp-box" type="text" maxlength="1" inputmode="numeric" id="oo3" oninput="otpNext(3)">
+        <input class="otp-box" type="text" maxlength="1" inputmode="numeric" id="oo4" oninput="otpNext(4)">
+        <input class="otp-box" type="text" maxlength="1" inputmode="numeric" id="oo5" oninput="otpNext(5)">
+      </div>
+      <button class="btn btn-green" onclick="doOtp()">Verify Code →</button>
+      <div style="text-align:center;margin-top:10px;font-size:12px;color:var(--muted);">
+        Demo: code is auto-filled below ↓
+      </div>
+      <div id="otp_hint" style="text-align:center;margin-top:6px;font-size:18px;font-weight:800;color:var(--gold);letter-spacing:8px;"></div>
+    </div>
+    <div id="pin_err" style="color:#f87171;font-size:13px;margin-top:10px;"></div>
+  </div>
+
+  <!-- ── STEP 6: ACCOUNT VIEW ── -->
+  <div class="screen" id="screen-5">
+    <div class="screen-title">🏦 Step 6 — Client's Account</div>
+    <div class="screen-sub">This is the full dashboard the client lands on after login. Every detail is real — routing, account, virtual card.</div>
+
+    <div class="balance-big" id="dash_balance">$0.00</div>
+    <div class="balance-sub">Current Balance</div>
+
+    <div class="vcard" id="virtual-card">
+      <div class="vcard-logo">
+        <img src="https://base44.app/api/apps/6a14ef767988d1ef0baff5aa/files/mp/public/6a14ef767988d1ef0baff5aa/7a46af0fc_shotgun_bank_REAL_logo.png" onerror="this.style.display='none'">
+        <span>SHOTGUN BANK</span>
+      </div>
+      <div class="vcard-num" id="vc_num">•••• •••• •••• ••••</div>
+      <div class="vcard-row">
+        <div><div class="vcard-label">Cardholder</div><div class="vcard-val" id="vc_name">—</div></div>
+        <div><div class="vcard-label">Expires</div><div class="vcard-val" id="vc_exp">—</div></div>
+        <div><div class="vcard-label">CVV</div><div class="vcard-val">•••</div></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Account Details</div>
+      <div class="info-row"><span class="lbl">$Hashtag</span><span class="val" id="dash_tag">—</span></div>
+      <div class="info-row"><span class="lbl">Routing</span><span class="val" id="dash_routing">—</span></div>
+      <div class="info-row"><span class="lbl">Account #</span><span class="val" id="dash_acct">—</span></div>
+      <div class="info-row"><span class="lbl">Status</span><span class="val" style="color:#4ade80">✅ Approved</span></div>
+    </div>
+
+    <button class="btn btn-gold" onclick="goStep(6)">Try Send / Deposit →</button>
+  </div>
+
+  <!-- ── STEP 7: SEND + DEPOSIT ── -->
+  <div class="screen" id="screen-6">
+    <div class="screen-title">💸 Step 7 — Send & Deposit</div>
+    <div class="screen-sub">The two core actions every client uses. Send money peer-to-peer (live) or deposit funds.</div>
+
+    <div class="card">
+      <div class="card-title">💸 Send Money</div>
+      <div class="field"><label>To $Hashtag</label><input id="send_tag" placeholder="$RECIPIENT"></div>
+      <div class="field"><label>Amount ($)</label><input id="send_amt" type="number" placeholder="10.00"></div>
+      <div class="field"><label>Note (optional)</label><input id="send_note" placeholder="Pizza money etc."></div>
+      <div style="color:var(--muted);font-size:12px;margin-bottom:8px;">⚠️ $1.50 fee charged to both sender and recipient</div>
+      <button class="btn btn-gold" onclick="doSend()">Send →</button>
+      <div id="send_result" style="margin-top:10px;font-size:13px;"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">💰 Deposit</div>
+      <div style="color:var(--muted);font-size:13px;margin-bottom:14px;">In production, clients can deposit via Stripe Checkout (card) or ACH bank transfer. Demo shows the real flow.</div>
+      <button class="btn btn-green" onclick="demoDeposit()">💳 Deposit $25 (Demo) →</button>
+      <div id="deposit_result" style="margin-top:10px;font-size:13px;color:#86efac;"></div>
+    </div>
+
+    <div class="status-box status-success" style="margin-top:16px;">
+      🎉 <strong>Demo complete!</strong> You've walked through the full client experience from signup to banking.
+    </div>
+
+    <button class="btn btn-outline" onclick="exitDemo()" style="margin-top:8px;">✖ Exit Demo</button>
+  </div>
+
+</div><!-- /main -->
+
+<div id="toast"></div>
+
+<script>
+// ── STATE ──
+let demoState = {
+  step: 0,
+  acct: null,     // full account object from backend
+  email: '',
+  pw: '',
+  pin: '',
+  otpCode: '',
+};
+
+const LOGO = 'https://base44.app/api/apps/6a14ef767988d1ef0baff5aa/files/mp/public/6a14ef767988d1ef0baff5aa/7a46af0fc_shotgun_bank_REAL_logo.png';
+
+// ── HELPERS ──
+function toast(msg, color='#16a34a') {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.style.background = color;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 2800);
+}
+
+function setErr(id, msg) { document.getElementById(id).textContent = msg; }
+function clearErr(id) { document.getElementById(id).textContent = ''; }
+
+function goStep(n) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('screen-' + n).classList.add('active');
+  document.querySelectorAll('.step-item').forEach((el,i) => {
+    el.classList.remove('active','done');
+    if(i < n) el.classList.add('done');
+    else if(i === n) el.classList.add('active');
+  });
+  document.getElementById('stepLabel').textContent = `Step ${n+1} of 7`;
+  window.scrollTo(0,0);
+}
+
+// ── STEP 1: AUTOFILL + SIGNUP ──
+function autofill() {
+  const ts = Date.now().toString().slice(-5);
+  document.getElementById('d_first').value = 'Italy';
+  document.getElementById('d_last').value  = 'Demo';
+  document.getElementById('d_email').value = `italydemo${ts}@shotgunbank.test`;
+  document.getElementById('d_phone').value = '7725550001';
+  document.getElementById('d_dob').value   = '1990-01-01';
+  document.getElementById('d_tag').value   = `italydemo${ts}`;
+  document.getElementById('d_pw').value    = 'Demo2026!';
+  document.getElementById('d_pin').value   = '123456';
+  checkTag(`italydemo${ts}`);
+  toast('✅ Demo data filled!');
+}
+
+async function checkTag(val) {
+  val = val.replace(/[$#]/g,'').toLowerCase();
+  if(val.length < 3) { document.getElementById('tag_status').textContent = ''; return; }
+  const r = await fetch(`/api/check-hashtag?tag=${val}`);
+  const d = await r.json();
+  const el = document.getElementById('tag_status');
+  if(d.available) { el.style.color='#4ade80'; el.textContent = '✅ Available'; }
+  else { el.style.color='#f87171'; el.textContent = '❌ Taken'; }
+}
+
+async function doSignup() {
+  clearErr('signup_err');
+  const body = {
+    first_name: document.getElementById('d_first').value.trim(),
+    last_name:  document.getElementById('d_last').value.trim(),
+    email:      document.getElementById('d_email').value.trim().toLowerCase(),
+    phone:      document.getElementById('d_phone').value.trim(),
+    dob:        document.getElementById('d_dob').value.trim(),
+    hashtag:    document.getElementById('d_tag').value.replace(/[$#]/g,'').trim().toLowerCase(),
+    password:   document.getElementById('d_pw').value,
+    pin:        document.getElementById('d_pin').value,
+    demo_mode:  true,   // flag tells backend to skip Stripe + approve immediately
+  };
+  if(!body.first_name||!body.last_name||!body.email||!body.hashtag||!body.password||!body.pin) {
+    return setErr('signup_err','Please fill all required fields.');
+  }
+
+  const btn = document.querySelector('#screen-0 .btn');
+  btn.disabled = true; btn.textContent = 'Creating…';
+
+  try {
+    // Use the demo signup endpoint that skips Stripe
+    const r = await fetch('/api/demo/signup', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify(body)
+    });
+    const d = await r.json();
+    if(!d.success) { setErr('signup_err', d.error || 'Signup failed'); btn.disabled=false; btn.textContent='Create Account →'; return; }
+
+    demoState.acct  = d.account;
+    demoState.email = body.email;
+    demoState.pw    = body.password;
+    demoState.pin   = body.pin;
+
+    // Populate step 2 display
+    document.getElementById('v_name').textContent  = `${body.first_name} ${body.last_name}`;
+    document.getElementById('v_tag').textContent   = '$' + body.hashtag.toUpperCase();
+    document.getElementById('v_email').textContent = body.email;
+    document.getElementById('ap_name').textContent = `${body.first_name} ${body.last_name}`;
+    document.getElementById('ap_tag').textContent  = '$' + body.hashtag.toUpperCase();
+
+    toast('✅ Account created!');
+    goStep(1);
+  } catch(e) {
+    setErr('signup_err', 'Network error. Try again.'); btn.disabled=false; btn.textContent='Create Account →';
+  }
+}
+
+// ── STEP 3: APPROVE ──
+async function doApprove() {
+  if(!demoState.acct) return;
+  const btn = document.getElementById('approve_btn');
+  btn.disabled = true; btn.textContent = 'Approving…';
+
+  try {
+    const r = await fetch(`/api/admin/approve/${demoState.acct.id}`, {
+      method:'POST', headers:{'X-Admin-Key':'txpro-admin-2026'}
+    });
+    const d = await r.json();
+    if(d.success) {
+      demoState.acct.status = 'approved';
+      toast('✅ Account approved!');
+      // Pre-fill login
+      document.getElementById('l_id').value = demoState.acct.hashtag || demoState.email;
+      document.getElementById('l_pw').value = demoState.pw;
+      goStep(3);
+    } else {
+      btn.disabled=false; btn.textContent='✅ Approve This Account';
+      toast('Error: ' + (d.error||'Try again'), '#dc2626');
+    }
+  } catch(e) { btn.disabled=false; btn.textContent='✅ Approve This Account'; }
+}
+
+// ── STEP 4: LOGIN ──
+async function doLogin() {
+  clearErr('login_err');
+  const identifier = document.getElementById('l_id').value.trim();
+  const pw = document.getElementById('l_pw').value;
+  if(!identifier||!pw) return setErr('login_err','Enter your hashtag/email and password.');
+
+  const btn = document.querySelector('#screen-3 .btn');
+  btn.disabled=true; btn.textContent='Signing in…';
+
+  try {
+    const r = await fetch('/api/login', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ identifier, password: pw })
+    });
+    const d = await r.json();
+    if(d.requires_pin) {
+      demoState.acct = d.account || demoState.acct;
+      document.getElementById('pin_input').value = demoState.pin; // pre-fill for demo
+      document.getElementById('otp_email').textContent = demoState.email;
+      toast('✅ Credentials accepted! Enter PIN.');
+      goStep(4);
+    } else {
+      setErr('login_err', d.error || 'Login failed');
+    }
+    btn.disabled=false; btn.textContent='Sign In →';
+  } catch(e) { setErr('login_err','Network error.'); btn.disabled=false; btn.textContent='Sign In →'; }
+}
+
+// ── STEP 5: PIN + OTP ──
+async function doPin() {
+  const pin = document.getElementById('pin_input').value.trim();
+  if(pin.length < 4) return setErr('pin_err','Enter your PIN.');
+
+  try {
+    const r = await fetch('/api/login', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        identifier: demoState.acct?.hashtag || demoState.email,
+        password: demoState.pw, pin
+      })
+    });
+    const d = await r.json();
+    if(d.requires_2fa || d.otp_sent) {
+      // Show OTP card — demo reveals the code
+      demoState.otpCode = d.demo_code || ''; // backend sends demo_code in demo mode
+      document.getElementById('otp_card').style.display = 'block';
+      document.getElementById('otp_hint').textContent = demoState.otpCode || '(check email)';
+      document.getElementById('otp_email').textContent = demoState.email;
+      if(demoState.otpCode) {
+        // Auto-fill OTP boxes
+        demoState.otpCode.split('').forEach((c,i) => {
+          const el = document.getElementById('oo'+i);
+          if(el) el.value = c;
+        });
+      }
+      toast('📧 OTP sent! Code shown below for demo.');
+    } else if(d.success && d.account) {
+      demoState.acct = d.account;
+      renderDashboard();
+      goStep(5);
+    } else {
+      setErr('pin_err', d.error || 'PIN error');
+    }
+  } catch(e) { setErr('pin_err','Network error.'); }
+}
+
+async function doOtp() {
+  const code = ['oo0','oo1','oo2','oo3','oo4','oo5'].map(id=>document.getElementById(id).value).join('');
+  if(code.length < 6) return setErr('pin_err','Enter the 6-digit code.');
+
+  try {
+    const r = await fetch('/api/verify-2fa', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ email: demoState.email, code })
+    });
+    const d = await r.json();
+    if(d.success && d.account) {
+      demoState.acct = d.account;
+      localStorage.setItem('sg_account', JSON.stringify(d.account));
+      renderDashboard();
+      goStep(5);
+    } else {
+      setErr('pin_err', d.error || 'Invalid code');
+    }
+  } catch(e) { setErr('pin_err','Network error.'); }
+}
+
+function otpNext(i) {
+  const el = document.getElementById('oo'+i);
+  if(el.value && i < 5) document.getElementById('oo'+(i+1)).focus();
+}
+
+// ── STEP 6: RENDER DASHBOARD ──
+function renderDashboard() {
+  const a = demoState.acct;
+  if(!a) return;
+  document.getElementById('dash_balance').textContent = '$' + (parseFloat(a.balance)||0).toFixed(2);
+  document.getElementById('dash_tag').textContent = '$' + (a.hashtag||'?').toUpperCase();
+  document.getElementById('dash_routing').textContent = a.routing_number || '—';
+  document.getElementById('dash_acct').textContent = '···' + (a.account_number||'').slice(-4);
+
+  // Virtual card
+  const cn = a.virtual_card_number || '4000000000000000';
+  document.getElementById('vc_num').textContent = cn.replace(/(\d{4})(?=\d)/g,'$1 ');
+  document.getElementById('vc_name').textContent = a.full_name || `${a.first_name} ${a.last_name}`;
+  document.getElementById('vc_exp').textContent = a.virtual_card_expiry || '—';
+}
+
+// ── STEP 7: SEND + DEPOSIT ──
+async function doSend() {
+  const toTag = document.getElementById('send_tag').value.replace(/[$#]/g,'').trim().toLowerCase();
+  const amt = parseFloat(document.getElementById('send_amt').value);
+  const note = document.getElementById('send_note').value.trim();
+  const el = document.getElementById('send_result');
+
+  if(!toTag || !amt || amt <= 0) { el.style.color='#f87171'; el.textContent='Enter recipient and amount.'; return; }
+
+  el.style.color='#fde68a'; el.textContent='Sending…';
+  try {
+    const r = await fetch('/api/send', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ from_id: demoState.acct.id, to_hashtag: toTag, amount: amt, note })
+    });
+    const d = await r.json();
+    if(d.success) {
+      el.style.color='#86efac';
+      el.textContent = `✅ Sent $${amt.toFixed(2)} to $${toTag.toUpperCase()}! New balance: $${d.new_balance?.toFixed(2)||'—'}`;
+      demoState.acct.balance = d.new_balance || demoState.acct.balance;
+      document.getElementById('dash_balance').textContent = '$' + (demoState.acct.balance||0).toFixed(2);
+      toast('💸 Sent!');
+    } else {
+      el.style.color='#f87171'; el.textContent = d.error || 'Send failed';
+    }
+  } catch(e) { el.style.color='#f87171'; el.textContent='Network error.'; }
+}
+
+async function demoDeposit() {
+  const el = document.getElementById('deposit_result');
+  el.textContent = '🔗 In real mode, client is redirected to Stripe Checkout to pay $25 by card. Returning to dashboard after payment. (Stripe Checkout skipped in demo.)';
+}
+
+function exitDemo() {
+  if(confirm('Exit demo mode? This will take you back to the admin panel.')) {
+    window.location.href = '/admin';
+  }
+}
+</script>
+</body>
+</html>
