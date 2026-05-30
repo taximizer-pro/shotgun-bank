@@ -613,6 +613,29 @@ def login_pin():
         "status":     acct.get("status","")
     })
 
+
+@app.route("/api/debug-login", methods=["POST"])
+def debug_login():
+    import traceback
+    try:
+        d          = request.json or {}
+        identifier = d.get("identifier","").strip().lower().replace("$","").replace("#","")
+        password   = d.get("password","")
+        acct = get_acct_by_tag(identifier) or get_acct_by_email(identifier)
+        if not acct:
+            return jsonify({"step":"find_acct","error":"not found"})
+        acct_id = acct.get("id","")
+        pw_ok = check_password(password, acct.get("password_hash",""))
+        return jsonify({
+            "step": "password_check",
+            "pw_ok": pw_ok,
+            "has_pin": bool(acct.get("pin_hash")),
+            "status": acct.get("status"),
+            "acct_id": acct_id
+        })
+    except Exception as e:
+        return jsonify({"error": str(e), "trace": traceback.format_exc()})
+
 @app.route("/api/login", methods=["POST"])
 def login():
     d          = request.json or {}
