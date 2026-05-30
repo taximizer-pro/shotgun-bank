@@ -632,7 +632,7 @@ def link_bank_confirm():
 @app.route("/api/deposit", methods=["POST"])
 def deposit():
     d      = request.json or {}
-    sg_id  = d.get("sg_account_id","")
+    sg_id  = d.get("sg_account_id","") or d.get("account_id","") or d.get("account_id","")
     amount = float(d.get("amount", 0))
     method = d.get("method","card")  # "card" | "bank"
     pm_id  = d.get("payment_method_id","")
@@ -653,20 +653,26 @@ def deposit():
         stripe_acct_id = acct.get("wise_account_id","")
 
         if method == "card":
-            # Charge card directly on connected account
-            pi = stripe.PaymentIntent.create(
-                amount=amt_cents,
-                currency="usd",
-                payment_method=pm_id,
-                customer=customer_id or None,
-                confirm=True,
-                automatic_payment_methods={"enabled": True, "allow_redirects": "never"},
-                application_fee_amount=fee_cents,
-                stripe_account=stripe_acct_id,
-                metadata={"sg_account_id": sg_id, "type":"deposit"},
+            # Create Stripe Checkout session — hosted card form, no pm_id needed upfront
+            session_obj = stripe.checkout.Session.create(
+                payment_method_types=["card"],
+                mode="payment",
+                line_items=[{
+                    "price_data":{
+                        "currency":"usd",
+                        "product_data":{
+                            "name":f"Shotgun Bank Deposit — ${amount:.2f}",
+                            "description":f"Funds deposited to your Shotgun Bank account ${acct.get('hashtag','').upper()}",
+                        },
+                        "unit_amount": amt_cents,
+                    },
+                    "quantity":1,
+                }],
+                metadata={"sg_account_id":sg_id,"type":"card_deposit","net_amount":str(net_amt),"fee_amount":str(fee_amt)},
+                success_url=f"https://shotgun-bank.onrender.com/deposit/success?session_id={{CHECKOUT_SESSION_ID}}&sg_id={sg_id}",
+                cancel_url=f"https://shotgun-bank.onrender.com/dashboard?deposit=cancelled",
             )
-            if pi.status != "succeeded":
-                return jsonify({"error":"Payment not completed","status":pi.status}), 400
+            return jsonify({"success":True,"checkout_url":session_obj.url,"session_id":session_obj.id})
         else:
             # ACH bank debit — free for user
             # Retrieve saved PM info
@@ -731,6 +737,47 @@ def _charge_rejection_fee(sg_id):
 # WITHDRAW — Instant (5.75%) to debit card | Standard (1.5%) ACH
 # ─────────────────────────────────────────────────────────────────────────────
 
+@app.route("/deposit/success")
+def deposit_success():
+    """Stripe redirects here after card deposit checkout — credit balance."""
+    import datetime as _dt
+    session_id = request.args.get("session_id","")
+    sg_id      = request.args.get("sg_id","")
+    if not session_id or not sg_id:
+        return redirect("/dashboard?deposit=error")
+    try:
+        cs = stripe.checkout.Session.retrieve(session_id)
+        if cs.payment_status == "paid":
+            meta      = cs.metadata or {}
+            net_amt   = float(meta.get("net_amount", cs.amount_total/100))
+            fee_amt   = float(meta.get("fee_amount", 0))
+            amount    = cs.amount_total / 100
+            acct      = get_acct(sg_id)
+            if acct:
+                new_bal = round(float(acct.get("balance",0)) + net_amt, 2)
+                new_dep = round(float(acct.get("lifetime_deposited",0)) + amount, 2)
+                b44_put(f"{SG_URL}/{sg_id}", {"balance":new_bal,"lifetime_deposited":new_dep})
+                b44_post(TX_URL, {
+                    "from_account_id":"stripe","to_account_id":sg_id,
+                    "to_hashtag":acct.get("hashtag",""),
+                    "to_name":f"{acct.get('first_name','')} {acct.get('last_name','')}",
+                    "amount":amount,"fee":fee_amt,"net_amount":net_amt,
+                    "type":"deposit","status":"completed","note":"Card deposit via Stripe",
+                })
+                # Update localStorage needs fresh account — return page with JS to refresh
+                return render_template_string("""<!DOCTYPE html><html><head>
+<script>
+const stored = JSON.parse(localStorage.getItem('sg_account') || '{}');
+stored.balance = {{ balance }};
+stored.lifetime_deposited = {{ dep }};
+localStorage.setItem('sg_account', JSON.stringify(stored));
+window.location.href = '/dashboard?deposit=success';
+</script></head><body style="background:#0a2218;color:#fff;font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;"><p>✅ Deposit confirmed! Redirecting…</p></body></html>""",
+                    balance=new_bal, dep=new_dep)
+    except Exception as e:
+        print(f"[DEPOSIT SUCCESS ERR] {e}")
+    return redirect("/dashboard?deposit=pending")
+
 @app.route("/api/withdraw", methods=["POST"])
 def withdraw():
     d      = request.json or {}
@@ -784,8 +831,8 @@ def withdraw():
 @app.route("/api/send", methods=["POST"])
 def send_money():
     d          = request.json or {}
-    from_id    = d.get("from_account_id","")
-    to_hashtag = d.get("to_hashtag","").lower().replace("#","")
+    from_id    = d.get("from_account_id","") or d.get("from_id","")
+    to_hashtag = d.get("to_hashtag","").lower().replace("#","").replace("$","")
     amount     = float(d.get("amount", 0))
     note       = d.get("note","")
     if not from_id or not to_hashtag or amount <= 0:
@@ -1037,6 +1084,31 @@ def stripe_webhook():
                     try: _send_welcome_email(acct.get("email",""), acct.get("first_name",""), acct.get("hashtag",""))
                     except: pass
             except Exception as we2: print(f"[WH setup_intent ERR] {we2}")
+
+    elif evt == "checkout.session.completed":
+        # Stripe Checkout card deposit paid — credit balance
+        meta = obj.get("metadata",{})
+        sg_id_cs = meta.get("sg_account_id","")
+        dep_type = meta.get("type","")
+        if sg_id_cs and dep_type == "card_deposit" and obj.get("payment_status") == "paid":
+            try:
+                import datetime as _dt
+                amount    = obj.get("amount_total",0) / 100
+                net_amt   = float(meta.get("net_amount", amount))
+                fee_amt   = float(meta.get("fee_amount", 0))
+                acct      = get_acct(sg_id_cs)
+                if acct:
+                    new_bal = round(float(acct.get("balance",0)) + net_amt, 2)
+                    new_dep = round(float(acct.get("lifetime_deposited",0)) + amount, 2)
+                    b44_put(f"{SG_URL}/{sg_id_cs}", {"balance":new_bal,"lifetime_deposited":new_dep})
+                    b44_post(TX_URL, {
+                        "from_account_id":"stripe","to_account_id":sg_id_cs,
+                        "to_hashtag":acct.get("hashtag",""),
+                        "amount":amount,"fee":fee_amt,"net_amount":net_amt,
+                        "type":"deposit","status":"completed","note":"Card deposit via Stripe Checkout",
+                    })
+                    print(f"[CHECKOUT DEPOSIT] {sg_id_cs} +${net_amt}")
+            except Exception as ce: print(f"[CHECKOUT ERR] {ce}")
 
     elif evt == "payment_intent.succeeded" and sg_id:
         # ACH deposit confirmed (processing → succeeded)
