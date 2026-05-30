@@ -245,7 +245,8 @@ function exitGhost(){
   <div class="nav-tab" onclick="showPanel('send')" id="nav-send">Send</div>
   <div class="nav-tab" onclick="showPanel('crypto')" id="nav-crypto">Crypto</div>
   <div class="nav-tab" onclick="showPanel('beat')" id="nav-beat">Beat V</div>
-  <div class="nav-tab" onclick="showPanel('account')" id="nav-account">Account</div>
+  <div class="nav-tab" onclick="showPanel('wallet')" id="nav-wallet">Wallet</div>
+<div class="nav-tab" onclick="showPanel('account')" id="nav-account">Account</div>
 </div>
 
 <!-- ====== PANELS ====== -->
@@ -389,6 +390,92 @@ function exitGhost(){
   </div>
 </div>
 
+
+<!-- WALLET PANEL -->
+<div class="panel" id="panel-wallet">
+
+  <!-- Stripe load only in this panel -->
+  <div id="wallet-stripe-js-placeholder"></div>
+
+  <!-- ─── LINKED CARDS ─── -->
+  <div class="acct-section" id="wallet-cards-section">
+    <div class="acct-title">💳 Debit / Credit Card</div>
+    <div id="wallet-cards-list">
+      <div style="color:var(--muted);font-size:14px;padding:10px 0;">Loading…</div>
+    </div>
+    <button class="btn-green" style="margin-top:12px;width:100%;" onclick="openAddCard()">＋ Add Card</button>
+  </div>
+
+  <!-- ─── LINKED BANK ─── -->
+  <div class="acct-section" id="wallet-bank-section">
+    <div class="acct-title">🏦 Linked Bank Account</div>
+    <div id="wallet-bank-info">
+      <div style="color:var(--muted);font-size:14px;padding:10px 0;">Loading…</div>
+    </div>
+    <button class="btn-gold" style="margin-top:12px;width:100%;" onclick="openAddBank()">＋ Link Bank Account</button>
+  </div>
+
+  <!-- ─── DEPOSIT / WITHDRAW SHORTCUTS ─── -->
+  <div class="acct-section">
+    <div class="acct-title">⚡ Quick Actions</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+      <button class="btn-green" onclick="openModal('depositModal')">💰 Deposit</button>
+      <button class="btn-gold"  onclick="openModal('withdrawModal')">🏧 Withdraw</button>
+    </div>
+  </div>
+
+</div>
+
+<!-- ADD CARD MODAL (Stripe Elements) -->
+<div class="modal-overlay" id="addCardModal">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <button class="modal-close" onclick="closeModal('addCardModal')">×</button>
+    <div class="modal-title">💳 Add Debit / Credit Card</div>
+    <p style="color:var(--muted);font-size:13px;margin-bottom:16px;line-height:1.6;">
+      Your card is verified by Stripe and never stored on our servers. Used for instant deposits and account verification.
+    </p>
+    <div id="card-element-wrap" style="background:rgba(255,255,255,.06);border:1.5px solid var(--border);border-radius:10px;padding:14px;margin-bottom:16px;min-height:44px;"></div>
+    <div id="card-errors" style="color:#f87171;font-size:13px;margin-bottom:10px;min-height:18px;"></div>
+    <button class="btn-green" id="card-submit-btn" onclick="submitCard()">Verify & Save Card ✓</button>
+    <div class="fee-note" style="margin-top:10px;">Stripe-secured • AES-256 • No card data on our servers</div>
+  </div>
+</div>
+
+<!-- ADD BANK MODAL (manual ACH) -->
+<div class="modal-overlay" id="addBankModal">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <button class="modal-close" onclick="closeModal('addBankModal')">×</button>
+    <div class="modal-title">🏦 Link Bank Account</div>
+    <p style="color:var(--muted);font-size:13px;margin-bottom:16px;line-height:1.6;">
+      Enter your bank routing and account number. Used for ACH deposits and withdrawals (1–3 business days).
+    </p>
+    <div class="input-group">
+      <label>Routing Number</label>
+      <input class="inp" id="bankRouting" type="tel" maxlength="9" placeholder="9-digit routing number" oninput="this.value=this.value.replace(/\D/g,'')">
+    </div>
+    <div class="input-group">
+      <label>Account Number</label>
+      <input class="inp" id="bankAccount" type="tel" maxlength="17" placeholder="Account number" oninput="this.value=this.value.replace(/\D/g,'')">
+    </div>
+    <div class="input-group">
+      <label>Confirm Account Number</label>
+      <input class="inp" id="bankAccountConfirm" type="tel" maxlength="17" placeholder="Re-enter account number" oninput="this.value=this.value.replace(/\D/g,'')">
+    </div>
+    <div class="input-group">
+      <label>Account Type</label>
+      <select class="inp" id="bankType">
+        <option value="checking">Checking</option>
+        <option value="savings">Savings</option>
+      </select>
+    </div>
+    <div id="bank-errors" style="color:#f87171;font-size:13px;margin-bottom:10px;min-height:18px;"></div>
+    <button class="btn-green" id="bank-submit-btn" onclick="submitBank()">Link Bank Account ✓</button>
+    <div class="fee-note" style="margin-top:10px;">ACH transfers are free to receive • 1–3 business days</div>
+  </div>
+</div>
+
 <!-- CARD PANEL (shortcut) -->
 <div class="panel" id="panel-card">
   <div class="virtual-card" id="virtualCard2">
@@ -487,6 +574,9 @@ function exitGhost(){
   </div>
   <div class="bnav-item" onclick="showPanel('beat')" id="bnav-beat">
     <div class="bnav-icon">🎯</div><div class="bnav-label">Beat V</div>
+  </div>
+  <div class="bnav-item" onclick="showPanel('wallet')" id="bnav-wallet">
+    <div class="bnav-icon">💳</div><div class="bnav-label">Wallet</div>
   </div>
   <div class="bnav-item" onclick="showPanel('account')" id="bnav-account">
     <div class="bnav-icon">👤</div><div class="bnav-label">Account</div>
@@ -780,6 +870,7 @@ function toggleCardReveal2() {
 
 // ── NAVIGATION ──
 function showPanel(name) {
+  if(name==='wallet') loadWallet();
   document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
   document.querySelectorAll('.bnav-item').forEach(b => b.classList.remove('active'));
@@ -829,6 +920,183 @@ function fmtBig(n) {
 function escHtml(str) {
   return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
+
+// ══════════════════════════════════════════════════════
+// WALLET — Add Card / Add Bank
+// ══════════════════════════════════════════════════════
+let stripeInstance = null;
+let cardElement    = null;
+let stripeLoaded   = false;
+
+function ensureStripe(cb) {
+  if(stripeLoaded && stripeInstance) { cb(); return; }
+  if(document.getElementById('stripe-js-tag')) {
+    // already loading — wait
+    const wait = setInterval(()=>{ if(stripeLoaded){ clearInterval(wait); cb(); } }, 100);
+    return;
+  }
+  const s = document.createElement('script');
+  s.id  = 'stripe-js-tag';
+  s.src = 'https://js.stripe.com/v3/';
+  s.onload = () => {
+    stripeInstance = Stripe(STRIPE_PK || '{{ stripe_pk }}');
+    stripeLoaded = true;
+    cb();
+  };
+  document.head.appendChild(s);
+}
+
+// ── Load wallet data when panel opens ──
+function loadWallet() {
+  // Cards
+  const clist = document.getElementById('wallet-cards-list');
+  const linked_last4 = acct?.linked_card_last4;
+  if(linked_last4) {
+    clist.innerHTML = `
+      <div style="display:flex;align-items:center;gap:12px;background:rgba(255,255,255,.05);border-radius:10px;padding:14px;">
+        <div style="font-size:28px;">💳</div>
+        <div>
+          <div style="font-weight:700;color:#fff;">•••• •••• •••• ${linked_last4}</div>
+          <div style="font-size:12px;color:var(--muted);">Linked card — verified by Stripe</div>
+        </div>
+        <div style="margin-left:auto;background:rgba(22,163,74,.15);color:#4ade80;border-radius:20px;padding:3px 10px;font-size:11px;font-weight:700;">ACTIVE</div>
+      </div>`;
+  } else {
+    clist.innerHTML = `<div style="color:var(--muted);font-size:14px;padding:8px 0;">No card linked yet. Add one to enable instant deposits.</div>`;
+  }
+  // Bank
+  const binfo = document.getElementById('wallet-bank-info');
+  const linked_routing = acct?.linked_routing;
+  const linked_account = acct?.linked_account;
+  if(linked_routing && linked_account) {
+    binfo.innerHTML = `
+      <div style="display:flex;align-items:center;gap:12px;background:rgba(255,255,255,.05);border-radius:10px;padding:14px;">
+        <div style="font-size:28px;">🏦</div>
+        <div>
+          <div style="font-weight:700;color:#fff;">Routing: ${linked_routing}</div>
+          <div style="font-size:13px;color:var(--muted);">Acct: •••••${linked_account.slice(-4)}</div>
+        </div>
+        <div style="margin-left:auto;background:rgba(234,179,8,.15);color:#fde68a;border-radius:20px;padding:3px 10px;font-size:11px;font-weight:700;">LINKED</div>
+      </div>`;
+  } else {
+    binfo.innerHTML = `<div style="color:var(--muted);font-size:14px;padding:8px 0;">No bank linked. Link one for ACH transfers and withdrawals.</div>`;
+  }
+}
+
+// ── ADD CARD ──
+function openAddCard() {
+  openModal('addCardModal');
+  ensureStripe(() => {
+    if(cardElement) { cardElement.destroy(); cardElement = null; }
+    const elements = stripeInstance.elements({
+      appearance: {
+        theme: 'night',
+        variables: {
+          colorPrimary: '#16a34a',
+          colorBackground: 'rgba(255,255,255,.06)',
+          colorText: '#f0fdf4',
+          colorDanger: '#ef4444',
+          borderRadius: '8px',
+          fontFamily: 'Inter, system-ui, sans-serif',
+        }
+      }
+    });
+    cardElement = elements.create('card', {
+      style: {
+        base: { color:'#f0fdf4', fontSize:'16px', '::placeholder':{color:'rgba(255,255,255,.4)'} },
+        invalid: { color:'#ef4444' }
+      }
+    });
+    cardElement.mount('#card-element-wrap');
+    cardElement.on('change', e => {
+      document.getElementById('card-errors').textContent = e.error ? e.error.message : '';
+    });
+  });
+}
+
+async function submitCard() {
+  const btn = document.getElementById('card-submit-btn');
+  const err = document.getElementById('card-errors');
+  btn.disabled = true; btn.textContent = 'Verifying…';
+  err.textContent = '';
+  try {
+    // Create SetupIntent on server
+    const r = await fetch('/api/wallet/setup-card', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ account_id: acct.id })
+    });
+    const d = await r.json();
+    if(!d.client_secret) { err.textContent = d.error || 'Failed to init card verification'; btn.disabled=false; btn.textContent='Verify & Save Card ✓'; return; }
+
+    const result = await stripeInstance.confirmCardSetup(d.client_secret, {
+      payment_method: { card: cardElement }
+    });
+    if(result.error) {
+      err.textContent = result.error.message;
+      btn.disabled=false; btn.textContent='Verify & Save Card ✓';
+      return;
+    }
+    // Success — save last4 to account
+    const pm = result.setupIntent.payment_method;
+    const saveR = await fetch('/api/wallet/save-card', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ account_id: acct.id, setup_intent_id: result.setupIntent.id, payment_method_id: pm })
+    });
+    const saveD = await saveR.json();
+    if(saveD.success) {
+      acct.linked_card_last4 = saveD.last4;
+      localStorage.setItem('sg_account', JSON.stringify(acct));
+      closeModal('addCardModal');
+      toast('✅ Card added successfully!');
+      loadWallet();
+    } else {
+      err.textContent = saveD.error || 'Failed to save card';
+    }
+  } catch(e) {
+    err.textContent = 'Network error. Try again.';
+  }
+  btn.disabled=false; btn.textContent='Verify & Save Card ✓';
+}
+
+// ── ADD BANK ──
+function openAddBank() { openModal('addBankModal'); }
+
+async function submitBank() {
+  const routing = document.getElementById('bankRouting').value.trim();
+  const acctNum = document.getElementById('bankAccount').value.trim();
+  const confirm = document.getElementById('bankAccountConfirm').value.trim();
+  const type    = document.getElementById('bankType').value;
+  const err     = document.getElementById('bank-errors');
+  const btn     = document.getElementById('bank-submit-btn');
+
+  err.textContent = '';
+  if(routing.length !== 9)        { err.textContent = 'Routing number must be 9 digits.'; return; }
+  if(acctNum.length < 4)          { err.textContent = 'Enter a valid account number.'; return; }
+  if(acctNum !== confirm)         { err.textContent = 'Account numbers do not match.'; return; }
+
+  btn.disabled = true; btn.textContent = 'Linking…';
+  try {
+    const r = await fetch('/api/link-bank/manual', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ account_id: acct.id, routing, account_number: acctNum, account_type: type })
+    });
+    const d = await r.json();
+    if(d.success) {
+      acct.linked_routing = routing;
+      acct.linked_account = acctNum;
+      localStorage.setItem('sg_account', JSON.stringify(acct));
+      closeModal('addBankModal');
+      toast('✅ Bank account linked!');
+      loadWallet();
+    } else {
+      err.textContent = d.error || 'Failed to link bank';
+    }
+  } catch(e) {
+    err.textContent = 'Network error. Try again.';
+  }
+  btn.disabled=false; btn.textContent='Link Bank Account ✓';
+}
+
 </script>
 </body>
 </html>
