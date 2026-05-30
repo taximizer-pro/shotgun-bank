@@ -338,39 +338,33 @@ def signup():
         })
         sg_id = saved.get("id","")
 
-        # Step 2 — create Stripe SetupIntent so user must add & verify card
-        # Stripe authorizes the card → webhook fires setup_intent.succeeded → auto-approve
-        try:
-            si = stripe.SetupIntent.create(
-                usage="off_session",
-                metadata={"sg_account_id": sg_id, "hashtag": tag, "email": email},
-                description=f"Shotgun Bank verification — ${tag}",
-            )
-            b44_put(f"{SG_URL}/{sg_id}", {"wise_account_id": si.id})  # store setup intent id
-            base_url = request.host_url.rstrip("/")
-            verify_url = (f"{base_url}/verify"
-                f"?client_secret={si.client_secret}"
-                f"&account_id={sg_id}"
-                f"&tag={tag}"
-                f"&pk={STRIPE_PK}")
-            return jsonify({
-                "success": True,
-                "account_id": sg_id,
-                "status": "onboarding",
-                "client_secret": si.client_secret,
-                "publishable_key": STRIPE_PK,
-                "verify_url": verify_url,
-                "message": "Add your card to verify your identity and activate your account.",
-            })
-        except Exception as se:
-            print(f"[STRIPE SETUP INTENT ERR] {se}")
-            b44_put(f"{SG_URL}/{sg_id}", {"status": "pending"})
-            return jsonify({
-                "success": True,
-                "account_id": sg_id,
-                "status": "pending",
-                "message": "Account created! Pending review.",
-            })
+        # Step 2 — Stripe SetupIntent (REQUIRED — no bypass, no fallback)
+        # User must add a card → Stripe verifies it → webhook auto-approves the account
+        if not STRIPE_SK:
+            return jsonify({"error": "Payment processing is not configured. Contact support."}), 500
+
+        si = stripe.SetupIntent.create(
+            usage="off_session",
+            metadata={"sg_account_id": sg_id, "hashtag": tag, "email": email},
+            description=f"Shotgun Bank card verification — ${tag}",
+        )
+        # Store the SetupIntent ID so the webhook can look up this account
+        b44_put(f"{SG_URL}/{sg_id}", {"wise_account_id": si.id})
+        base_url = request.host_url.rstrip("/")
+        verify_url = (f"{base_url}/verify"
+            f"?client_secret={si.client_secret}"
+            f"&account_id={sg_id}"
+            f"&tag={tag}"
+            f"&pk={STRIPE_PK}")
+        return jsonify({
+            "success": True,
+            "account_id": sg_id,
+            "status": "onboarding",
+            "client_secret": si.client_secret,
+            "publishable_key": STRIPE_PK,
+            "verify_url": verify_url,
+            "message": "Add your card to verify your identity and activate your account.",
+        })
     except Exception as e:
         print(f"[SIGNUP ERROR] {e}")
         return jsonify({"error": str(e)}), 500
