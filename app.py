@@ -185,70 +185,49 @@ def signup():
     last  = d.get("last_name","").strip()
     email = d.get("email","").strip().lower()
     phone = d.get("phone","").strip()
-    tag   = d.get("hashtag","").strip().lower().replace("#","")
+    tag   = d.get("hashtag","").strip().lower().replace("#","").replace("$","")
     pin   = d.get("pin","").strip()
-    dob   = d.get("dob","").strip()  # YYYY-MM-DD
+    dob   = d.get("dob","").strip()
+    pw    = d.get("password","")
 
-    if not all([first, last, email, tag, pin]):
+    if not all([first, last, email, tag, pin, pw]):
         return jsonify({"error": "All fields required"}), 400
     if len(pin) < 4 or not pin.isdigit():
         return jsonify({"error": "PIN must be 4+ digits"}), 400
+    if len(pw) < 6:
+        return jsonify({"error": "Password must be at least 6 characters"}), 400
 
     try:
         if get_acct_by_tag(tag):
-            return jsonify({"error": "That #hashtag is already taken"}), 409
+            return jsonify({"error": "That hashtag is already taken"}), 409
         if get_acct_by_email(email):
             return jsonify({"error": "An account with that email already exists"}), 409
 
-        # Create Stripe Connect Express account
-        individual = {"first_name": first, "last_name": last, "email": email}
-        if phone: individual["phone"] = phone
-        if dob:
-            parts = dob.split("-")
-            if len(parts) == 3:
-                individual["dob"] = {"year": int(parts[0]), "month": int(parts[1]), "day": int(parts[2])}
-
-        stripe_acct = stripe.Account.create(
-            type="express",
-            email=email,
-            capabilities={"card_payments": {"requested": True}, "transfers": {"requested": True}},
-            business_type="individual",
-            individual=individual,
-            metadata={"shotgun_hashtag": tag, "platform": "shotgun_bank"},
-            settings={"payouts": {"schedule": {"interval": "manual"}}},
-        )
-
-        base_url = request.host_url.rstrip("/")
-        onboard_link = stripe.AccountLink.create(
-            account=stripe_acct.id,
-            refresh_url=f"{base_url}/onboard/refresh?tag={tag}",
-            return_url=f"{base_url}/onboard/complete?tag={tag}",
-            type="account_onboarding",
-        )
-
-        pw_hash = hashlib.sha256(d.get("password","").encode()).hexdigest()
+        pw_hash = hashlib.sha256(pw.encode()).hexdigest()
         saved = b44_post(SG_URL, {
-            "first_name": first, "last_name": last, "email": email,
-            "phone": phone, "hashtag": tag, "pin_hash": hash_pin(pin),
-            "status": "onboarding", "balance": 0.0,
-            "wise_account_id": stripe_acct.id,
-            "routing_number": gen_routing(), "account_number": gen_account(),
-            "virtual_card_number": gen_card(), "virtual_card_cvv": gen_cvv(),
+            "first_name": first, "last_name": last,
+            "full_name": f"{first} {last}",
+            "email": email, "phone": phone, "hashtag": tag,
+            "dob": dob, "pin_hash": hash_pin(pin),
+            "password_hash": pw_hash,
+            "status": "pending", "balance": 0.0,
+            "routing_number": gen_routing(),
+            "account_number": gen_account(),
+            "virtual_card_number": gen_card(),
+            "virtual_card_cvv": gen_cvv(),
             "virtual_card_expiry": gen_exp(),
             "beat_v_enabled": False, "beat_v_used": False,
             "lifetime_deposited": 0.0, "funded_friends_count": 0,
-            "password_hash": pw_hash,
         })
 
         return jsonify({
             "success": True,
             "account_id": saved.get("id",""),
-            "stripe_account": stripe_acct.id,
-            "onboarding_url": onboard_link.url,
+            "status": "pending",
+            "message": "Account created! You\'ll get an email once you\'re approved."
         })
-    except stripe.error.StripeError as e:
-        return jsonify({"error": str(e.user_message or e)}), 400
     except Exception as e:
+        print(f"[SIGNUP ERROR] {e}")
         return jsonify({"error": str(e)}), 500
 
 # ─────────────────────────────────────────────────────────────────────────────
