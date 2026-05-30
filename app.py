@@ -212,6 +212,25 @@ def verify_page():
         account_id=account_id,
         tag=tag)
 
+
+@app.route("/api/set-pin", methods=["POST"])
+def set_pin():
+    """First-time PIN setup for a user."""
+    d = request.json or {}
+    acct_id = d.get("account_id","").strip()
+    new_pin  = d.get("pin","").strip()
+    if not acct_id or not new_pin or len(new_pin) != 6 or not new_pin.isdigit():
+        return jsonify({"error": "Invalid PIN — must be exactly 6 digits"}), 400
+    try:
+        acct = b44_get(f"{SG_URL}/{acct_id}")
+        if not acct: return jsonify({"error": "Account not found"}), 404
+        if acct.get("pin_hash"):
+            return jsonify({"error": "PIN already set — use forgot PIN to reset"}), 400
+        b44_put(f"{SG_URL}/{acct_id}", {"pin_hash": hash_pin(new_pin)})
+        return jsonify({"success": True, "message": "PIN set successfully"})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 @app.route("/api/login-status")
 def login_status():
     account_id = request.args.get("account_id","")
@@ -531,7 +550,12 @@ def login():
             if reason: msg += f" Reason: {reason}."
             msg += " Contact taximizerpro@gmail.com for help."
             return jsonify({"error": msg}), 403
-        if acct.get("pin_hash") != hash_pin(pin):
+        stored_pin = acct.get("pin_hash","")
+        if not stored_pin:
+            # No PIN set yet — prompt user to create one
+            return jsonify({"setup_pin": True, "account_id": acct["id"],
+                            "message": "Please set a 6-digit PIN to secure your account."}), 200
+        if stored_pin != hash_pin(pin):
             return jsonify({"error": "Incorrect PIN"}), 401
         stored_pw = acct.get("password_hash","")
         if stored_pw:
