@@ -582,7 +582,7 @@ def login_pin():
     if not acct:
         return jsonify({"error":"Account not found"}), 404
 
-    if not check_pin(pin_input, acct.get("pin_hash","")):
+    if hash_pin(pin_input) != acct.get("pin_hash",""):
         return jsonify({"error":"Incorrect PIN. Try again."}), 401
 
     email = acct.get("email","")
@@ -614,28 +614,6 @@ def login_pin():
     })
 
 
-@app.route("/api/debug-login", methods=["POST"])
-def debug_login():
-    import traceback
-    try:
-        d          = request.json or {}
-        identifier = d.get("identifier","").strip().lower().replace("$","").replace("#","")
-        password   = d.get("password","")
-        acct = get_acct_by_tag(identifier) or get_acct_by_email(identifier)
-        if not acct:
-            return jsonify({"step":"find_acct","error":"not found"})
-        acct_id = acct.get("id","")
-        pw_ok = check_password(password, acct.get("password_hash",""))
-        return jsonify({
-            "step": "password_check",
-            "pw_ok": pw_ok,
-            "has_pin": bool(acct.get("pin_hash")),
-            "status": acct.get("status"),
-            "acct_id": acct_id
-        })
-    except Exception as e:
-        return jsonify({"error": str(e), "trace": traceback.format_exc()})
-
 @app.route("/api/login", methods=["POST"])
 def login():
     d          = request.json or {}
@@ -655,7 +633,7 @@ def login():
     status  = acct.get("status","")
 
     # Verify password
-    if not check_password(password, acct.get("password_hash","")):
+    if not verify_password(password, acct.get("password_hash","")):
         return jsonify({"error":"Incorrect password"}), 401
 
     # Account status gate
@@ -677,7 +655,7 @@ def login():
 
     # ── STEP 2: PIN provided → verify it ────────────────────────────────────
     if pin_input:
-        if not check_pin(pin_input, acct.get("pin_hash","")):
+        if hash_pin(pin_input) != acct.get("pin_hash",""):
             return jsonify({"error":"Incorrect PIN"}), 401
         # PIN correct → log in (skip 2FA for now if no Gmail token)
         gmail_token = os.environ.get("GMAIL_ACCESS_TOKEN","")
