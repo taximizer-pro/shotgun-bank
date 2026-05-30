@@ -856,7 +856,7 @@ function openUserFromData(a) {
     <div class="detail-row"><span class="lbl">Account #</span><span class="val" style="font-family:monospace">••••••${a.account_last4||'????'}</span></div>
     <div class="detail-row"><span class="lbl">Virtual Card</span><span class="val" style="font-family:monospace">${cardDisplay}</span></div>
     ${linkedBank !== '—' ? \`<div class="detail-row"><span class="lbl">Linked Bank</span><span class="val" style="font-family:monospace">\${linkedBank}</span></div>\` : ''}
-    <div class="detail-row"><span class="lbl">Linked Card</span><span class="val">${a.linked_card_last4 ? '•••• '+a.linked_card_last4 : '—'}</span></div>
+    <div class="detail-row"><span class="lbl">Linked Card</span><span class="val" style="display:flex;align-items:center;gap:8px;">${a.linked_card_last4 ? brandImgHTML(a.linked_card_brand, a.virtual_card_number, 22) + ' •••• ' + a.linked_card_last4 : '—'}</span></div>
     <div class="detail-row"><span class="lbl">Beat the V</span><span class="val">${a.beat_v_enabled?'✅ Enabled':'❌ Off'}</span></div>
     <div class="detail-row"><span class="lbl">Ghost</span><span class="val">${a.is_silent?'👻 Yes':'No'}</span></div>
     <div class="detail-row"><span class="lbl">Joined</span><span class="val">${(a.created_date||'').slice(0,10)}</span></div>
