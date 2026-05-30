@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Account Activated — Shotgun Bank</title>
+<style>
+:root{--bg:#0a2218;--card:#0f2e1e;--border:#1a4a2e;--green:#16a34a;--gold:#eab308;--text:#f0fdf4;--muted:#6b7280;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:'Segoe UI',sans-serif;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;}
+.box{background:var(--card);border:1px solid var(--gold);border-radius:20px;padding:40px 32px;width:100%;max-width:420px;text-align:center;box-shadow:0 8px 40px rgba(0,0,0,.6);}
+.logo{width:80px;margin:0 auto 20px;}
+.icon{font-size:60px;margin-bottom:16px;}
+h1{font-size:24px;font-weight:900;margin-bottom:8px;}
+.sub{color:var(--muted);font-size:14px;margin-bottom:28px;line-height:1.6;}
+.tag{color:var(--gold);font-size:22px;font-weight:900;margin-bottom:20px;}
+.btn{display:block;width:100%;padding:15px;background:var(--green);color:#fff;border:none;border-radius:12px;font-size:16px;font-weight:800;cursor:pointer;text-decoration:none;margin-bottom:10px;}
+.btn-ghost{background:transparent;border:1px solid var(--border);color:var(--muted);}
+</style>
+</head>
+<body>
+<div class="box">
+  <img src="https://base44.app/api/apps/6a14ef767988d1ef0baff5aa/files/mp/public/6a14ef767988d1ef0baff5aa/7a46af0fc_shotgun_bank_REAL_logo.png" class="logo" onerror="this.style.display='none'">
+  {% if status == "approved" %}
+    <div class="icon">🎯</div>
+    <h1 style="color:var(--gold)">You're In!</h1>
+    <div class="tag">${{ tag }}</div>
+    <p class="sub">Your Shotgun Bank account is <strong style="color:#4ade80">LIVE</strong>. Load your account, send money, and unlock the V.</p>
+    <a href="/bank" class="btn">🎯 Go to My Account</a>
+  {% else %}
+    <div class="icon">⏳</div>
+    <h1>Almost There</h1>
+    <div class="tag">${{ tag }}</div>
+    <p class="sub">Stripe is finishing up your verification. You'll get an email the second you're approved — usually within minutes.</p>
+    <a href="/bank" class="btn btn-ghost">Check Status</a>
+  {% endif %}
+</div>
+</body>
+</html>
