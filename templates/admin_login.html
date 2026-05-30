@@ -1,78 +1,67 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 <title>Shotgun Bank — Admin</title>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
-  * { margin:0; padding:0; box-sizing:border-box; font-family:'Inter',sans-serif; }
-  html,body { height:100%; }
-  body { display:flex; flex-direction:column; min-height:100vh; background:#0a2218; }
-  .top-section { flex:1; background:#0a2218; display:flex; flex-direction:column; align-items:center; justify-content:flex-start; padding:52px 28px 32px; }
-  .logo-wrap { display:flex; align-items:center; gap:12px; margin-bottom:32px; }
-  .logo-img { width:46px; height:46px; object-fit:contain; }
-  .logo-text { color:#fff; font-size:20px; font-weight:700; letter-spacing:1px; }
-  .admin-badge { background:rgba(234,179,8,0.15); border:1px solid rgba(234,179,8,0.4); color:#fbbf24; font-size:11px; font-weight:700; letter-spacing:2px; text-transform:uppercase; padding:5px 14px; border-radius:20px; margin-bottom:40px; }
-  .greeting { color:rgba(255,255,255,0.6); font-size:28px; font-weight:300; margin-bottom:36px; text-align:center; }
-  .field-wrap { width:100%; max-width:400px; margin-bottom:14px; position:relative; }
-  .field-wrap label { position:absolute; top:-9px; left:14px; background:#0a2218; padding:0 4px; color:rgba(255,255,255,0.55); font-size:12px; font-weight:500; letter-spacing:0.4px; pointer-events:none; }
-  .field-wrap input { width:100%; padding:16px 48px 16px 16px; background:transparent; border:1.5px solid rgba(255,255,255,0.3); border-radius:6px; color:#fff; font-size:16px; outline:none; transition:border-color 0.2s; -webkit-appearance:none; }
-  .field-wrap input::placeholder { color:transparent; }
-  .field-wrap input:focus { border-color:#eab308; }
-  .eye-btn { position:absolute; right:14px; top:50%; transform:translateY(-50%); background:none; border:none; cursor:pointer; color:rgba(255,255,255,0.5); font-size:18px; padding:4px; }
-  .btn-main { width:100%; max-width:400px; padding:17px; margin-top:8px; background:#eab308; border:none; border-radius:6px; color:#000; font-size:16px; font-weight:700; letter-spacing:1px; cursor:pointer; transition:background 0.2s; -webkit-appearance:none; }
-  .btn-main:hover { background:#ca8a04; }
-  .links-row { display:flex; flex-direction:column; align-items:center; gap:10px; margin-top:20px; }
-  .links-row a { color:rgba(255,255,255,0.45); font-size:11px; font-weight:600; letter-spacing:1.2px; text-transform:uppercase; text-decoration:none; }
-  .bottom-bar { background:#071a12; border-top:1px solid rgba(255,255,255,0.08); padding:14px 28px; display:flex; justify-content:space-between; align-items:center; }
-  .bottom-bar a { color:rgba(255,255,255,0.45); font-size:11px; font-weight:600; letter-spacing:1.2px; text-transform:uppercase; text-decoration:none; }
-  .error-msg { background:rgba(239,68,68,0.12); border:1px solid rgba(239,68,68,0.35); color:#fca5a5; border-radius:6px; padding:10px 14px; font-size:13px; width:100%; max-width:400px; margin-bottom:12px; text-align:center; }
+  *{margin:0;padding:0;box-sizing:border-box;font-family:'Inter',sans-serif;}
+  
+  :root {
+    --bg:      #0a2218;
+    --bg2:     #071a12;
+    --card:    #0f2e1c;
+    --border:  rgba(255,255,255,0.08);
+    --green:   #16a34a;
+    --green2:  #22c55e;
+    --gold:    #eab308;
+    --gold2:   #fbbf24;
+    --text:    #ffffff;
+    --muted:   rgba(255,255,255,0.45);
+    --danger:  #ef4444;
+  }
+
+  body{min-height:100vh;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;}
+  .logo-wrap{display:flex;flex-direction:column;align-items:center;gap:12px;margin-bottom:36px;}
+  .logo-img{width:120px;height:120px;object-fit:contain;filter:drop-shadow(0 8px 28px rgba(34,197,94,0.4));}
+  .logo-tag{color:var(--gold);font-size:12px;font-weight:700;letter-spacing:3px;text-transform:uppercase;}
+  .admin-badge{background:rgba(234,179,8,0.12);border:1px solid rgba(234,179,8,0.3);border-radius:20px;padding:4px 14px;color:var(--gold);font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:8px;}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:32px 28px;width:100%;max-width:380px;}
+  .card-title{color:var(--text);font-size:18px;font-weight:800;margin-bottom:6px;text-align:center;}
+  .card-sub{color:var(--muted);font-size:12px;text-align:center;margin-bottom:24px;}
+  .field{position:relative;margin-bottom:16px;}
+  .field label{position:absolute;top:-9px;left:12px;background:var(--card);padding:0 4px;color:var(--muted);font-size:11px;font-weight:600;letter-spacing:0.4px;}
+  .field input{width:100%;padding:15px 16px;background:transparent;border:1.5px solid var(--border);border-radius:10px;color:var(--text);font-size:15px;outline:none;transition:border-color 0.2s;}
+  .field input:focus{border-color:var(--green2);}
+  .btn{width:100%;padding:16px;background:var(--gold);border:none;border-radius:10px;color:#000;font-size:15px;font-weight:800;cursor:pointer;letter-spacing:0.5px;margin-top:8px;transition:background 0.2s;}
+  .btn:hover{background:var(--gold2);}
+  .error{background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);color:#fca5a5;border-radius:8px;padding:10px 14px;font-size:13px;text-align:center;margin-bottom:14px;}
+  .back{display:block;text-align:center;margin-top:18px;color:var(--muted);font-size:12px;font-weight:600;text-decoration:none;letter-spacing:0.5px;}
+  .back:hover{color:var(--text);}
 </style>
 </head>
 <body>
-<div class="top-section">
   <div class="logo-wrap">
-    <img src="https://media.base44.com/images/public/6a14ef767988d1ef0baff5aa/clean/shotgun_bank_main_logo_clean.png"
-         class="logo-img" alt="Shotgun"
-         onerror="this.outerHTML='<div style=&quot;width:46px;height:46px;background:rgba(255,255,255,0.12);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:22px;&quot;>🔫</div>'">
-    <div class="logo-text">SHOTGUN BANK</div>
+    <img src="https://base44.app/api/apps/6a14ef767988d1ef0baff5aa/files/mp/public/6a14ef767988d1ef0baff5aa/7a46af0fc_shotgun_bank_REAL_logo.png" class="logo-img" alt="Shotgun Bank" onerror="this.style.display='none'">
+    <div class="logo-tag">Your Money, Reloaded</div>
   </div>
-  <div class="admin-badge">🔒 Admin Portal</div>
-  <div class="greeting" id="greeting">Good Morning</div>
-
-  {% if error %}<div class="error-msg">{{ error }}</div>{% endif %}
-
-  <form method="POST" action="/admin/login" style="width:100%;max-width:400px;display:flex;flex-direction:column;align-items:center;">
-    <div class="field-wrap">
-      <input type="email" name="email" id="email" placeholder="Admin Email" autocomplete="username" required>
-      <label for="email">Admin Email</label>
-    </div>
-    <div class="field-wrap">
-      <input type="password" name="password" id="password" placeholder="Password" autocomplete="current-password" required>
-      <label for="password">Password</label>
-      <button type="button" class="eye-btn" onclick="togglePwd()">👁</button>
-    </div>
-    <button type="submit" class="btn-main">Sign In</button>
-  </form>
-  <div class="links-row">
-    <a href="/">← Back to Shotgun Bank</a>
+  <div class="admin-badge">⚡ Admin Portal</div>
+  <div class="card">
+    <div class="card-title">Admin Sign In</div>
+    <div class="card-sub">Bisignano Holdings LLC — Authorized Personnel Only</div>
+    {% if error %}<div class="error">{{ error }}</div>{% endif %}
+    <form method="POST" action="/admin/login">
+      <div class="field">
+        <label>Email</label>
+        <input type="email" name="email" required autocomplete="username">
+      </div>
+      <div class="field">
+        <label>Password</label>
+        <input type="password" name="password" required autocomplete="current-password">
+      </div>
+      <button type="submit" class="btn">Access Admin Panel</button>
+    </form>
   </div>
-</div>
-<div class="bottom-bar">
-  <a href="/">← User Portal</a>
-  <a href="mailto:taximizerpro@gmail.com">📞 Support</a>
-</div>
-<script>
-  const h = new Date().getHours();
-  document.getElementById('greeting').textContent =
-    h < 12 ? 'Good Morning' : h < 17 ? 'Good Afternoon' : 'Good Evening';
-  function togglePwd() {
-    const inp = document.getElementById('password');
-    const btn = event.currentTarget;
-    if (inp.type === 'password') { inp.type = 'text'; btn.textContent = '🙈'; }
-    else { inp.type = 'password'; btn.textContent = '👁'; }
-  }
-</script>
+  <a href="/" class="back">← Back to Shotgun Bank</a>
 </body>
 </html>
