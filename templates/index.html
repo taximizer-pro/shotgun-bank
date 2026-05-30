@@ -302,7 +302,7 @@ async function doLogin() {
     if (d.error) { showAlert(d.error); return; }
     if (d.status === 'onboarding') {
       showAlert('Complete your Stripe onboarding to activate your account.','success');
-      if (d.onboarding_url) setTimeout(()=>window.location.href=d.onboarding_url, 2000);
+      // account pending — stay on login
       return;
     }
     if (d.status === 'pending') {
@@ -396,12 +396,9 @@ async function doSignup() {
     });
     const d = await res.json();
     if (d.error) { showAlert(d.error); return; }
-    if (d.onboarding_url) {
-      showAlert('Account created! Redirecting to identity verification…','success');
-      setTimeout(()=>window.location.href=d.onboarding_url, 1800);
-    } else {
-      showAlert('Account created! You can now sign in.','success');
-      setTimeout(()=>switchTab('login'), 2000);
+    if (d.success) {
+      showAlert('🎯 Account submitted! You will receive an email once approved by our team.','success');
+      setTimeout(()=>switchTab('login'), 3000);
     }
   } catch(e) { showAlert('Network error. Please try again.'); }
 }
