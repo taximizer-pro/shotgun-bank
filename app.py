@@ -149,6 +149,12 @@ def get_card_design():
     except Exception as e:
         return jsonify({"error":str(e)}), 500
 
+
+@app.route("/card/design")
+def card_designer_page():
+    if not session.get("account_id"): return redirect("/bank")
+    return render_template("card_designer.html")
+
 @app.route("/dashboard")
 def dashboard():
     return render_template("dashboard.html", stripe_pk=STRIPE_PK)
