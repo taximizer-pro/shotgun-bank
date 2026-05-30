@@ -1490,8 +1490,7 @@ def admin_all():
     try:
         r = b44_get(f"{SG_URL}?limit=500")
         accts = r if isinstance(r,list) else r.get("results",[])
-        safe = [{k:v for k,v in a.items() if k not in ("pin_hash","password_hash")} for a in accts]
-        return jsonify({"accounts": safe})
+        return jsonify({"accounts": scrub_list(accts)})
     except Exception as e:
         return jsonify({"error":str(e)}), 500
 
