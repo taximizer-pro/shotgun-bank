@@ -331,6 +331,14 @@ async function doLogin() {
       showAlert('⏳ Your account is under review. You will be notified by email once approved.','success');
       return;
     }
+    if (d.success) {
+      // Direct login — no 2FA needed
+      localStorage.setItem('sg_account_id', d.account_id);
+      localStorage.setItem('sg_hashtag', d.hashtag || '');
+      localStorage.setItem('sg_first_name', d.first_name || '');
+      window.location.href = '/dashboard';
+      return;
+    }
     if (d.requires_2fa) {
       // Credentials OK — show OTP screen
       pendingAccountId = d.account_id;
