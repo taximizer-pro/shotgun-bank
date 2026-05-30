@@ -11,7 +11,10 @@ except ImportError:
     _BCRYPT_OK = False
 
 app = Flask(__name__)
-app.secret_key = os.environ.get("FLASK_SECRET", secrets.token_hex(32))
+app.secret_key = os.environ.get("FLASK_SECRET", "sg-bisignano-2026-x9k2m7p4q1")
+app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
+app.config["SESSION_COOKIE_SECURE"]   = False
+app.config["PERMANENT_SESSION_LIFETIME"] = 86400 * 7
 
 # ── STRIPE ────────────────────────────────────────────────────────────────────
 STRIPE_SK  = os.environ.get("STRIPE_SECRET_KEY","")
@@ -248,6 +251,7 @@ def admin_login():
             "mike.hennigan44@gmail.com": "Admin2026!"
         }
         if admins.get(email) == pwd:
+            session.permanent = True
             session["admin"] = {"email": email, "role": "superadmin" if "taximizerpro" in email else "admin"}
             return redirect("/admin")
         error = "Invalid credentials."
