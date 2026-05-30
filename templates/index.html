@@ -156,7 +156,27 @@
     </div>
   </div>
 
-  <!-- ═══ 2FA OTP SECTION ═══ -->
+  
+  <!-- ═══ PIN STEP SECTION ═══ -->
+  <div id="pinStepSection" style="width:100%;max-width:400px;display:none;flex-direction:column;align-items:center;">
+    <p style="color:rgba(255,255,255,0.75);font-size:15px;text-align:center;margin-bottom:20px;">
+      Enter your 6-digit PIN
+    </p>
+    <div class="field-wrap" style="width:100%;">
+      <input type="password" id="pinStepInput" placeholder="6-Digit PIN" maxlength="6"
+             inputmode="numeric" pattern="[0-9]*" autocomplete="current-password"
+             onkeydown="if(event.key==='Enter')doPinStep()">
+      <label>6-Digit PIN</label>
+      <button type="button" class="eye-btn" onclick="toggleField('pinStepInput',this)">👁</button>
+    </div>
+    <button class="btn-main" style="width:100%;" onclick="doPinStep()">🔐 Confirm PIN</button>
+    <a href="#" style="color:rgba(255,255,255,0.5);font-size:13px;margin-top:14px;"
+       onclick="document.getElementById('pinStepSection').style.display='none';document.getElementById('loginSection').style.display='flex';return false;">
+       ← Back
+    </a>
+  </div>
+
+<!-- ═══ 2FA OTP SECTION ═══ -->
   <div id="otpSection">
     <div class="success-msg" id="otpMsg">A 6-digit code was sent to your email.</div>
     <div class="otp-hint">Enter the code below to verify your identity</div>
@@ -361,6 +381,14 @@ async function doLogin() {
       showAlert('Welcome! Please set a 6-digit PIN to secure your account.','success');
       return;
     }
+    if (d.requires_pin) {
+      // Step 2 — show PIN entry screen
+      pendingAccountId = d.account_id;
+      document.getElementById('loginSection').style.display = 'none';
+      document.getElementById('pinStepSection').style.display = 'flex';
+      document.getElementById('pinStepSection').scrollIntoView({behavior:'smooth'});
+      return;
+    }
     if (d.requires_2fa) {
       // Credentials OK — show OTP screen
       pendingAccountId = d.account_id;
@@ -475,6 +503,37 @@ async function doSetPin() {
     showAlert('PIN set! Logging you in…','success');
     setTimeout(() => window.location.href = '/dashboard', 1200);
   } catch(e) { showAlert('Error setting PIN. Try again.'); }
+}
+
+
+async function doPinStep() {
+  const pin = document.getElementById('pinStepInput').value.trim();
+  if (!pin || pin.length !== 6 || !/^\d{6}$/.test(pin)) {
+    showAlert('PIN must be exactly 6 digits.'); return;
+  }
+  if (!pendingAccountId) { showAlert('Session error — please start over.'); return; }
+  showAlert('Verifying…','success');
+  try {
+    // Re-submit login with PIN
+    const res = await fetch('/api/login-pin', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({account_id: pendingAccountId, pin})
+    });
+    const d = await res.json();
+    if (d.error) { showAlert(d.error); return; }
+    if (d.requires_2fa) {
+      document.getElementById('pinStepSection').style.display = 'none';
+      document.getElementById('otpSection').style.display = 'flex';
+      document.getElementById('otpMsg').textContent = `Code sent to ${d.email_masked}`;
+      return;
+    }
+    if (d.success) {
+      localStorage.setItem('sg_account_id', d.account_id);
+      localStorage.setItem('sg_hashtag', d.hashtag || '');
+      localStorage.setItem('sg_first_name', d.first_name || '');
+      window.location.href = '/dashboard';
+    }
+  } catch(e) { showAlert('Error — please try again.'); }
 }
 
 </script>
