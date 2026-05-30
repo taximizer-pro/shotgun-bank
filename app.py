@@ -224,15 +224,12 @@ def signup():
             "success": True,
             "account_id": saved.get("id",""),
             "status": "pending",
-            "message": "Account created! You\'ll get an email once you\'re approved."
+            "message": "Account created! You will receive an email once approved."
         })
     except Exception as e:
         print(f"[SIGNUP ERROR] {e}")
         return jsonify({"error": str(e)}), 500
 
-# ─────────────────────────────────────────────────────────────────────────────
-# LOGIN
-# ─────────────────────────────────────────────────────────────────────────────
 
 @app.route("/api/login", methods=["POST"])
 def login():
