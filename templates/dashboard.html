@@ -424,7 +424,7 @@ function exitGhost(){
           <div class="vc-label">CVV</div>
           <div class="vc-val" id="vcCvv">•••</div>
         </div>
-        <div class="vc-brand">
+        <div class="vc-brand" id="vcBrandBox1">
           <img src="https://media.base44.com/images/public/6a14ef767988d1ef0baff5aa/50205b368_generated_image.png" class="vc-visa" alt="Visa">
           <div class="vc-debit-tag">Debit</div>
         </div>
@@ -525,7 +525,7 @@ function exitGhost(){
       <div><div class="vc-label">Card Holder</div><div class="vc-val" id="vcName2">—</div></div>
       <div><div class="vc-label">Expires</div><div class="vc-val" id="vcExp2">—</div></div>
       <div><div class="vc-label">CVV</div><div class="vc-val" id="vcCvv2">•••</div></div>
-      <div class="vc-brand">
+      <div class="vc-brand" id="vcBrandBox2">
         <img src="https://media.base44.com/images/public/6a14ef767988d1ef0baff5aa/50205b368_generated_image.png" class="vc-visa" alt="Visa">
         <div class="vc-debit-tag">Debit</div>
       </div>
@@ -627,6 +627,38 @@ function exitGhost(){
 </div>
 
 <script>
+
+// ── CARD BRAND LOGOS ────────────────────────────────────────────────────────
+const CARD_BRAND_LOGOS = {
+  visa:       'https://media.base44.com/images/public/6a14ef767988d1ef0baff5aa/50205b368_generated_image.png',
+  mastercard: 'https://media.base44.com/images/public/6a14ef767988d1ef0baff5aa/mc_logo_PLACEHOLDER.png',
+  amex:       'https://media.base44.com/images/public/6a14ef767988d1ef0baff5aa/amex_logo_PLACEHOLDER.png',
+  discover:   'https://media.base44.com/images/public/6a14ef767988d1ef0baff5aa/discover_logo_PLACEHOLDER.png',
+};
+function getBrandLogo(brand) {
+  // brand = "visa" | "mastercard" | "amex" | "discover" | ""
+  // Also detect from virtual card number first digit if no brand
+  const b = (brand || '').toLowerCase();
+  return CARD_BRAND_LOGOS[b] || CARD_BRAND_LOGOS['visa'];
+}
+function getBrandFromNumber(num) {
+  const n = String(num || '');
+  if (n.startsWith('4')) return 'visa';
+  if (n.startsWith('5') || n.startsWith('2')) return 'mastercard';
+  if (n.startsWith('3')) return 'amex';
+  if (n.startsWith('6')) return 'discover';
+  return 'visa'; // default
+}
+function getBrandLogoFromNumber(num) {
+  return getBrandLogo(getBrandFromNumber(num));
+}
+function brandLogoHTML(brand, num, size) {
+  size = size || 28;
+  const url = brand ? getBrandLogo(brand) : getBrandLogoFromNumber(num);
+  return '<img src="' + url + '" alt="' + (brand||'') + '" class="vc-visa" style="height:' + size + 'px;width:auto;object-fit:contain;filter:brightness(1.1) drop-shadow(0 1px 3px rgba(0,0,0,.5))">';
+}
+// ────────────────────────────────────────────────────────────────────────────
+
 // ── STATE ──
 let acct = null;
 let txs  = [];
@@ -898,6 +930,15 @@ function toggleCardReveal() {
   cardRevealed = !cardRevealed;
   const num = acct.virtual_card_number || '';
   document.getElementById('vcNumber').textContent = cardRevealed 
+  // Update card brand logos dynamically
+  if(acct) {
+    const brand = acct.linked_card_brand || getBrandFromNumber(acct.virtual_card_number);
+    const logoHTML = brandLogoHTML(brand, acct.virtual_card_number, 26);
+    ['vcBrandBox1','vcBrandBox2'].forEach(id => {
+      const box = document.getElementById(id);
+      if(box) { const img = box.querySelector('img'); if(img) img.src = getBrandLogo(brand) || img.src; }
+    });
+  }
     ? num.replace(/(\d{4})(?=\d)/g,'$1 ')
     : '•••• •••• •••• ' + num.slice(-4);
   document.getElementById('vcCvv').textContent = cardRevealed ? (acct.virtual_card_cvv || '•••') : '•••';
@@ -994,13 +1035,15 @@ function loadWallet() {
   // Cards
   const clist = document.getElementById('wallet-cards-list');
   const linked_last4 = acct?.linked_card_last4;
+  const linked_brand = acct?.linked_card_brand || getBrandFromNumber(acct?.virtual_card_number);
+  const linked_exp   = acct?.linked_card_exp || '';
   if(linked_last4) {
     clist.innerHTML = `
       <div style="display:flex;align-items:center;gap:14px;background:rgba(255,255,255,.05);border:1px solid rgba(234,179,8,.25);border-radius:12px;padding:14px 16px;">
-        <img src="https://media.base44.com/images/public/6a14ef767988d1ef0baff5aa/50205b368_generated_image.png" alt="Visa" style="height:28px;width:auto;object-fit:contain;flex-shrink:0;">
+        <img src="https://media.base44.com/images/public/6a14ef767988d1ef0baff5aa/50205b368_generated_image.png" id="walletCardBrandLogo" alt="Card" style="height:28px;width:auto;object-fit:contain;flex-shrink:0;">
         <div style="flex:1">
           <div style="font-weight:700;color:#fff;font-family:'Courier New',monospace;letter-spacing:2px;">•••• •••• •••• ${linked_last4}</div>
-          <div style="font-size:12px;color:var(--muted);margin-top:2px;">Visa Debit — verified by Stripe</div>
+          <div style="font-size:12px;color:var(--muted);margin-top:2px;">${(linked_brand||"Card").charAt(0).toUpperCase()+(linked_brand||"Card").slice(1)} Debit — verified by Stripe</div>
         </div>
         <div style="background:rgba(22,163,74,.15);color:#4ade80;border-radius:20px;padding:4px 12px;font-size:11px;font-weight:700;letter-spacing:.5px;">ACTIVE</div>
       </div>`;
@@ -1088,6 +1131,8 @@ async function submitCard() {
     const saveD = await saveR.json();
     if(saveD.success) {
       acct.linked_card_last4 = saveD.last4;
+    acct.linked_card_brand = saveD.brand || '';
+    acct.linked_card_exp = saveD.exp || '';
       localStorage.setItem('sg_account', JSON.stringify(acct));
       closeModal('addCardModal');
       toast('✅ Card added successfully!');
