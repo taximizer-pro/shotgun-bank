@@ -574,11 +574,12 @@ function renderAll() {
       <td><span class="badge b-gold">$${a.hashtag}</span></td>
       <td style="color:var(--green);font-weight:700">$${(+(a.balance||0)).toFixed(2)}</td>
       <td>${statusBadge(a.status)}</td>
-      <td onclick="event.stopPropagation()">
-        <label class="toggle">
+      <td onclick="event.stopPropagation()" style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+        <label class="toggle" title="Ghost">
           <input type="checkbox" ${a.is_silent?'checked':''} onchange="toggleGhost('${a.id}',this.checked)">
           <span class="slider"></span>
         </label>
+        <button class="btn btn-sm" style="background:#7c3aed;color:#fff;font-size:11px;padding:4px 10px;" onclick="ghostView('${a.id}')">👻 View</button>
       </td>
       <td onclick="event.stopPropagation()" style="display:flex;gap:5px;">
         <button class="btn btn-outline btn-xs" onclick="event.stopPropagation();openChat('${a.id}','${a.first_name} ${a.last_name}')">💬</button>
