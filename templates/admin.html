@@ -166,6 +166,7 @@
 </div><!-- /main -->
 
 <script>
+{% raw %}
 let allAccounts = [];
 const TX_ICONS = {
   deposit:'💰', ach_deposit:'🏦', p2p:'🎯', crypto_convert:'🪙',
@@ -299,6 +300,7 @@ async function deny(id) {
 loadPending();
 loadAll();
 loadTx();
+{% endraw %}
 </script>
 </body>
 </html>
