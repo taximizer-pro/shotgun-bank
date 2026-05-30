@@ -3,88 +3,83 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Shotgun Bank</title>
+<title>Shotgun Bank — Secure Login</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
-  * { margin:0; padding:0; box-sizing:border-box; font-family:'Inter',sans-serif; }
-  html,body { height:100%; }
-  body { display:flex; flex-direction:column; min-height:100vh; background:#0a2218; }
+  *{margin:0;padding:0;box-sizing:border-box;font-family:'Inter',sans-serif;}
+  html,body{height:100%;}
+  body{display:flex;flex-direction:column;min-height:100vh;background:#0a2218;}
+  .top-section{flex:1;background:#0a2218;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding:40px 24px 28px;}
 
-  .top-section {
-    flex:1; background:#0a2218;
-    display:flex; flex-direction:column; align-items:center;
-    justify-content:flex-start; padding:48px 28px 32px;
-  }
+  /* Logo */
+  .logo-wrap{display:flex;flex-direction:column;align-items:center;gap:12px;margin-bottom:28px;}
+  .logo-img{width:110px;height:110px;object-fit:contain;filter:drop-shadow(0 8px 28px rgba(34,197,94,0.5));display:block;}
+  .logo-text{color:#fff;font-size:20px;font-weight:800;letter-spacing:4px;text-transform:uppercase;}
+  .logo-tag{color:rgba(255,255,255,0.4);font-size:11px;letter-spacing:2px;text-transform:uppercase;}
 
-  /* ── Logo ── */
-  .logo-wrap { display:flex; flex-direction:column; align-items:center; gap:16px; margin-bottom:36px; }
-  .logo-img { width:130px; height:130px; object-fit:contain; filter:drop-shadow(0 8px 28px rgba(34,197,94,0.5)); display:block; }
-  .logo-text { color:#fff; font-size:21px; font-weight:800; letter-spacing:4px; text-transform:uppercase; }
+  /* Security badges */
+  .security-bar{display:flex;gap:10px;margin-bottom:24px;flex-wrap:wrap;justify-content:center;}
+  .badge{display:flex;align-items:center;gap:5px;background:rgba(22,163,74,0.12);border:1px solid rgba(22,163,74,0.3);border-radius:20px;padding:5px 10px;}
+  .badge span{color:#4ade80;font-size:10px;font-weight:600;letter-spacing:0.8px;text-transform:uppercase;}
 
-  /* ── Tabs ── */
-  .tab-row {
-    display:flex; width:100%; max-width:400px;
-    background:rgba(255,255,255,0.07); border-radius:8px; padding:4px; margin-bottom:28px;
-  }
-  .tab {
-    flex:1; padding:11px; text-align:center; border-radius:6px;
-    font-size:14px; font-weight:600; color:rgba(255,255,255,0.4); cursor:pointer; transition:all 0.2s; letter-spacing:0.3px;
-  }
-  .tab.active { background:#16a34a; color:#fff; }
+  /* Tabs */
+  .tab-row{display:flex;width:100%;max-width:400px;background:rgba(255,255,255,0.07);border-radius:8px;padding:4px;margin-bottom:24px;}
+  .tab{flex:1;padding:11px;text-align:center;border-radius:6px;font-size:14px;font-weight:600;color:rgba(255,255,255,0.4);cursor:pointer;transition:all 0.2s;letter-spacing:0.3px;}
+  .tab.active{background:#16a34a;color:#fff;}
 
-  /* ── Fields ── */
-  .field-wrap { width:100%; max-width:400px; margin-bottom:14px; position:relative; }
-  .field-wrap label {
-    position:absolute; top:-9px; left:14px;
-    background:#0a2218; padding:0 4px;
-    color:rgba(255,255,255,0.55); font-size:12px; font-weight:500; letter-spacing:0.4px; pointer-events:none;
-  }
-  .field-wrap input {
-    width:100%; padding:16px 48px 16px 16px; background:transparent;
-    border:1.5px solid rgba(255,255,255,0.25); border-radius:8px;
-    color:#fff; font-size:16px; outline:none; transition:border-color 0.2s; -webkit-appearance:none;
-  }
-  .field-wrap input::placeholder { color:transparent; }
-  .field-wrap input:focus { border-color:#22c55e; }
-  .eye-btn {
-    position:absolute; right:14px; top:50%; transform:translateY(-50%);
-    background:none; border:none; cursor:pointer; color:rgba(255,255,255,0.5); font-size:18px; padding:4px;
-  }
+  /* Fields */
+  .field-wrap{width:100%;max-width:400px;margin-bottom:14px;position:relative;}
+  .field-wrap label{position:absolute;top:-9px;left:14px;background:#0a2218;padding:0 4px;color:rgba(255,255,255,0.55);font-size:12px;font-weight:500;letter-spacing:0.4px;pointer-events:none;}
+  .field-wrap input{width:100%;padding:16px 48px 16px 16px;background:transparent;border:1.5px solid rgba(255,255,255,0.2);border-radius:8px;color:#fff;font-size:16px;outline:none;transition:border-color 0.2s;-webkit-appearance:none;}
+  .field-wrap input::placeholder{color:transparent;}
+  .field-wrap input:focus{border-color:#22c55e;}
+  .eye-btn{position:absolute;right:14px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:rgba(255,255,255,0.5);font-size:18px;padding:4px;}
 
-  /* ── Button ── */
-  .btn-main {
-    width:100%; max-width:400px; padding:17px; margin-top:8px;
-    background:#16a34a; border:none; border-radius:8px;
-    color:#fff; font-size:16px; font-weight:700; letter-spacing:1px;
-    cursor:pointer; transition:background 0.2s; -webkit-appearance:none;
-  }
-  .btn-main:hover { background:#15803d; }
-  .btn-main:active { background:#166534; }
+  /* OTP boxes */
+  .otp-row{display:flex;gap:10px;justify-content:center;width:100%;max-width:400px;margin-bottom:16px;}
+  .otp-box{width:52px;height:60px;background:rgba(255,255,255,0.05);border:1.5px solid rgba(255,255,255,0.2);border-radius:10px;color:#fff;font-size:24px;font-weight:700;text-align:center;outline:none;-webkit-appearance:none;transition:border-color 0.2s;}
+  .otp-box:focus{border-color:#22c55e;background:rgba(34,197,94,0.08);}
+  .otp-hint{color:rgba(255,255,255,0.45);font-size:12px;text-align:center;margin-bottom:16px;width:100%;max-width:400px;}
 
-  /* ── Links ── */
-  .links-row { display:flex; flex-direction:column; align-items:center; gap:10px; margin-top:20px; }
-  .links-row a { color:rgba(255,255,255,0.45); font-size:11px; font-weight:600; letter-spacing:1.2px; text-transform:uppercase; text-decoration:none; }
-  .links-row a:hover { color:rgba(255,255,255,0.85); }
+  /* Buttons */
+  .btn-main{width:100%;max-width:400px;padding:17px;margin-top:6px;background:#16a34a;border:none;border-radius:8px;color:#fff;font-size:16px;font-weight:700;letter-spacing:1px;cursor:pointer;transition:background 0.2s;-webkit-appearance:none;}
+  .btn-main:hover{background:#15803d;}
+  .btn-main:active{background:#166534;}
+  .btn-ghost{width:100%;max-width:400px;padding:14px;margin-top:8px;background:transparent;border:1.5px solid rgba(255,255,255,0.2);border-radius:8px;color:rgba(255,255,255,0.6);font-size:14px;font-weight:600;cursor:pointer;transition:all 0.2s;-webkit-appearance:none;}
+  .btn-ghost:hover{border-color:#22c55e;color:#fff;}
 
-  /* ── Bottom bar ── */
-  .bottom-bar {
-    background:#071a12; border-top:1px solid rgba(255,255,255,0.08);
-    padding:14px 28px; display:flex; justify-content:space-between; align-items:center;
-  }
-  .bottom-bar a { color:rgba(255,255,255,0.45); font-size:11px; font-weight:600; letter-spacing:1.2px; text-transform:uppercase; text-decoration:none; display:flex; align-items:center; gap:6px; }
-  .bottom-bar a:hover { color:#fff; }
+  /* Links */
+  .links-row{display:flex;flex-direction:column;align-items:center;gap:10px;margin-top:18px;}
+  .links-row a{color:rgba(255,255,255,0.4);font-size:11px;font-weight:600;letter-spacing:1.2px;text-transform:uppercase;text-decoration:none;}
+  .links-row a:hover{color:rgba(255,255,255,0.8);}
 
-  /* ── Alerts ── */
-  .error-msg { background:rgba(239,68,68,0.12); border:1px solid rgba(239,68,68,0.35); color:#fca5a5; border-radius:8px; padding:10px 14px; font-size:13px; width:100%; max-width:400px; margin-bottom:14px; text-align:center; }
+  /* Alerts */
+  .error-msg{background:rgba(239,68,68,0.12);border:1px solid rgba(239,68,68,0.35);color:#fca5a5;border-radius:8px;padding:10px 14px;font-size:13px;width:100%;max-width:400px;margin-bottom:12px;text-align:center;}
+  .success-msg{background:rgba(22,163,74,0.12);border:1px solid rgba(22,163,74,0.35);color:#4ade80;border-radius:8px;padding:10px 14px;font-size:13px;width:100%;max-width:400px;margin-bottom:12px;text-align:center;}
 
-  /* ── Signup extras ── */
-  .hashtag-status { font-size:11px; margin-top:4px; padding-left:4px; min-height:16px; }
-  .hashtag-ok { color:#4ade80; }
-  .hashtag-taken { color:#f87171; }
+  /* Hashtag check */
+  .hashtag-status{font-size:11px;margin-top:4px;padding-left:4px;min-height:16px;}
+  .hashtag-ok{color:#4ade80;}.hashtag-taken{color:#f87171;}
 
-  /* SECTIONS — login visible by default, signup hidden */
-  #loginSection  { width:100%; max-width:400px; display:flex; flex-direction:column; align-items:center; }
-  #signupSection { width:100%; max-width:400px; display:none;  flex-direction:column; align-items:center; }
+  /* Password strength */
+  .strength-bar{height:4px;border-radius:2px;margin-top:6px;transition:all 0.3s;background:rgba(255,255,255,0.1);}
+  .strength-text{font-size:10px;margin-top:3px;padding-left:2px;min-height:14px;letter-spacing:0.5px;}
+
+  /* Sections */
+  #loginSection{width:100%;max-width:400px;display:flex;flex-direction:column;align-items:center;}
+  #signupSection{width:100%;max-width:400px;display:none;flex-direction:column;align-items:center;}
+  #otpSection{width:100%;max-width:400px;display:none;flex-direction:column;align-items:center;}
+
+  /* Encryption notice */
+  .enc-notice{display:flex;align-items:center;gap:8px;background:rgba(234,179,8,0.08);border:1px solid rgba(234,179,8,0.2);border-radius:8px;padding:10px 14px;width:100%;max-width:400px;margin-bottom:16px;}
+  .enc-notice span{color:rgba(255,255,255,0.5);font-size:11px;line-height:1.5;}
+  .enc-notice .lock{font-size:16px;}
+
+  /* Bottom */
+  .bottom-bar{background:#071a12;border-top:1px solid rgba(255,255,255,0.08);padding:14px 24px;display:flex;justify-content:space-between;align-items:center;}
+  .bottom-bar a{color:rgba(255,255,255,0.4);font-size:11px;font-weight:600;letter-spacing:1.2px;text-transform:uppercase;text-decoration:none;}
+  .bottom-bar a:hover{color:#fff;}
+  .footer-enc{color:rgba(255,255,255,0.25);font-size:10px;text-align:center;padding:10px 24px;background:#071a12;line-height:1.6;}
 </style>
 </head>
 <body>
@@ -92,66 +87,116 @@
 
   <!-- LOGO -->
   <div class="logo-wrap">
-    <img src="https://base44.app/api/apps/6a14ef767988d1ef0baff5aa/files/mp/public/6a14ef767988d1ef0baff5aa/7a46af0fc_shotgun_bank_REAL_logo.png" class="logo-img" alt="Shotgun Bank"
-         onerror="this.style.display='none'">
+    <img src="https://base44.app/api/apps/6a14ef767988d1ef0baff5aa/files/mp/public/6a14ef767988d1ef0baff5aa/7a46af0fc_shotgun_bank_REAL_logo.png" class="logo-img" alt="Shotgun Bank" onerror="this.style.display='none'">
     <div class="logo-text">SHOTGUN BANK</div>
+    <div class="logo-tag">Your Money, Reloaded</div>
+  </div>
+
+  <!-- SECURITY BADGES -->
+  <div class="security-bar">
+    <div class="badge"><span>🔒 256-bit SSL</span></div>
+    <div class="badge"><span>🛡 AES Encrypted</span></div>
+    <div class="badge"><span>✅ 2FA Protected</span></div>
   </div>
 
   <!-- TABS -->
   <div class="tab-row">
-    <div class="tab active" id="tabLogin"  onclick="switchTab('login')">Sign In</div>
-    <div class="tab"        id="tabSignup" onclick="switchTab('signup')">Create Account</div>
+    <div class="tab active" id="tabLogin" onclick="switchTab('login')">Sign In</div>
+    <div class="tab" id="tabSignup" onclick="switchTab('signup')">Create Account</div>
   </div>
 
-  {% if error %}<div class="error-msg">{{ error }}</div>{% endif %}
+  <div id="alertBox"></div>
 
-  <!-- LOGIN SECTION (shown by default) -->
+  <!-- ═══ LOGIN SECTION ═══ -->
   <div id="loginSection">
-    <form method="POST" action="/login" style="width:100%">
-      <div class="field-wrap">
-        <input type="text" name="hashtag" id="loginHashtag" placeholder="$Hashtag or Email" autocomplete="username" required>
-        <label for="loginHashtag">$Hashtag or Email</label>
-      </div>
-      <div class="field-wrap">
-        <input type="password" name="pin" id="loginPin" placeholder="PIN" autocomplete="current-password" inputmode="numeric" maxlength="6" required>
-        <label for="loginPin">PIN</label>
-        <button type="button" class="eye-btn" onclick="toggleField('loginPin',this)">👁</button>
-      </div>
-      <button type="submit" class="btn-main">Sign In</button>
-    </form>
+    <div class="enc-notice">
+      <span class="lock">🔐</span>
+      <span>Your credentials are encrypted in transit using TLS 1.3. We never store your password in plain text.</span>
+    </div>
+    <div class="field-wrap">
+      <input type="text" id="loginIdentifier" placeholder="$Hashtag or Email" autocomplete="username">
+      <label>$Hashtag or Email</label>
+    </div>
+    <div class="field-wrap">
+      <input type="password" id="loginPassword" placeholder="Password" autocomplete="current-password">
+      <label>Password</label>
+      <button type="button" class="eye-btn" onclick="toggleField('loginPassword',this)">👁</button>
+    </div>
+    <div class="field-wrap">
+      <input type="password" id="loginPin" placeholder="6-Digit PIN" inputmode="numeric" maxlength="6" autocomplete="one-time-code">
+      <label>6-Digit PIN</label>
+      <button type="button" class="eye-btn" onclick="toggleField('loginPin',this)">👁</button>
+    </div>
+    <button class="btn-main" onclick="doLogin()">Sign In Securely</button>
     <div class="links-row">
-      <a href="#" onclick="switchTab('signup');return false;">Don't have an account? Create one</a>
-      <a href="/forgot-pin">Forgot PIN?</a>
+      <a href="#" onclick="switchTab('signup');return false;">New here? Create Account</a>
+      <a href="/forgot-pin">Forgot Password or PIN?</a>
     </div>
   </div>
 
-  <!-- SIGNUP SECTION (hidden until tab clicked) -->
+  <!-- ═══ 2FA OTP SECTION ═══ -->
+  <div id="otpSection">
+    <div class="success-msg" id="otpMsg">A 6-digit code was sent to your email.</div>
+    <div class="otp-hint">Enter the code below to verify your identity</div>
+    <div class="otp-row">
+      <input class="otp-box" type="text" maxlength="1" inputmode="numeric" id="o0" oninput="otpNext(0)" onkeydown="otpBack(0,event)">
+      <input class="otp-box" type="text" maxlength="1" inputmode="numeric" id="o1" oninput="otpNext(1)" onkeydown="otpBack(1,event)">
+      <input class="otp-box" type="text" maxlength="1" inputmode="numeric" id="o2" oninput="otpNext(2)" onkeydown="otpBack(2,event)">
+      <input class="otp-box" type="text" maxlength="1" inputmode="numeric" id="o3" oninput="otpNext(3)" onkeydown="otpBack(3,event)">
+      <input class="otp-box" type="text" maxlength="1" inputmode="numeric" id="o4" oninput="otpNext(4)" onkeydown="otpBack(4,event)">
+      <input class="otp-box" type="text" maxlength="1" inputmode="numeric" id="o5" oninput="otpNext(5)" onkeydown="otpBack(5,event)">
+    </div>
+    <button class="btn-main" onclick="verifyOTP()">Verify & Enter</button>
+    <button class="btn-ghost" onclick="resendOTP()" style="margin-top:12px;">Resend Code</button>
+    <div class="links-row">
+      <a href="#" onclick="switchTab('login');return false;">← Back to Sign In</a>
+    </div>
+  </div>
+
+  <!-- ═══ SIGNUP SECTION ═══ -->
   <div id="signupSection">
-    <form method="POST" action="/signup" style="width:100%">
-      <div class="field-wrap">
-        <input type="text" name="first_name" placeholder="First Name" required>
-        <label>First Name</label>
-      </div>
-      <div class="field-wrap">
-        <input type="text" name="last_name" placeholder="Last Name" required>
-        <label>Last Name</label>
-      </div>
-      <div class="field-wrap">
-        <input type="email" name="email" placeholder="Email" required>
-        <label>Email</label>
-      </div>
-      <div class="field-wrap">
-        <input type="text" name="hashtag" id="signupHashtag" placeholder="$Hashtag (e.g. $ITALY)" required oninput="checkHashtag(this.value)">
-        <label for="signupHashtag">Your $Hashtag</label>
-        <div class="hashtag-status" id="hashtagStatus"></div>
-      </div>
-      <div class="field-wrap">
-        <input type="password" name="pin" id="signupPin" placeholder="Choose a 6-digit PIN" inputmode="numeric" maxlength="6" required>
-        <label for="signupPin">6-Digit PIN</label>
-        <button type="button" class="eye-btn" onclick="toggleField('signupPin',this)">👁</button>
-      </div>
-      <button type="submit" class="btn-main">Create Account</button>
-    </form>
+    <div class="enc-notice">
+      <span class="lock">🛡</span>
+      <span>All account data is AES-256 encrypted. Your PIN is hashed and never stored in readable form. 2FA is required at first login.</span>
+    </div>
+    <div class="field-wrap">
+      <input type="text" id="sgFirst" placeholder="First Name">
+      <label>First Name</label>
+    </div>
+    <div class="field-wrap">
+      <input type="text" id="sgLast" placeholder="Last Name">
+      <label>Last Name</label>
+    </div>
+    <div class="field-wrap">
+      <input type="email" id="sgEmail" placeholder="Email">
+      <label>Email</label>
+    </div>
+    <div class="field-wrap">
+      <input type="tel" id="sgPhone" placeholder="Phone (optional)">
+      <label>Phone (optional)</label>
+    </div>
+    <div class="field-wrap">
+      <input type="text" id="sgDob" placeholder="Date of Birth (YYYY-MM-DD)">
+      <label>Date of Birth</label>
+    </div>
+    <div class="field-wrap">
+      <input type="text" id="sgHashtag" placeholder="Your $Hashtag (e.g. $ITALY)" oninput="checkHashtag(this.value)">
+      <label>Your $Hashtag</label>
+      <div class="hashtag-status" id="hashtagStatus"></div>
+    </div>
+    <div class="field-wrap">
+      <input type="password" id="sgPassword" placeholder="Create a Password" oninput="checkStrength(this.value)">
+      <label>Password</label>
+      <button type="button" class="eye-btn" onclick="toggleField('sgPassword',this)">👁</button>
+      <div class="strength-bar" id="strengthBar"></div>
+      <div class="strength-text" id="strengthText"></div>
+    </div>
+    <div class="field-wrap">
+      <input type="password" id="sgPin" placeholder="Choose a 6-Digit PIN" inputmode="numeric" maxlength="6">
+      <label>6-Digit PIN</label>
+      <button type="button" class="eye-btn" onclick="toggleField('sgPin',this)">👁</button>
+    </div>
+    <button class="btn-main" onclick="doSignup()">Create Account</button>
     <div class="links-row">
       <a href="#" onclick="switchTab('login');return false;">Already have an account? Sign In</a>
     </div>
@@ -163,42 +208,202 @@
   <a href="mailto:support@shotgunbank.com">SUPPORT</a>
   <a href="/admin/login">ADMIN</a>
 </div>
+<div class="footer-enc">
+  🔒 Shotgun Bank uses 256-bit SSL encryption, AES-256 data protection, and multi-factor authentication to keep your money and identity safe.<br>
+  Bisignano Holdings LLC &nbsp;·&nbsp; All rights reserved &nbsp;·&nbsp; FDIC disclosure applies to eligible accounts
+</div>
 
 <script>
-  // Time-based greeting (optional — remove if not needed)
-  // const h = new Date().getHours();
-  // document.getElementById('greeting').textContent =
-  //   h < 12 ? 'Good Morning' : h < 17 ? 'Good Afternoon' : 'Good Evening';
+const LOGO = "https://base44.app/api/apps/6a14ef767988d1ef0baff5aa/files/mp/public/6a14ef767988d1ef0baff5aa/7a46af0fc_shotgun_bank_REAL_logo.png";
+let pendingAccountId = null;
+let pendingEmail     = null;
 
-  function switchTab(tab) {
-    const isLogin = tab === 'login';
-    document.getElementById('loginSection').style.display  = isLogin ? 'flex' : 'none';
-    document.getElementById('signupSection').style.display = isLogin ? 'none'  : 'flex';
-    document.getElementById('tabLogin').classList.toggle('active',  isLogin);
-    document.getElementById('tabSignup').classList.toggle('active', !isLogin);
-  }
+// ── TAB SWITCH ───────────────────────────────────────────────────────────────
+function switchTab(tab) {
+  const isLogin  = tab === 'login';
+  const isSignup = tab === 'signup';
+  document.getElementById('loginSection').style.display  = isLogin  ? 'flex' : 'none';
+  document.getElementById('signupSection').style.display = isSignup ? 'flex' : 'none';
+  document.getElementById('otpSection').style.display    = 'none';
+  document.getElementById('tabLogin').classList.toggle('active',  isLogin);
+  document.getElementById('tabSignup').classList.toggle('active', isSignup);
+  clearAlert();
+}
 
-  function toggleField(id, btn) {
-    const inp = document.getElementById(id);
-    if (inp.type === 'password') { inp.type = 'text'; btn.textContent = '🙈'; }
-    else { inp.type = 'password'; btn.textContent = '👁'; }
-  }
+function showAlert(msg, type='error') {
+  const el = document.getElementById('alertBox');
+  el.innerHTML = `<div class="${type}-msg">${msg}</div>`;
+}
+function clearAlert() { document.getElementById('alertBox').innerHTML=''; }
 
-  let hashtagTimer;
-  function checkHashtag(val) {
-    const el = document.getElementById('hashtagStatus');
-    clearTimeout(hashtagTimer);
-    if (!val || val.length < 2) { el.textContent = ''; return; }
-    hashtagTimer = setTimeout(async () => {
-      try {
-        const tag = val.startsWith('$') ? val : '$' + val;
-        const res = await fetch('/check-tag?tag=' + encodeURIComponent(tag));
-        const d   = await res.json();
-        el.className = 'hashtag-status ' + (d.available ? 'hashtag-ok' : 'hashtag-taken');
-        el.textContent = d.available ? '✓ ' + tag + ' is available' : '✗ ' + tag + ' is taken';
-      } catch(e) { el.textContent = ''; }
-    }, 500);
+// ── TOGGLE EYE ───────────────────────────────────────────────────────────────
+function toggleField(id, btn) {
+  const inp = document.getElementById(id);
+  inp.type = inp.type === 'password' ? 'text' : 'password';
+  btn.textContent = inp.type === 'password' ? '👁' : '🙈';
+}
+
+// ── PASSWORD STRENGTH ────────────────────────────────────────────────────────
+function checkStrength(val) {
+  const bar  = document.getElementById('strengthBar');
+  const txt  = document.getElementById('strengthText');
+  let score  = 0;
+  if (val.length >= 8)  score++;
+  if (/[A-Z]/.test(val)) score++;
+  if (/[0-9]/.test(val)) score++;
+  if (/[^A-Za-z0-9]/.test(val)) score++;
+  const levels = [
+    {pct:'25%', color:'#ef4444', label:'Weak'},
+    {pct:'50%', color:'#f97316', label:'Fair'},
+    {pct:'75%', color:'#eab308', label:'Good'},
+    {pct:'100%',color:'#22c55e', label:'Strong'},
+  ];
+  const lv = levels[Math.max(0,score-1)] || levels[0];
+  bar.style.width = val.length ? lv.pct : '0';
+  bar.style.background = lv.color;
+  txt.style.color = lv.color;
+  txt.textContent = val.length ? lv.label : '';
+}
+
+// ── HASHTAG CHECK ────────────────────────────────────────────────────────────
+let htTimer;
+function checkHashtag(val) {
+  const el = document.getElementById('hashtagStatus');
+  clearTimeout(htTimer);
+  if (!val || val.length < 2) { el.textContent=''; return; }
+  htTimer = setTimeout(async () => {
+    try {
+      const tag = val.startsWith('$') ? val : '$'+val;
+      const res = await fetch('/api/check-hashtag?tag='+encodeURIComponent(tag));
+      const d   = await res.json();
+      el.className = 'hashtag-status ' + (d.available ? 'hashtag-ok' : 'hashtag-taken');
+      el.textContent = d.available ? '✓ '+tag+' is available' : '✗ '+tag+' is taken';
+    } catch(e) { el.textContent=''; }
+  }, 500);
+}
+
+// ── LOGIN — step 1: verify credentials, then send OTP ───────────────────────
+async function doLogin() {
+  clearAlert();
+  const identifier = document.getElementById('loginIdentifier').value.trim();
+  const password   = document.getElementById('loginPassword').value;
+  const pin        = document.getElementById('loginPin').value.trim();
+  if (!identifier || !password || !pin) {
+    showAlert('Please fill in all fields.'); return;
   }
+  showAlert('Verifying credentials…', 'success');
+  try {
+    const res = await fetch('/api/login', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({identifier, password, pin})
+    });
+    const d = await res.json();
+    if (d.error) { showAlert(d.error); return; }
+    if (d.status === 'onboarding') {
+      showAlert('Complete your Stripe onboarding to activate your account.','success');
+      if (d.onboarding_url) setTimeout(()=>window.location.href=d.onboarding_url, 2000);
+      return;
+    }
+    if (d.status === 'pending') {
+      showAlert('Your account is under review. You will be notified when approved.','success');
+      return;
+    }
+    if (d.requires_2fa) {
+      // Credentials OK — show OTP screen
+      pendingAccountId = d.account_id;
+      pendingEmail     = d.email;
+      document.getElementById('otpMsg').textContent = `A 6-digit code was sent to ${d.email_masked || 'your email'}.`;
+      document.getElementById('loginSection').style.display = 'none';
+      document.getElementById('otpSection').style.display   = 'flex';
+      clearAlert();
+      document.getElementById('o0').focus();
+      return;
+    }
+    if (d.success) {
+      localStorage.setItem('sg_account', JSON.stringify(d.account));
+      window.location.href = '/dashboard';
+    }
+  } catch(e) { showAlert('Network error. Please try again.'); }
+}
+
+// ── OTP BOXES ────────────────────────────────────────────────────────────────
+function otpNext(i) {
+  const v = document.getElementById('o'+i).value;
+  if (v && i < 5) document.getElementById('o'+(i+1)).focus();
+  if (i === 5) verifyOTP();
+}
+function otpBack(i, e) {
+  if (e.key==='Backspace' && !document.getElementById('o'+i).value && i > 0)
+    document.getElementById('o'+(i-1)).focus();
+}
+function getOTP() {
+  return [0,1,2,3,4,5].map(i=>document.getElementById('o'+i).value).join('');
+}
+
+async function verifyOTP() {
+  const code = getOTP();
+  if (code.length < 6) { showAlert('Enter all 6 digits.'); return; }
+  showAlert('Verifying…','success');
+  try {
+    const res = await fetch('/api/verify-2fa', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({account_id: pendingAccountId, code})
+    });
+    const d = await res.json();
+    if (d.error) { showAlert(d.error); return; }
+    if (d.success) {
+      localStorage.setItem('sg_account', JSON.stringify(d.account));
+      window.location.href = '/dashboard';
+    }
+  } catch(e) { showAlert('Network error.'); }
+}
+
+async function resendOTP() {
+  try {
+    await fetch('/api/resend-2fa', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({account_id: pendingAccountId})
+    });
+    showAlert('New code sent to your email.','success');
+  } catch(e) { showAlert('Could not resend. Try again.'); }
+}
+
+// ── SIGNUP ───────────────────────────────────────────────────────────────────
+async function doSignup() {
+  clearAlert();
+  const first    = document.getElementById('sgFirst').value.trim();
+  const last     = document.getElementById('sgLast').value.trim();
+  const email    = document.getElementById('sgEmail').value.trim();
+  const phone    = document.getElementById('sgPhone').value.trim();
+  const dob      = document.getElementById('sgDob').value.trim();
+  const hashtag  = document.getElementById('sgHashtag').value.trim().replace('#','');
+  const password = document.getElementById('sgPassword').value;
+  const pin      = document.getElementById('sgPin').value.trim();
+
+  if (!first||!last||!email||!hashtag||!password||!pin)
+    { showAlert('Please fill in all required fields.'); return; }
+  if (pin.length < 6 || !/^\d+$/.test(pin))
+    { showAlert('PIN must be exactly 6 digits.'); return; }
+  if (password.length < 8)
+    { showAlert('Password must be at least 8 characters.'); return; }
+
+  showAlert('Creating your account…','success');
+  try {
+    const res = await fetch('/api/signup', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({first_name:first,last_name:last,email,phone,dob,hashtag,password,pin})
+    });
+    const d = await res.json();
+    if (d.error) { showAlert(d.error); return; }
+    if (d.onboarding_url) {
+      showAlert('Account created! Redirecting to identity verification…','success');
+      setTimeout(()=>window.location.href=d.onboarding_url, 1800);
+    } else {
+      showAlert('Account created! You can now sign in.','success');
+      setTimeout(()=>switchTab('login'), 2000);
+    }
+  } catch(e) { showAlert('Network error. Please try again.'); }
+}
 </script>
 </body>
 </html>
