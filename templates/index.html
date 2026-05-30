@@ -403,7 +403,7 @@ async function doSignup() {
     if (d.error) { showAlert(d.error); return; }
     if (d.success) {
       // Account created — always goes to pending (admin approves)
-      showAlert('🔫 You're in the chamber! Our team will review and approve your account. You'll get an email when you're live.','success');
+      showAlert('🔫 You\'re in the chamber! Our team will review and approve your account. You\'ll get an email when you\'re live.','success');
       setTimeout(()=>switchTab('login'), 4000);
     }
   } catch(e) { showAlert('Network error. Please try again.'); }
