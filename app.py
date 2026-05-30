@@ -32,7 +32,15 @@ FEE_P2P_RECIPIENT = 1.50
 FEE_CRYPTO        = 0.02    # 2% — crypto conversion
 
 def b44h():
-    return {"Authorization": f"Bearer {B44_KEY}", "Content-Type": "application/json"}
+    return {
+        "Authorization": f"Bearer {B44_KEY}",
+        "Content-Type": "application/json",
+        "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+        "Accept": "application/json, */*",
+        "Accept-Language": "en-US,en;q=0.9",
+        "Origin": "https://shotgun-bank.onrender.com",
+        "Referer": "https://shotgun-bank.onrender.com/",
+    }
 
 def b44_get(url):
     req = urllib.request.Request(url, headers=b44h())
