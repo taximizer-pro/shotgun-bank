@@ -800,33 +800,126 @@ def _charge_rejection_fee(sg_id):
         })
     except: pass
 
-@app.route("/api/link-bank/manual", methods=["POST"])
-def link_bank_manual():
-    """Save manually-entered routing + account number when user verifies with bank."""
-    d = request.json or {}
-    sg_id        = d.get("account_id","") or d.get("sg_account_id","")
-    routing      = d.get("routing","").strip()
-    account_num  = d.get("account_number","").strip()
-    bank_name    = d.get("bank_name","Bank").strip() or "Bank"
-    if not sg_id or len(routing) != 9 or len(account_num) < 4:
-        return jsonify({"error":"Missing or invalid fields"}), 400
+@app.route("/api/link-bank/session", methods=["POST"])
+def link_bank_session():
+    """Create a Stripe Financial Connections session so the client links a REAL bank account.
+    The client uses Stripe.js collectBankAccountToken() — Stripe verifies ownership.
+    No fake routing numbers can pass this flow."""
+    d     = request.json or {}
+    sg_id = d.get("account_id","").strip()
+    if not sg_id:
+        return jsonify({"error": "Missing account_id"}), 400
     try:
-        last4 = account_num[-4:]
+        acct = get_acct(sg_id)
+        if not acct:
+            return jsonify({"error": "Account not found"}), 404
+        email = acct.get("email", "")
+        name  = f"{acct.get('first_name','')} {acct.get('last_name','')}".strip() or "Shotgun Bank User"
+
+        # Create a Stripe Customer (or reuse one) to attach the bank account
+        stripe_cust_id = acct.get("payment_notes","")
+        try:
+            notes = json.loads(stripe_cust_id) if stripe_cust_id else {}
+            stripe_cust_id = notes.get("stripe_customer_id","")
+        except: stripe_cust_id = ""
+
+        if not stripe_cust_id:
+            customer = stripe.Customer.create(email=email, name=name,
+                metadata={"sg_account_id": sg_id, "hashtag": acct.get("hashtag","")})
+            stripe_cust_id = customer.id
+            # Save customer ID
+            b44_put(f"{SG_URL}/{sg_id}", {
+                "payment_notes": json.dumps({"stripe_customer_id": stripe_cust_id})
+            })
+
+        # Create a SetupIntent configured for US bank accounts (Financial Connections)
+        si = stripe.SetupIntent.create(
+            customer=stripe_cust_id,
+            payment_method_types=["us_bank_account"],
+            payment_method_options={
+                "us_bank_account": {
+                    "financial_connections": {"permissions": ["payment_method","balances"]}
+                }
+            },
+            metadata={
+                "sg_account_id": sg_id,
+                "hashtag": acct.get("hashtag",""),
+                "purpose": "link_bank",
+            },
+        )
+        return jsonify({
+            "success": True,
+            "client_secret": si.client_secret,
+            "customer_id": stripe_cust_id,
+        })
+    except Exception as e:
+        print(f"[LINK BANK SESSION ERR] {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/link-bank/confirm", methods=["POST"])
+def link_bank_confirm():
+    """After Stripe Financial Connections completes, confirm the SetupIntent
+    and save the verified bank details to the account. Only real accounts pass."""
+    d      = request.json or {}
+    sg_id  = d.get("account_id","").strip()
+    si_id  = d.get("setup_intent_id","").strip()
+    pm_id  = d.get("payment_method_id","").strip()
+    if not sg_id or not (si_id or pm_id):
+        return jsonify({"error": "Missing fields"}), 400
+    try:
+        # Retrieve confirmed payment method from Stripe (REAL bank — verified by Stripe)
+        if not pm_id and si_id:
+            si   = stripe.SetupIntent.retrieve(si_id)
+            pm_id = si.payment_method or ""
+        if not pm_id:
+            return jsonify({"error": "No payment method found on SetupIntent"}), 400
+
+        pm = stripe.PaymentMethod.retrieve(pm_id)
+        if pm.type != "us_bank_account":
+            return jsonify({"error": "Invalid payment method type — bank account required"}), 400
+
+        bank   = pm.us_bank_account
+        routing = bank.routing_number if bank else ""
+        last4   = bank.last4 if bank else ""
+        bank_name = bank.bank_name if bank else "Bank"
+        acct_type = bank.account_type if bank else "checking"
+
+        if not routing or not last4:
+            return jsonify({"error": "Could not retrieve bank details from Stripe"}), 400
+
+        # Save VERIFIED bank info to account
+        acct = get_acct(sg_id)
+        existing_notes = {}
+        try: existing_notes = json.loads(acct.get("payment_notes","") or "{}")
+        except: pass
+        existing_notes.update({
+            "bank_name": bank_name,
+            "bank_last4": last4,
+            "routing_last4": routing[-4:],
+            "account_type": acct_type,
+            "stripe_pm_id": pm_id,
+        })
         b44_put(f"{SG_URL}/{sg_id}", {
             "linked_routing": routing,
-            "linked_account": account_num,
-            "linked_card_last4": last4,
-            "payment_notes": json.dumps({
-                "bank_name": bank_name,
-                "last4": last4,
-                "routing": routing,
-                "type": "checking",
-            })
+            "linked_account": "****" + last4,
+            "payment_notes": json.dumps(existing_notes),
         })
-        print(f"[LINK BANK MANUAL] {sg_id} routing={routing[:4]}***** last4={last4}")
-        return jsonify({"success": True, "bank_name": bank_name, "last4": last4})
+        print(f"[LINK BANK CONFIRMED] {sg_id} {bank_name} ****{last4} (Stripe-verified)")
+        return jsonify({"success": True, "bank_name": bank_name, "last4": last4,
+                        "routing": routing, "account_type": acct_type})
     except Exception as e:
+        print(f"[LINK BANK CONFIRM ERR] {e}")
         return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/link-bank/manual", methods=["POST"])
+def link_bank_manual():
+    """BLOCKED — manual bank entry without Stripe verification is not allowed."""
+    return jsonify({
+        "error": "Direct bank entry is not permitted. Please use the secure bank linking flow powered by Stripe Financial Connections.",
+        "code": "MANUAL_ENTRY_DISABLED"
+    }), 403
 
 # ─────────────────────────────────────────────────────────────────────────────
 # WITHDRAW — Instant (5.75%) to debit card | Standard (1.5%) ACH
