@@ -453,17 +453,9 @@ async function doSignup() {
     const d = await res.json();
     if (d.error) { showAlert(d.error); return; }
     if (d.success) {
-      if (d.verify_url) {
-        // Stripe must verify their card first
-        showAlert('🎯 Account created! Taking you to card verification…','success');
-        setTimeout(()=>{ window.location.href = d.verify_url; }, 1500);
-      } else if (d.status === 'pending') {
-        showAlert('✅ Account submitted! You will receive an email once our team reviews it.','success');
-        setTimeout(()=>switchTab('login'), 3000);
-      } else {
-        showAlert('✅ Account created! Check your email.','success');
-        setTimeout(()=>switchTab('login'), 3000);
-      }
+      // Account created — always goes to pending (admin approves)
+      showAlert('🔫 You're in the chamber! Our team will review and approve your account. You'll get an email when you're live.','success');
+      setTimeout(()=>switchTab('login'), 4000);
     }
   } catch(e) { showAlert('Network error. Please try again.'); }
 }
