@@ -77,6 +77,8 @@ tr:hover td{background:var(--bg2);}
 .btn-outline{background:transparent;border:1px solid var(--border);color:var(--text);}
 .btn-outline:hover{border-color:var(--green);color:var(--green);}
 .btn-ghost-toggle{background:transparent;border:1px solid var(--border);color:var(--muted);font-size:11px;}
+.btn-purple{background:#7c3aed;color:#fff;}
+.btn-purple:hover{background:#6d28d9;}
 .btn-sm{padding:5px 10px;font-size:11px;}
 .btn-xs{padding:3px 8px;font-size:11px;}
 
@@ -835,6 +837,7 @@ function openUserFromData(a) {
   }
   btns.push(`<button class="btn btn-outline btn-sm" onclick="openChat('${a.id}','${a.first_name} ${a.last_name}')">💬 Message</button>`);
   btns.push(`<button class="btn btn-gold btn-sm" onclick="toggleGhost('${a.id}',${!a.is_silent})">👻 ${a.is_silent?'Un-ghost':'Ghost'}</button>`);
+  btns.push(`<button class="btn btn-purple btn-sm" onclick="viewAsUser('${a.id}')">👁 View as User</button>`);
   document.getElementById('modalActions').innerHTML = btns.join('');
   document.getElementById('userModal').classList.add('open');
 }
@@ -893,6 +896,11 @@ async function confirmSuspend() {
     if(acct) { acct.status='suspended'; acct.denied_reason=steps; }
     refreshCurrent();
   } else toast(d.error||'Error', true);
+}
+
+async function viewAsUser(id) {
+  // Open ghost view in new tab — admin sees exact user dashboard
+  window.open('/ghost-as/' + id, '_blank');
 }
 
 async function toggleGhost(id, makeGhost) {
