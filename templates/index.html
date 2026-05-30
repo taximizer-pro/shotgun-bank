@@ -148,11 +148,7 @@
       <label>Password</label>
       <button type="button" class="eye-btn" onclick="toggleField('loginPassword',this)">👁</button>
     </div>
-    <div class="field-wrap">
-      <input type="password" id="loginPin" placeholder="6-Digit PIN" inputmode="numeric" maxlength="6" autocomplete="one-time-code">
-      <label>6-Digit PIN</label>
-      <button type="button" class="eye-btn" onclick="toggleField('loginPin',this)">👁</button>
-    </div>
+
     <button class="btn-main" onclick="doLogin()">Sign In Securely</button>
     <div class="links-row">
       <a href="#" onclick="switchTab('signup');return false;">New here? Create Account</a>
@@ -341,7 +337,7 @@ async function doLogin() {
   try {
     const res = await fetch('/api/login', {
       method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({identifier, password, pin})
+      body: JSON.stringify({identifier, password})
     });
     const d = await res.json();
     if (d.error) { showAlert(d.error); return; }
