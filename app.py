@@ -39,6 +39,11 @@ FEE_P2P_SENDER    = 1.50
 FEE_P2P_RECIPIENT = 1.50
 FEE_CRYPTO        = 0.02    # 2% — crypto conversion
 
+# ── OTP STORE (in-memory, per-process) ────────────────────────────────────────
+OTP_TTL    = 300          # 5 minutes
+_otp_store = {}           # {account_id: {code, expires, email}}
+
+
 def b44h():
     return {
         "Authorization": f"Bearer {os.environ.get('BASE44_API_KEY', '')}",  # read fresh each call
