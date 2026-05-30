@@ -1,4 +1,7 @@
-import os, json, hashlib, secrets, string, random, urllib.parse as _uparse, urllib.request, time
+import os, json, hashlib, secrets, string, random, urllib.parse as _uparse, urllib.request, time, smtplib
+from email.mime.text import MIMEText
+from flask import Flask, request, jsonify, session, redirect, render_template
+import stripe
 from flask import Flask, request, jsonify, session, redirect, render_template
 import stripe
 
@@ -213,6 +216,7 @@ def signup():
             type="account_onboarding",
         )
 
+        pw_hash = hashlib.sha256(d.get("password","").encode()).hexdigest()
         saved = b44_post(SG_URL, {
             "first_name": first, "last_name": last, "email": email,
             "phone": phone, "hashtag": tag, "pin_hash": hash_pin(pin),
@@ -223,6 +227,7 @@ def signup():
             "virtual_card_expiry": gen_exp(),
             "beat_v_enabled": False, "beat_v_used": False,
             "lifetime_deposited": 0.0, "funded_friends_count": 0,
+            "password_hash": pw_hash,
         })
 
         return jsonify({
