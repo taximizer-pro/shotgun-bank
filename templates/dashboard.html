@@ -276,7 +276,7 @@ function exitGhost(){
       <label>Note (optional)</label>
       <input class="inp" id="sendNote" placeholder="What's it for?">
     </div>
-    <button class="btn-green" onclick="doSend()">Send Money 💸</button>
+    <button class="btn-green" onclick="doSend()">Send Money <img src="https://base44.app/api/apps/6a14ef767988d1ef0baff5aa/files/mp/public/6a14ef767988d1ef0baff5aa/3d7589dab_shoot_it_clean.png" alt="" style="width:18px;height:18px;object-fit:contain;vertical-align:middle;margin-right:6px;filter:drop-shadow(0 1px 2px rgba(0,0,0,.6))"></button>
     <div class="fee-note">$1.50 fee applies to sender and recipient</div>
   </div>
 </div>
@@ -399,28 +399,28 @@ function exitGhost(){
 
   <!-- ─── LINKED CARDS ─── -->
   <div class="acct-section" id="wallet-cards-section">
-    <div class="acct-title">💳 Debit / Credit Card</div>
+    <div class="acct-title"><img src="https://media.base44.com/images/public/6a14ef767988d1ef0baff5aa/4f57b97cc_generated_image.png" alt="" style="width:22px;height:22px;object-fit:contain;vertical-align:middle;margin-right:6px;filter:drop-shadow(0 1px 2px rgba(0,0,0,.6))"> Debit / Credit Card</div>
     <div id="wallet-cards-list">
       <div style="color:var(--muted);font-size:14px;padding:10px 0;">Loading…</div>
     </div>
-    <button class="btn-green" style="margin-top:12px;width:100%;" onclick="openAddCard()">＋ Add Card</button>
+    <button class="btn-green" style="margin-top:12px;width:100%;" onclick="openAddCard()"><img src="https://media.base44.com/images/public/6a14ef767988d1ef0baff5aa/4f57b97cc_generated_image.png" alt="" style="width:18px;height:18px;object-fit:contain;vertical-align:middle;margin-right:6px;filter:drop-shadow(0 1px 2px rgba(0,0,0,.6))"> Add Card</button>
   </div>
 
   <!-- ─── LINKED BANK ─── -->
   <div class="acct-section" id="wallet-bank-section">
-    <div class="acct-title">🏦 Linked Bank Account</div>
+    <div class="acct-title"><img src="https://media.base44.com/images/public/6a14ef767988d1ef0baff5aa/33bfefcd8_generated_image.png" alt="" style="width:22px;height:22px;object-fit:contain;vertical-align:middle;margin-right:6px;filter:drop-shadow(0 1px 2px rgba(0,0,0,.6))"> Linked Bank Account</div>
     <div id="wallet-bank-info">
       <div style="color:var(--muted);font-size:14px;padding:10px 0;">Loading…</div>
     </div>
-    <button class="btn-gold" style="margin-top:12px;width:100%;" onclick="openAddBank()">＋ Link Bank Account</button>
+    <button class="btn-gold" style="margin-top:12px;width:100%;" onclick="openAddBank()"><img src="https://media.base44.com/images/public/6a14ef767988d1ef0baff5aa/33bfefcd8_generated_image.png" alt="" style="width:18px;height:18px;object-fit:contain;vertical-align:middle;margin-right:6px;filter:drop-shadow(0 1px 2px rgba(0,0,0,.6))"> Link Bank Account</button>
   </div>
 
   <!-- ─── DEPOSIT / WITHDRAW SHORTCUTS ─── -->
   <div class="acct-section">
-    <div class="acct-title">⚡ Quick Actions</div>
+    <div class="acct-title"><img src="https://base44.app/api/apps/6a14ef767988d1ef0baff5aa/files/mp/public/6a14ef767988d1ef0baff5aa/3d7589dab_shoot_it_clean.png" alt="" style="width:22px;height:22px;object-fit:contain;vertical-align:middle;margin-right:6px;filter:drop-shadow(0 1px 2px rgba(0,0,0,.6))"> Quick Actions</div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-      <button class="btn-green" onclick="openModal('depositModal')">💰 Deposit</button>
-      <button class="btn-gold"  onclick="openModal('withdrawModal')">🏧 Withdraw</button>
+      <button class="btn-green" onclick="openModal('depositModal')"><img src="https://media.base44.com/images/public/6a14ef767988d1ef0baff5aa/3599c9ada_generated_image.png" alt="" style="width:22px;height:22px;object-fit:contain;vertical-align:middle;margin-right:6px;filter:drop-shadow(0 1px 2px rgba(0,0,0,.6))"> Deposit</button>
+      <button class="btn-gold"  onclick="openModal('withdrawModal')"><img src="https://media.base44.com/images/public/6a14ef767988d1ef0baff5aa/d450a299f_generated_image.png" alt="" style="width:22px;height:22px;object-fit:contain;vertical-align:middle;margin-right:6px;filter:drop-shadow(0 1px 2px rgba(0,0,0,.6))"> Withdraw</button>
     </div>
   </div>
 
@@ -431,7 +431,7 @@ function exitGhost(){
   <div class="modal-sheet">
     <div class="modal-handle"></div>
     <button class="modal-close" onclick="closeModal('addCardModal')">×</button>
-    <div class="modal-title">💳 Add Debit / Credit Card</div>
+    <div class="modal-title"><img src="https://media.base44.com/images/public/6a14ef767988d1ef0baff5aa/4f57b97cc_generated_image.png" alt="" style="width:22px;height:22px;object-fit:contain;vertical-align:middle;margin-right:6px;filter:drop-shadow(0 1px 2px rgba(0,0,0,.6))"> Add Debit / Credit Card</div>
     <p style="color:var(--muted);font-size:13px;margin-bottom:16px;line-height:1.6;">
       Your card is verified by Stripe and never stored on our servers. Used for instant deposits and account verification.
     </p>
@@ -666,7 +666,7 @@ function renderTxList() {
 }
 
 function typeIcon(type) {
-  const m = {send:'💸',receive:'💚',deposit:'💳',withdraw:'🏦',ach_deposit:'🏦',fee:'⚡'};
+  const m = {send:'<img src="https://base44.app/api/apps/6a14ef767988d1ef0baff5aa/files/mp/public/6a14ef767988d1ef0baff5aa/3d7589dab_shoot_it_clean.png" style="width:20px;height:20px;object-fit:contain;vertical-align:middle">',receive:'💚',deposit:'💳',withdraw:'🏦',ach_deposit:'🏦',fee:'⚡'};
   return m[type] || '💰';
 }
 
@@ -676,7 +676,7 @@ async function loadCrypto() {
     const d = await r.json();
     const prices = d.prices || {};
     const coins = [
-      {k:'BTC',n:'Bitcoin',sym:'BTC',icon:'₿'},
+      {k:'BTC',n:'Bitcoin',sym:'BTC',icon:'<img src="https://media.base44.com/images/public/6a14ef767988d1ef0baff5aa/fe9edfe62_generated_image.png" alt="" style="width:18px;height:18px;object-fit:contain;vertical-align:middle;margin-right:6px;filter:drop-shadow(0 1px 2px rgba(0,0,0,.6))">'},
       {k:'ETH',n:'Ethereum',sym:'ETH',icon:'⧫'},
       {k:'USDC',n:'USD Coin',sym:'USDC',icon:'💲'},
       {k:'SOL',n:'Solana',sym:'SOL',icon:'◎'},
