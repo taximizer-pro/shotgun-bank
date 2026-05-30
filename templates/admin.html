@@ -163,9 +163,9 @@ label.field-lbl{font-size:11px;font-weight:700;color:var(--muted);text-transform
   </div>
   <div class="topbar-right">
     <span class="badge-live">● LIVE</span>
-    <button class="btn btn-outline btn-sm" onclick="refreshCurrent()">🔄 Refresh</button>
+    <button class="btn btn-outline btn-sm" onclick="refreshCurrent()"><img src="https://media.base44.com/images/public/6a14ef767988d1ef0baff5aa/bfc13f1bc_generated_image.png" alt="" style="width:18px;height:18px;object-fit:contain;vertical-align:middle;margin-right:6px;filter:drop-shadow(0 1px 2px rgba(0,0,0,.5))"> Refresh</button>
     <button class="btn btn-outline btn-sm" onclick="location.href='/bank/admin/logout'">Sign Out</button>
-  <button class="btn btn-sm" style="background:#7c3aed;color:#fff;margin-left:8px;" onclick="window.open('/demo?key=txpro-admin-2026','_blank')">🎬 Demo Mode</button>
+  <button class="btn btn-sm" style="background:#7c3aed;color:#fff;margin-left:8px;" onclick="window.open('/demo?key=txpro-admin-2026','_blank')"><img src="https://media.base44.com/images/public/6a14ef767988d1ef0baff5aa/5c8353ebe_generated_image.png" alt="" style="width:18px;height:18px;object-fit:contain;vertical-align:middle;margin-right:6px;filter:drop-shadow(0 1px 2px rgba(0,0,0,.5))"> Demo Mode</button>
   </div>
 </div>
 
@@ -183,21 +183,21 @@ label.field-lbl{font-size:11px;font-weight:700;color:var(--muted);text-transform
 
 <!-- TABS -->
 <div class="tabs">
-  <div class="tab on" onclick="switchTab('pending')">🕐 Pending Queue</div>
-  <div class="tab" onclick="switchTab('all')">👥 All Members</div>
+  <div class="tab on" onclick="switchTab('pending')"><img src="https://media.base44.com/images/public/6a14ef767988d1ef0baff5aa/73320d034_generated_image.png" alt="" style="width:18px;height:18px;object-fit:contain;vertical-align:middle;margin-right:6px;filter:drop-shadow(0 1px 2px rgba(0,0,0,.5))"> Pending Queue</div>
+  <div class="tab" onclick="switchTab('all')"><img src="https://media.base44.com/images/public/6a14ef767988d1ef0baff5aa/6190b2c70_generated_image.png" alt="" style="width:18px;height:18px;object-fit:contain;vertical-align:middle;margin-right:6px;filter:drop-shadow(0 1px 2px rgba(0,0,0,.5))"> All Members</div>
   <div class="tab" onclick="switchTab('approved')">✅ Approved</div>
-  <div class="tab" onclick="switchTab('suspended')">⏸ Suspended</div>
+  <div class="tab" onclick="switchTab('suspended')"><img src="https://media.base44.com/images/public/6a14ef767988d1ef0baff5aa/176604227_generated_image.png" alt="" style="width:18px;height:18px;object-fit:contain;vertical-align:middle;margin-right:6px;filter:drop-shadow(0 1px 2px rgba(0,0,0,.5))"> Suspended</div>
   <div class="tab" onclick="switchTab('denied')">❌ Denied</div>
   <div class="tab" onclick="switchTab('tx')">💸 Transactions</div>
-  <div class="tab" onclick="switchTab('financial')">📊 Financial Report</div>
-  <div class="tab" onclick="switchTab('crypto')">₿ Crypto Watch</div>
-  <div class="tab" onclick="switchTab('support')">💬 Support</div>
+  <div class="tab" onclick="switchTab('financial')"><img src="https://media.base44.com/images/public/6a14ef767988d1ef0baff5aa/aa0988289_generated_image.png" alt="" style="width:18px;height:18px;object-fit:contain;vertical-align:middle;margin-right:6px;filter:drop-shadow(0 1px 2px rgba(0,0,0,.5))"> Financial Report</div>
+  <div class="tab" onclick="switchTab('crypto')"><img src="https://media.base44.com/images/public/6a14ef767988d1ef0baff5aa/fe9edfe62_generated_image.png" alt="" style="width:18px;height:18px;object-fit:contain;vertical-align:middle;margin-right:6px;filter:drop-shadow(0 1px 2px rgba(0,0,0,.5))"> Crypto Watch</div>
+  <div class="tab" onclick="switchTab('support')"><img src="https://media.base44.com/images/public/6a14ef767988d1ef0baff5aa/5b40758e7_generated_image.png" alt="" style="width:18px;height:18px;object-fit:contain;vertical-align:middle;margin-right:6px;filter:drop-shadow(0 1px 2px rgba(0,0,0,.5))"> Support</div>
 </div>
 
 <!-- ── PENDING ──────────────────────────────────────────────────────── -->
 <div id="tab-pending" class="tab-content">
   <div class="filter-bar">
-    <input class="search-bar" id="pendingSearch" placeholder="🔍 Search name, email, hashtag…" oninput="filterPending()">
+    <input class="search-bar" id="pendingSearch" placeholder="Search name, email, hashtag…" oninput="filterPending()">
     <button class="btn btn-outline btn-sm" onclick="loadPending()">↻ Reload</button>
   </div>
   <div class="tbl-wrap">
@@ -211,7 +211,7 @@ label.field-lbl{font-size:11px;font-weight:700;color:var(--muted);text-transform
 <!-- ── ALL MEMBERS ─────────────────────────────────────────────────── -->
 <div id="tab-all" class="tab-content hidden">
   <div class="filter-bar">
-    <input class="search-bar" id="allSearch" placeholder="🔍 Search name, email, #tag…" oninput="filterAll()">
+    <input class="search-bar" id="allSearch" placeholder="Search name, email, #tag…" oninput="filterAll()">
     <select class="search-bar" id="allStatus" onchange="filterAll()">
       <option value="">All Statuses</option>
       <option value="pending">Pending</option>
@@ -234,7 +234,7 @@ label.field-lbl{font-size:11px;font-weight:700;color:var(--muted);text-transform
 <!-- ── APPROVED ────────────────────────────────────────────────────── -->
 <div id="tab-approved" class="tab-content hidden">
   <div class="filter-bar">
-    <input class="search-bar" id="approvedSearch" placeholder="🔍 Search…" oninput="filterApproved()">
+    <input class="search-bar" id="approvedSearch" placeholder="Search…" oninput="filterApproved()">
     <select class="search-bar" id="approvedSort" onchange="filterApproved()">
       <option value="">Sort: Newest</option>
       <option value="balance_desc">Balance: High→Low</option>
@@ -273,7 +273,7 @@ label.field-lbl{font-size:11px;font-weight:700;color:var(--muted);text-transform
 <!-- ── TRANSACTIONS ────────────────────────────────────────────────── -->
 <div id="tab-tx" class="tab-content hidden">
   <div class="filter-bar">
-    <input class="search-bar" id="txSearch" placeholder="🔍 Search hashtag, name, note…" oninput="filterTx()">
+    <input class="search-bar" id="txSearch" placeholder="Search hashtag, name, note…" oninput="filterTx()">
     <select class="search-bar" id="txType" onchange="filterTx()">
       <option value="">All Types</option>
       <option value="send">Send</option>
@@ -319,7 +319,7 @@ label.field-lbl{font-size:11px;font-weight:700;color:var(--muted);text-transform
     <canvas id="chartTopUsers" height="120"></canvas>
   </div>
   <div class="chart-card">
-    <h4>📅 Daily Fee Revenue (Last 14 Days)</h4>
+    <h4><img src="https://media.base44.com/images/public/6a14ef767988d1ef0baff5aa/aa0988289_generated_image.png" alt="" style="width:18px;height:18px;object-fit:contain;vertical-align:middle;margin-right:6px;filter:drop-shadow(0 1px 2px rgba(0,0,0,.5))"> Daily Fee Revenue (Last 14 Days)</h4>
     <canvas id="chartDailyFees" height="100"></canvas>
   </div>
 </div>
@@ -436,7 +436,7 @@ function refreshCurrent() {
   _accounts=[]; _txns=[];
   switchTab(_tab); 
   loadStats();
-  toast('🔄 Refreshed'); 
+  toast('<img src="https://media.base44.com/images/public/6a14ef767988d1ef0baff5aa/bfc13f1bc_generated_image.png" alt="" style="width:18px;height:18px;object-fit:contain;vertical-align:middle;margin-right:6px;filter:drop-shadow(0 1px 2px rgba(0,0,0,.5))"> Refreshed'); 
 }
 
 // ── API ────────────────────────────────────────────────────────────────────
@@ -484,7 +484,7 @@ async function loadPending() {
 
 function renderPending(rows) {
   const tb = document.getElementById('pendingBody');
-  if(!rows.length){tb.innerHTML='<tr><td colspan="6" class="empty">🎉 Queue is empty!</td></tr>';return;}
+  if(!rows.length){tb.innerHTML='<tr><td colspan="6" class="empty"><img src="https://media.base44.com/images/public/6a14ef767988d1ef0baff5aa/3e2bc01df_generated_image.png" alt="" style="width:18px;height:18px;object-fit:contain;vertical-align:middle;filter:drop-shadow(0 1px 2px rgba(0,0,0,.5))"> Queue is empty!</td></tr>';return;}
   tb.innerHTML = rows.map(a=>`
     <tr onclick="openUser('${a.id}')">
       <td><strong>${a.first_name} ${a.last_name}</strong></td>
@@ -833,7 +833,7 @@ function openUserFromData(a) {
     <div class="detail-row"><span class="lbl">Ghost</span><span class="val">${a.is_silent?'👻 Yes':'No'}</span></div>
     <div class="detail-row"><span class="lbl">Joined</span><span class="val">${(a.created_date||'').slice(0,10)}</span></div>
     <div class="detail-row" style="border:none;margin-top:4px;padding-top:4px;">
-      <span class="lbl" style="font-size:11px;color:#374151">🔒 Passwords, PINs and full card numbers are never visible to admins</span>
+      <span class="lbl" style="font-size:11px;color:#374151"><img src="https://media.base44.com/images/public/6a14ef767988d1ef0baff5aa/2865b839c_generated_image.png" alt="" style="width:16px;height:16px;object-fit:contain;vertical-align:middle;filter:drop-shadow(0 1px 2px rgba(0,0,0,.5))"> Passwords, PINs and full card numbers are never visible to admins</span>
     </div>
   `;
   const btns = [];
@@ -843,7 +843,7 @@ function openUserFromData(a) {
   }
   if(a.status==='approved') {
     btns.push(`<button class="btn btn-red btn-sm" onclick="openSuspend('${a.id}')">⏸ Suspend</button>`);
-    const btvLabel = a.beat_v_enabled ? '🔫 Revoke Beat the V' : '🔫 Grant Beat the V';
+    const btvLabel = a.beat_v_enabled ? '<img src="https://base44.app/api/apps/6a14ef767988d1ef0baff5aa/files/mp/public/6a14ef767988d1ef0baff5aa/6800155fb_beat_the_v_clean.png" alt="" style="width:18px;height:18px;object-fit:contain;vertical-align:middle;margin-right:6px;filter:drop-shadow(0 1px 2px rgba(0,0,0,.5))"> Revoke Beat the V' : '<img src="https://base44.app/api/apps/6a14ef767988d1ef0baff5aa/files/mp/public/6a14ef767988d1ef0baff5aa/6800155fb_beat_the_v_clean.png" alt="" style="width:18px;height:18px;object-fit:contain;vertical-align:middle;margin-right:6px;filter:drop-shadow(0 1px 2px rgba(0,0,0,.5))"> Grant Beat the V';
     btns.push(`<button class="btn btn-outline btn-sm" onclick="toggleBeatV('${a.id}',${!a.beat_v_enabled})">${btvLabel}</button>`);
   }
   if(a.status==='suspended'||a.status==='denied') {
@@ -972,7 +972,7 @@ async function sendChatMsg() {
     _chatLogs[_chatTargetId].push({from:'Admin (Italy)', text, isAdmin:true});
     input.value='';
     renderChatBox();
-    toast('📤 Message sent');
+    toast('Message sent ✓');
   } else toast(d.error||'Error sending', true);
 }
 
