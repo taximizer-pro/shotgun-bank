@@ -84,14 +84,46 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 .acct-row-val{font-size:14px;font-weight:600;color:#fff;max-width:200px;text-align:right;word-break:break-all;}
 .copy-btn{background:rgba(234,179,8,0.15);border:1px solid rgba(234,179,8,0.3);color:#eab308;border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer;margin-left:8px;font-weight:600;}
 /* ── CARD DISPLAY ── */
-.virtual-card{background:linear-gradient(135deg,#0f3d20 0%,#1a5c35 50%,#0a2218 100%);border-radius:16px;padding:24px;margin-bottom:16px;border:2px solid #eab308;position:relative;overflow:hidden;aspect-ratio:1.586;}
-.virtual-card::after{content:'';position:absolute;inset:0;background:url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="60" height="60"><circle cx="30" cy="30" r="25" fill="none" stroke="rgba(255,255,255,0.04)" stroke-width="1"/></svg>') repeat;}
-.vc-logo{height:28px;margin-bottom:auto;}
-.vc-number{font-size:17px;letter-spacing:3px;color:#fff;font-weight:600;margin:auto 0 12px;}
-.vc-row{display:flex;justify-content:space-between;align-items:flex-end;}
-.vc-label{font-size:9px;color:rgba(255,255,255,0.5);text-transform:uppercase;letter-spacing:1px;}
-.vc-val{font-size:13px;color:#fff;font-weight:600;}
-.vc-chip{width:36px;height:28px;background:linear-gradient(135deg,#eab308,#ca8a04);border-radius:4px;margin-bottom:12px;}
+.virtual-card{
+  background:linear-gradient(140deg,#0a2218 0%,#0f3d22 40%,#153a1c 70%,#0d2a14 100%);
+  border-radius:18px;padding:22px 24px 20px;margin-bottom:16px;
+  border:1.5px solid rgba(234,179,8,0.6);
+  position:relative;overflow:hidden;aspect-ratio:1.586;
+  display:flex;flex-direction:column;justify-content:space-between;
+  box-shadow:0 8px 32px rgba(0,0,0,0.6),0 0 0 1px rgba(255,255,255,0.04),inset 0 1px 0 rgba(255,255,255,0.08);
+}
+/* diagonal shine sweep */
+.virtual-card::before{
+  content:'';position:absolute;top:-60%;left:-30%;width:70%;height:220%;
+  background:linear-gradient(105deg,transparent 35%,rgba(255,255,255,0.045) 50%,transparent 65%);
+  pointer-events:none;
+}
+/* subtle hex grid texture */
+.virtual-card::after{
+  content:'';position:absolute;inset:0;opacity:0.4;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='46'%3E%3Cpolygon points='20,2 38,12 38,34 20,44 2,34 2,12' fill='none' stroke='rgba(234,179,8,0.12)' stroke-width='0.7'/%3E%3C/svg%3E");
+  background-repeat:repeat;
+  pointer-events:none;
+}
+/* ── Top row: logo + chip ── */
+.vc-top{display:flex;align-items:center;justify-content:space-between;position:relative;z-index:1;}
+.vc-logo{height:42px;width:auto;object-fit:contain;filter:drop-shadow(0 2px 8px rgba(0,0,0,0.5));}
+.vc-chip{width:40px;height:30px;background:linear-gradient(135deg,#d4af37,#f5e07a,#b8860b,#f0c040);border-radius:5px;box-shadow:0 2px 6px rgba(0,0,0,0.4);position:relative;overflow:hidden;}
+.vc-chip::after{content:'';position:absolute;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 4px,rgba(0,0,0,0.08) 4px,rgba(0,0,0,0.08) 5px),repeating-linear-gradient(90deg,transparent,transparent 6px,rgba(0,0,0,0.06) 6px,rgba(0,0,0,0.06) 7px);}
+/* ── Card number ── */
+.vc-number{
+  font-size:18px;letter-spacing:4px;color:#fff;font-weight:700;
+  font-family:'Courier New',monospace;
+  position:relative;z-index:1;
+  text-shadow:0 1px 4px rgba(0,0,0,0.6);
+}
+/* ── Bottom row ── */
+.vc-row{display:flex;justify-content:space-between;align-items:flex-end;position:relative;z-index:1;}
+.vc-label{font-size:8px;color:rgba(255,255,255,0.45);text-transform:uppercase;letter-spacing:1.2px;margin-bottom:3px;font-weight:600;}
+.vc-val{font-size:13px;color:#fff;font-weight:700;letter-spacing:0.5px;}
+.vc-brand{display:flex;flex-direction:column;align-items:flex-end;gap:2px;}
+.vc-visa{height:26px;width:auto;object-fit:contain;filter:brightness(1.1) drop-shadow(0 1px 3px rgba(0,0,0,0.5));}
+.vc-debit-tag{font-size:8px;color:rgba(255,255,255,0.5);text-align:right;letter-spacing:1px;text-transform:uppercase;font-weight:600;}
 /* ── BEAT THE V ── */
 .btv-card{background:linear-gradient(135deg,#1a0a00,#3d1a00);border:2px solid #eab308;border-radius:16px;padding:24px;margin-bottom:16px;text-align:center;}
 .btv-title{font-size:20px;font-weight:800;color:#eab308;margin-bottom:8px;}
@@ -371,13 +403,31 @@ function exitGhost(){
   <div class="acct-section">
     <div class="acct-title">Virtual Card</div>
     <div class="virtual-card" id="virtualCard">
-      <img src="https://base44.app/api/apps/6a14ef767988d1ef0baff5aa/files/mp/public/6a14ef767988d1ef0baff5aa/990517f01_shotgun_bank_REAL_logo.png" class="vc-logo" alt="">
-      <div class="vc-chip"></div>
+      <!-- Top row: Shotgun Bank logo + EMV chip -->
+      <div class="vc-top">
+        <img src="https://base44.app/api/apps/6a14ef767988d1ef0baff5aa/files/mp/public/6a14ef767988d1ef0baff5aa/990517f01_shotgun_bank_REAL_logo.png" class="vc-logo" alt="Shotgun Bank">
+        <div class="vc-chip"></div>
+      </div>
+      <!-- Card number -->
       <div class="vc-number" id="vcNumber">•••• •••• •••• ••••</div>
+      <!-- Bottom row: holder/exp/cvv + Visa badge -->
       <div class="vc-row">
-        <div><div class="vc-label">Card Holder</div><div class="vc-val" id="vcName">—</div></div>
-        <div><div class="vc-label">Expires</div><div class="vc-val" id="vcExp">—</div></div>
-        <div><div class="vc-label">CVV</div><div class="vc-val" id="vcCvv">•••</div></div>
+        <div>
+          <div class="vc-label">Card Holder</div>
+          <div class="vc-val" id="vcName">—</div>
+        </div>
+        <div>
+          <div class="vc-label">Expires</div>
+          <div class="vc-val" id="vcExp">—</div>
+        </div>
+        <div>
+          <div class="vc-label">CVV</div>
+          <div class="vc-val" id="vcCvv">•••</div>
+        </div>
+        <div class="vc-brand">
+          <img src="https://media.base44.com/images/public/6a14ef767988d1ef0baff5aa/50205b368_generated_image.png" class="vc-visa" alt="Visa">
+          <div class="vc-debit-tag">Debit</div>
+        </div>
       </div>
     </div>
     <div style="display:flex;gap:10px;margin-bottom:16px;">
