@@ -442,37 +442,24 @@ function exitGhost(){
   </div>
 </div>
 
-<!-- ADD BANK MODAL (manual ACH) -->
+<!-- ADD BANK MODAL — Stripe Financial Connections -->
 <div class="modal-overlay" id="addBankModal">
   <div class="modal-sheet">
     <div class="modal-handle"></div>
     <button class="modal-close" onclick="closeModal('addBankModal')">×</button>
     <div class="modal-title">🏦 Link Bank Account</div>
-    <p style="color:var(--muted);font-size:13px;margin-bottom:16px;line-height:1.6;">
-      Enter your bank routing and account number. Used for ACH deposits and withdrawals (1–3 business days).
+    <p style="color:var(--muted);font-size:13px;margin-bottom:20px;line-height:1.6;">
+      Connect your real bank account securely through <strong style="color:#fff;">Stripe Financial Connections</strong>. Stripe verifies ownership directly with your bank — no fake routing numbers accepted.
     </p>
-    <div class="input-group">
-      <label>Routing Number</label>
-      <input class="inp" id="bankRouting" type="tel" maxlength="9" placeholder="9-digit routing number" oninput="this.value=this.value.replace(/\D/g,'')">
+    <div style="background:rgba(22,163,74,.08);border:1px solid rgba(22,163,74,.3);border-radius:12px;padding:14px;margin-bottom:20px;font-size:13px;color:#86efac;line-height:1.6;">
+      🔒 <strong>Bank-grade verification.</strong> You'll log in to your bank through Stripe's secure portal. We never see your bank password.
     </div>
-    <div class="input-group">
-      <label>Account Number</label>
-      <input class="inp" id="bankAccount" type="tel" maxlength="17" placeholder="Account number" oninput="this.value=this.value.replace(/\D/g,'')">
-    </div>
-    <div class="input-group">
-      <label>Confirm Account Number</label>
-      <input class="inp" id="bankAccountConfirm" type="tel" maxlength="17" placeholder="Re-enter account number" oninput="this.value=this.value.replace(/\D/g,'')">
-    </div>
-    <div class="input-group">
-      <label>Account Type</label>
-      <select class="inp" id="bankType">
-        <option value="checking">Checking</option>
-        <option value="savings">Savings</option>
-      </select>
+    <div id="bank-fc-wrap">
+      <!-- Stripe bank account element mounts here -->
     </div>
     <div id="bank-errors" style="color:#f87171;font-size:13px;margin-bottom:10px;min-height:18px;"></div>
-    <button class="btn-green" id="bank-submit-btn" onclick="submitBank()">Link Bank Account ✓</button>
-    <div class="fee-note" style="margin-top:10px;">ACH transfers are free to receive • 1–3 business days</div>
+    <button class="btn-green" id="bank-submit-btn" onclick="startBankLink()">🏦 Connect My Bank →</button>
+    <div class="fee-note" style="margin-top:10px;">Powered by Stripe Financial Connections • ACH free to receive</div>
   </div>
 </div>
 
@@ -1058,43 +1045,90 @@ async function submitCard() {
   btn.disabled=false; btn.textContent='Verify & Save Card ✓';
 }
 
-// ── ADD BANK ──
+// ── ADD BANK — Stripe Financial Connections ──
 function openAddBank() { openModal('addBankModal'); }
 
-async function submitBank() {
-  const routing = document.getElementById('bankRouting').value.trim();
-  const acctNum = document.getElementById('bankAccount').value.trim();
-  const confirm = document.getElementById('bankAccountConfirm').value.trim();
-  const type    = document.getElementById('bankType').value;
-  const err     = document.getElementById('bank-errors');
-  const btn     = document.getElementById('bank-submit-btn');
+let bankSetupClientSecret = null;
+let bankStripeElements    = null;
+let bankPaymentEl         = null;
 
+async function startBankLink() {
+  const err = document.getElementById('bank-errors');
+  const btn = document.getElementById('bank-submit-btn');
   err.textContent = '';
-  if(routing.length !== 9)        { err.textContent = 'Routing number must be 9 digits.'; return; }
-  if(acctNum.length < 4)          { err.textContent = 'Enter a valid account number.'; return; }
-  if(acctNum !== confirm)         { err.textContent = 'Account numbers do not match.'; return; }
+  btn.disabled = true; btn.textContent = 'Connecting…';
 
-  btn.disabled = true; btn.textContent = 'Linking…';
-  try {
-    const r = await fetch('/api/link-bank/manual', {
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ account_id: acct.id, routing, account_number: acctNum, account_type: type })
-    });
-    const d = await r.json();
-    if(d.success) {
-      acct.linked_routing = routing;
-      acct.linked_account = acctNum;
-      localStorage.setItem('sg_account', JSON.stringify(acct));
-      closeModal('addBankModal');
-      toast('✅ Bank account linked!');
-      loadWallet();
-    } else {
-      err.textContent = d.error || 'Failed to link bank';
+  ensureStripe(async () => {
+    try {
+      // 1. Get a SetupIntent client_secret from server
+      const r = await fetch('/api/link-bank/session', {
+        method: 'POST', headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ account_id: acct.id })
+      });
+      const d = await r.json();
+      if(!d.client_secret) {
+        err.textContent = d.error || 'Could not start bank verification';
+        btn.disabled = false; btn.textContent = '🏦 Connect My Bank →'; return;
+      }
+      bankSetupClientSecret = d.client_secret;
+
+      // 2. Use Stripe Financial Connections — opens Stripe's bank portal
+      const result = await stripeInstance.collectBankAccountForSetup({
+        clientSecret: bankSetupClientSecret,
+        params: {
+          payment_method_type: 'us_bank_account',
+          payment_method_data: {
+            billing_details: {
+              name:  acct.full_name || acct.first_name + ' ' + acct.last_name,
+              email: acct.email,
+            }
+          }
+        },
+        expand: ['payment_method'],
+      });
+
+      if(result.error) {
+        err.textContent = result.error.message || 'Bank verification failed';
+        btn.disabled = false; btn.textContent = '🏦 Connect My Bank →'; return;
+      }
+
+      const si = result.setupIntent;
+      if(si.status === 'requires_confirmation') {
+        // Confirm the SetupIntent
+        const confirmed = await stripeInstance.confirmUsBankAccountSetup(bankSetupClientSecret);
+        if(confirmed.error) {
+          err.textContent = confirmed.error.message;
+          btn.disabled = false; btn.textContent = '🏦 Connect My Bank →'; return;
+        }
+      }
+
+      // 3. Tell our server to save the verified bank details from Stripe
+      const pm_id = si.payment_method?.id || si.payment_method;
+      const saveR = await fetch('/api/link-bank/confirm', {
+        method: 'POST', headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+          account_id: acct.id,
+          setup_intent_id: si.id,
+          payment_method_id: pm_id || '',
+        })
+      });
+      const saveD = await saveR.json();
+      if(saveD.success) {
+        acct.linked_routing = saveD.routing;
+        acct.linked_account = '****' + saveD.last4;
+        localStorage.setItem('sg_account', JSON.stringify(acct));
+        closeModal('addBankModal');
+        toast('✅ Bank account verified & linked!');
+        loadWallet();
+      } else {
+        err.textContent = saveD.error || 'Failed to save bank details';
+      }
+    } catch(e) {
+      console.error(e);
+      err.textContent = 'Verification error. Please try again.';
     }
-  } catch(e) {
-    err.textContent = 'Network error. Try again.';
-  }
-  btn.disabled=false; btn.textContent='Link Bank Account ✓';
+    btn.disabled = false; btn.textContent = '🏦 Connect My Bank →';
+  });
 }
 
 </script>
