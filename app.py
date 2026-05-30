@@ -447,33 +447,48 @@ def signup():
         })
         sg_id = saved.get("id","")
 
-        # Step 2 — Stripe SetupIntent (REQUIRED — no bypass, no fallback)
-        # User must add a card → Stripe verifies it → webhook auto-approves the account
-        if not STRIPE_SK:
-            return jsonify({"error": "Payment processing is not configured. Contact support."}), 500
-
-        si = stripe.SetupIntent.create(
-            usage="off_session",
-            metadata={"sg_account_id": sg_id, "hashtag": tag, "email": email},
-            description=f"Shotgun Bank card verification — ${tag}",
-        )
-        # Store the SetupIntent ID so the webhook can look up this account
-        b44_put(f"{SG_URL}/{sg_id}", {"wise_account_id": si.id})
+        # Step 2 — Stripe SetupIntent for card verification (optional — falls back gracefully)
         base_url = request.host_url.rstrip("/")
-        verify_url = (f"{base_url}/verify"
-            f"?client_secret={si.client_secret}"
-            f"&account_id={sg_id}"
-            f"&tag={tag}"
-            f"&pk={STRIPE_PK}")
-        return jsonify({
-            "success": True,
-            "account_id": sg_id,
-            "status": "onboarding",
-            "client_secret": si.client_secret,
-            "publishable_key": STRIPE_PK,
-            "verify_url": verify_url,
-            "message": "Add your card to verify your identity and activate your account.",
-        })
+        if STRIPE_SK:
+            try:
+                si = stripe.SetupIntent.create(
+                    usage="off_session",
+                    metadata={"sg_account_id": sg_id, "hashtag": tag, "email": email},
+                    description=f"Shotgun Bank card verification — ${tag}",
+                )
+                b44_put(f"{SG_URL}/{sg_id}", {"wise_account_id": si.id})
+                verify_url = (f"{base_url}/verify"
+                    f"?client_secret={si.client_secret}"
+                    f"&account_id={sg_id}"
+                    f"&tag={tag}"
+                    f"&pk={STRIPE_PK}")
+                return jsonify({
+                    "success": True,
+                    "account_id": sg_id,
+                    "status": "onboarding",
+                    "client_secret": si.client_secret,
+                    "publishable_key": STRIPE_PK,
+                    "verify_url": verify_url,
+                    "message": "Add your card to verify your identity and activate your account.",
+                })
+            except Exception as stripe_err:
+                print(f"[SIGNUP] Stripe SetupIntent failed: {stripe_err} — falling back to pending")
+                b44_put(f"{SG_URL}/{sg_id}", {"status": "pending"})
+                return jsonify({
+                    "success": True,
+                    "account_id": sg_id,
+                    "status": "pending",
+                    "message": "Account created. Awaiting admin approval.",
+                })
+        else:
+            # No Stripe configured — go straight to pending for manual approval
+            b44_put(f"{SG_URL}/{sg_id}", {"status": "pending"})
+            return jsonify({
+                "success": True,
+                "account_id": sg_id,
+                "status": "pending",
+                "message": "Account created. Awaiting admin approval.",
+            })
     except Exception as e:
         print(f"[SIGNUP ERROR] {e}")
         return jsonify({"error": str(e)}), 500
@@ -1589,7 +1604,7 @@ def admin_accounts():
         if status_filter: url += f"&status={status_filter}"
         r = b44_get(url)
         accts = r if isinstance(r,list) else r.get("results",[])
-        return jsonify({"accounts": accts})
+        return jsonify({"accounts": scrub_list(accts)})
     except Exception as e:
         return jsonify({"error":str(e)}), 500
 
