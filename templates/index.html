@@ -307,6 +307,9 @@ async function doLogin() {
       return;
     }
     if (d.success) {
+      // Store full account object for dashboard
+      const acctObj = d.account || {id: d.account_id, hashtag: d.hashtag, first_name: d.first_name, status: d.status};
+      localStorage.setItem('sg_account', JSON.stringify(acctObj));
       localStorage.setItem('sg_account_id', d.account_id);
       localStorage.setItem('sg_hashtag', d.hashtag || '');
       localStorage.setItem('sg_first_name', d.first_name || '');
@@ -326,10 +329,7 @@ async function doLogin() {
       document.getElementById('o0').focus();
       return;
     }
-    if (d.success) {
-      localStorage.setItem('sg_account', JSON.stringify(d.account));
-      window.location.href = '/dashboard';
-    }
+
   } catch(e) { showAlert('Network error. Please try again.'); }
 }
 
@@ -358,10 +358,7 @@ async function verifyOTP() {
     });
     const d = await res.json();
     if (d.error) { showAlert(d.error); return; }
-    if (d.success) {
-      localStorage.setItem('sg_account', JSON.stringify(d.account));
-      window.location.href = '/dashboard';
-    }
+
   } catch(e) { showAlert('Network error.'); }
 }
 
