@@ -189,8 +189,12 @@ def verify_complete():
 
 @app.route("/card/design")
 def card_designer_page():
-    if not session.get("account_id"): return redirect("/bank")
+    # Card designer is accessible to logged-in users (auth via localStorage on client)
     return render_template("card_designer.html")
+
+@app.route("/bank")
+def bank_redirect():
+    return redirect("/")
 
 @app.route("/dashboard")
 def dashboard():
@@ -255,14 +259,21 @@ def api_config():
 def check_hashtag():
     tag = request.args.get("tag","").strip().lower().replace("#","").replace("$","")
     if not tag or len(tag) < 2:
-        return jsonify({"available": False, "reason": "Too short"})
+        return jsonify({"available": False, "taken": False, "reason": "Too short"})
     try:
         acct = get_acct_by_tag(tag)
-        return jsonify({"available": acct is None})
+        if acct:
+            return jsonify({
+                "available": False,
+                "taken": True,
+                "account_id": acct.get("id",""),
+                "name": acct.get("full_name","") or (acct.get("first_name","") + " " + acct.get("last_name","")),
+                "hashtag": tag,
+            })
+        return jsonify({"available": True, "taken": False})
     except Exception as e:
         print(f"[HASHTAG CHECK ERROR] {e}")
-        # Fail open — don't block signup on API errors
-        return jsonify({"available": True})
+        return jsonify({"available": True, "taken": False})
 
 # ─────────────────────────────────────────────────────────────────────────────
 # SIGNUP — creates Stripe Connect Express + Base44 record
@@ -913,7 +924,26 @@ def get_balance(sg_id):
     try:
         acct = get_acct(sg_id)
         if not acct: return jsonify({"error":"Not found"}), 404
-        return jsonify({"balance": acct.get("balance",0), "beat_v_enabled": acct.get("beat_v_enabled",False)})
+        # Compute monthly transaction volume for Beat the V
+        import datetime as _dt
+        now = _dt.datetime.utcnow()
+        month_start = now.replace(day=1,hour=0,minute=0,second=0,microsecond=0).isoformat()
+        try:
+            all_tx = b44_get(f"{TX_URL}?limit=500")
+            txs = all_tx if isinstance(all_tx,list) else all_tx.get("results",[])
+            monthly_vol = sum(
+                float(t.get("amount",0)) for t in txs
+                if (t.get("from_account_id")==sg_id or t.get("to_account_id")==sg_id)
+                and t.get("created_date","") >= month_start
+                and t.get("status","") not in ("failed","refunded")
+            )
+        except: monthly_vol = 0.0
+        return jsonify({
+            "balance": acct.get("balance",0),
+            "beat_v_enabled": acct.get("beat_v_enabled",False),
+            "lifetime_deposited": acct.get("lifetime_deposited",0),
+            "monthly_volume": round(monthly_vol, 2),
+        })
     except Exception as e:
         return jsonify({"error":str(e)}), 500
 
