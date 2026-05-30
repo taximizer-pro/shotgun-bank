@@ -901,8 +901,8 @@ async function confirmSuspend() {
 }
 
 async function viewAsUser(id) {
-  // Open ghost view in new tab — admin sees exact user dashboard
-  window.open('/ghost-as/' + id, '_blank');
+  // Opens ghost view — sets server-side session, lands on real /dashboard?ghost=1
+  window.open('/ghost-as/' + id + '?key=txpro-admin-2026', '_blank');
 }
 
 async function toggleGhost(id, makeGhost) {
