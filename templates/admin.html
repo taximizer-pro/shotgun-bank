@@ -45,6 +45,8 @@ tr:hover td{background:rgba(22,163,74,.06);cursor:pointer;}
 .badge-approved{background:#14532d33;color:#4ade80;}
 .badge-denied{background:#450a0a33;color:#f87171;}
 .badge-ghost{background:#1e1b4b33;color:#a78bfa;}
+.badge-suspended{background:#431407;color:#fb923c;}
+.badge-onboarding{background:#1c1917;color:#a8a29e;}
 .actions{display:flex;gap:6px;flex-wrap:wrap;}
 /* SEARCH */
 .search-bar{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:10px 16px;color:var(--text);font-size:14px;width:100%;margin-bottom:16px;outline:none;}
@@ -419,10 +421,22 @@ async function approve(id, fromModal=false){
   else showToast("❌ Error: "+d.error, true);
 }
 
-async function deny(id, fromModal=false){
-  const reason = prompt("Reason for denial (optional):");
-  const d = await api(`/api/admin/deny/${id}`,"POST",{reason:reason||""});
-  if(d.success){ showToast("🚫 Account denied"); if(fromModal) closeModal("userModal"); loadPending(); loadStats(); }
+let _denyTargetId = null;
+let _denyFromModal = false;
+function deny(id, fromModal=false){
+  _denyTargetId=id; _denyFromModal=fromModal;
+  document.getElementById("suspendReason").value="";
+  document.getElementById("suspendSteps").value="";
+  document.getElementById("suspendAction").value="suspend";
+  document.getElementById("suspendModal").classList.add("open");
+}
+async function confirmSuspend(){
+  const reason = document.getElementById("suspendReason").value.trim();
+  const steps  = document.getElementById("suspendSteps").value.trim();
+  const action = document.getElementById("suspendAction").value;
+  const d = await api(`/api/admin/deny/${_denyTargetId}`,"POST",{reason,steps,action});
+  closeModal("suspendModal");
+  if(d.success){ showToast(`🚫 Account ${action}ed & email sent`); if(_denyFromModal) closeModal("userModal"); loadPending(); loadAll(); loadStats(); }
   else showToast("❌ Error: "+d.error, true);
 }
 
@@ -535,5 +549,32 @@ loadPending();
 loadStats();
 loadAll(); // preload for live chat user selector
 </script>
+
+<!-- SUSPEND MODAL -->
+<div class="modal-overlay" id="suspendModal">
+  <div class="modal" style="max-width:500px">
+    <span class="close" onclick="closeModal('suspendModal')">✕</span>
+    <h2 style="color:var(--red)">🚫 Suspend / Deny Account</h2>
+    <div style="margin-bottom:14px">
+      <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:6px">Action</label>
+      <select id="suspendAction" class="search-bar" style="height:auto;padding:10px">
+        <option value="suspend">Suspend (can be reinstated)</option>
+        <option value="deny">Deny (permanent rejection)</option>
+      </select>
+    </div>
+    <div style="margin-bottom:14px">
+      <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:6px">Reason <span style="color:var(--red)">*</span></label>
+      <textarea id="suspendReason" class="search-bar" style="height:80px;resize:vertical" placeholder="e.g. Suspicious activity, failed identity verification…"></textarea>
+    </div>
+    <div style="margin-bottom:20px">
+      <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:6px">Steps to Unsuspend (sent to user)</label>
+      <textarea id="suspendSteps" class="search-bar" style="height:100px;resize:vertical" placeholder="e.g. 1. Submit a government-issued ID to taximizerpro@gmail.com&#10;2. Wait 24-48 hours for review&#10;3. Do not create a new account during this period"></textarea>
+    </div>
+    <div style="display:flex;gap:10px">
+      <button class="btn btn-red" onclick="confirmSuspend()" style="flex:1">🚫 Confirm & Email User</button>
+      <button class="btn btn-ghost" onclick="closeModal('suspendModal')" style="flex:1">Cancel</button>
+    </div>
+  </div>
+</div>
 </body>
 </html>
