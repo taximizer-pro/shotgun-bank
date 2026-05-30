@@ -1324,82 +1324,25 @@ def admin_ghost_view(sg_id):
 
 @app.route("/ghost-as/<sg_id>")
 def ghost_as_user(sg_id):
-    """Admin-only page: renders the dashboard pre-loaded with a specific user's data."""
+    """Admin-only ghost view — renders the user dashboard pre-loaded with target account data."""
     is_admin = session.get("admin") or request.args.get("key") == os.environ.get("ADMIN_SECRET","txpro-admin-2026")
     if not is_admin:
         return redirect("/admin/login")
     try:
         acct = b44_get(f"{SG_URL}/{sg_id}")
         if not acct: return "Account not found", 404
-        acct_json = json.dumps(acct)
-        return render_template_string("""<!DOCTYPE html>
-<html>
-<head>
-<meta charset="UTF-8">
-<title>👻 Ghosting: ${{ tag }} — Shotgun Bank Admin</title>
-<style>
-body{margin:0;padding:0;background:#0a2218;}
-.ghost-bar{
-  position:fixed;top:0;left:0;right:0;z-index:99999;
-  background:#7c3aed;color:#fff;
-  display:flex;align-items:center;justify-content:space-between;
-  padding:10px 20px;font-family:'Segoe UI',sans-serif;font-size:14px;
-  box-shadow:0 2px 12px rgba(124,58,237,.6);
-}
-.ghost-bar strong{color:#e9d5ff;}
-.ghost-bar .exit-btn{
-  background:#dc2626;border:none;color:#fff;padding:8px 18px;
-  border-radius:8px;font-weight:700;cursor:pointer;font-size:13px;
-}
-iframe{
-  position:fixed;top:44px;left:0;right:0;bottom:0;width:100%;
-  height:calc(100vh - 44px);border:none;
-}
-</style>
-</head>
-<body>
-<div class="ghost-bar">
-  <div>👻 <strong>GHOST MODE</strong> — viewing as <strong>${{ tag }}</strong> &nbsp;|&nbsp; {{ name }} &nbsp;|&nbsp; bal: <strong>${{ balance }}</strong></div>
-  <button class="exit-btn" onclick="exitGhost()">✖ Exit Ghost</button>
-</div>
-<iframe id="dashFrame" src="/dashboard" onload="injectAccount()"></iframe>
-<script>
-const GHOST_ACCT = {{ acct_json }};
-
-function injectAccount() {
-  try {
-    const frame = document.getElementById('dashFrame');
-    const win = frame.contentWindow;
-    // Write account into the iframe's localStorage so dashboard loads it
-    win.localStorage.setItem('sg_account', JSON.stringify(GHOST_ACCT));
-    win.localStorage.setItem('sg_session', JSON.stringify({id: GHOST_ACCT.id, ghost: true}));
-    // Force reload so dashboard picks it up
-    frame.src = '/dashboard?ghost=1';
-  } catch(e) {
-    // cross-origin fallback — same origin so this should work
-    console.error('Ghost inject error:', e);
-  }
-}
-
-function exitGhost() {
-  const frame = document.getElementById('dashFrame');
-  try {
-    frame.contentWindow.localStorage.removeItem('sg_account');
-    frame.contentWindow.localStorage.removeItem('sg_session');
-  } catch(e) {}
-  window.location.href = '/admin/dashboard';
-}
-</script>
-</body>
-</html>""",
-    tag=acct.get("hashtag","?").upper(),
-    name=f"{acct.get('first_name','')} {acct.get('last_name','')}".strip(),
-    balance=f"{float(acct.get('balance',0)):,.2f}",
-    acct_json=acct_json)
+        return render_template("ghost_dashboard.html",
+            acct=acct,
+            tag=(acct.get("hashtag") or "?").upper(),
+            name=f"{acct.get('first_name','')} {acct.get('last_name','')}".strip(),
+            balance=f"{float(acct.get('balance',0)):,.2f}",
+            admin_key=os.environ.get("ADMIN_SECRET","txpro-admin-2026"),
+            stripe_pk=STRIPE_PK
+        )
     except Exception as e:
         return str(e), 500
 
-# ── ADMIN: ADJUST BALANCE (credit/debit) ─────────────────────────────────────
+
 @app.route("/api/admin/balance/<sg_id>", methods=["POST"])
 def admin_balance_adjust(sg_id):
     is_admin = session.get("admin") or request.headers.get("X-Admin-Key") == os.environ.get("ADMIN_SECRET","txpro-admin-2026")
