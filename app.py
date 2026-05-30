@@ -1217,13 +1217,15 @@ def wallet_save_card():
                 exp   = f"{pm.card.exp_month:02d}/{str(pm.card.exp_year)[-2:]}" if pm.card else ""
                 brand = (pm.card.brand or "").capitalize() if pm.card else ""
 
-        # Save to Base44 account
+        # Save brand + last4 to Base44 account
         b44_put(f"{SG_URL}/{acct_id}", {
             "linked_card_last4": last4,
-            "wise_account_id": pm_id,   # reuse field to store Stripe PM ID
+            "linked_card_brand": brand.lower(),   # "visa", "mastercard", "amex", "discover"
+            "linked_card_exp":   exp,
+            "wise_account_id":   pm_id,           # Stripe PM ID
         })
         print(f"[WALLET CARD SAVED] {acct_id} — {brand} •••• {last4}")
-        return jsonify({"success": True, "last4": last4, "brand": brand, "exp": exp})
+        return jsonify({"success": True, "last4": last4, "brand": brand.lower(), "exp": exp})
     except Exception as e:
         print(f"[WALLET SAVE-CARD ERR] {e}")
         return jsonify({"error": str(e)}), 500
