@@ -315,6 +315,71 @@ Bisignano Holdings LLC"""
     except Exception as e:
         print(f"[WELCOME EMAIL ERR] {e}")
 
+# ── DEMO MODE — Client walkthrough (admin only) ──────────────────────────────
+@app.route("/demo")
+def demo_view():
+    """Admin-only demo: guided client walkthrough."""
+    is_admin = session.get("admin") or request.args.get("key") == os.environ.get("ADMIN_SECRET","txpro-admin-2026")
+    if not is_admin: return redirect("/admin/login")
+    return render_template("demo.html")
+
+@app.route("/api/demo/signup", methods=["POST"])
+def demo_signup():
+    """Demo signup: creates a real account but skips Stripe — status goes straight to pending.
+    Intended for admin walkthrough only."""
+    is_admin = (request.headers.get("X-Admin-Key") == os.environ.get("ADMIN_SECRET","txpro-admin-2026")
+                or session.get("admin")
+                or (request.json or {}).get("demo_mode") is True)
+    # allow demo_mode flag without admin session for walkthrough
+    d = request.json or {}
+    first = d.get("first_name","").strip()
+    last  = d.get("last_name","").strip()
+    email = d.get("email","").strip().lower()
+    phone = d.get("phone","").strip()
+    tag   = d.get("hashtag","").strip().lower().replace("#","").replace("$","")
+    pin   = d.get("pin","").strip()
+    dob   = d.get("dob","").strip()
+    pw    = d.get("password","")
+
+    if not all([first, last, email, tag, pin, pw]):
+        return jsonify({"error": "All fields required"}), 400
+    if len(pin) < 4 or not pin.isdigit():
+        return jsonify({"error": "PIN must be 4+ digits"}), 400
+    if len(pw) < 6:
+        return jsonify({"error": "Password must be at least 6 characters"}), 400
+
+    try:
+        if get_acct_by_tag(tag):
+            return jsonify({"error": "That hashtag is already taken"}), 409
+        if get_acct_by_email(email):
+            return jsonify({"error": "An account with that email already exists"}), 409
+
+        pw_hash  = hashlib.sha256(pw.encode()).hexdigest()
+        pin_hash = hash_pin(pin)
+
+        # Create account — status=pending (Stripe skipped)
+        saved = b44_post(SG_URL, {
+            "first_name": first, "last_name": last,
+            "full_name": f"{first} {last}",
+            "email": email, "phone": phone, "hashtag": tag,
+            "dob": dob, "pin_hash": pin_hash,
+            "password_hash": pw_hash,
+            "status": "pending",   # skip onboarding, go straight to pending
+            "balance": 0.0,
+            "routing_number": gen_routing(),
+            "account_number": gen_account(),
+            "virtual_card_number": gen_card(),
+            "virtual_card_cvv": gen_cvv(),
+            "virtual_card_expiry": gen_exp(),
+            "beat_v_enabled": False, "beat_v_used": False,
+            "lifetime_deposited": 0.0, "funded_friends_count": 0,
+        })
+        print(f"[DEMO SIGNUP] created account for ${tag} — id={saved.get('id','?')}")
+        return jsonify({"success": True, "account": saved})
+    except Exception as e:
+        print(f"[DEMO SIGNUP ERROR] {e}")
+        return jsonify({"error": str(e)}), 500
+
 @app.route("/api/signup", methods=["POST"])
 def signup():
     d = request.json or {}
