@@ -190,6 +190,39 @@ def check_hashtag():
 # SIGNUP — creates Stripe Connect Express + Base44 record
 # ─────────────────────────────────────────────────────────────────────────────
 
+
+def _send_welcome_email(email, name, tag):
+    """Send welcome email after Stripe auto-approval."""
+    GMAIL_USER = os.environ.get("GMAIL_USER","taximizerpro@gmail.com")
+    GMAIL_PASS = os.environ.get("GMAIL_APP_PASSWORD","")
+    if not GMAIL_PASS or not email: return
+    import smtplib as _smtp; from email.mime.text import MIMEText as _MMT
+    body = f"""Hey {name}! 🎯
+
+Welcome to Shotgun Bank — your account is APPROVED and ready to go!
+
+Your hashtag: ${tag}
+
+Log in now at shotgun-bank.onrender.com and start banking.
+
+- Load your account
+- Send money with $hashtags
+- Design your virtual card
+- Unlock Beat the V overdraft
+
+Welcome to the squad,
+— Italy & the Shotgun Bank Team
+Bisignano Holdings LLC"""
+    msg = _MMT(body)
+    msg["Subject"] = f"🎯 You're In! Shotgun Bank Account Approved — ${tag}"
+    msg["From"] = GMAIL_USER; msg["To"] = email
+    try:
+        with _smtp.SMTP_SSL("smtp.gmail.com",465,timeout=10) as s:
+            s.login(GMAIL_USER,GMAIL_PASS); s.sendmail(GMAIL_USER,email,msg.as_string())
+        print(f"[WELCOME EMAIL] sent to {email}")
+    except Exception as e:
+        print(f"[WELCOME EMAIL ERR] {e}")
+
 @app.route("/api/signup", methods=["POST"])
 def signup():
     d = request.json or {}
@@ -216,13 +249,15 @@ def signup():
             return jsonify({"error": "An account with that email already exists"}), 409
 
         pw_hash = hashlib.sha256(pw.encode()).hexdigest()
+
+        # Step 1 — create Base44 record with status=onboarding
         saved = b44_post(SG_URL, {
             "first_name": first, "last_name": last,
             "full_name": f"{first} {last}",
             "email": email, "phone": phone, "hashtag": tag,
             "dob": dob, "pin_hash": hash_pin(pin),
             "password_hash": pw_hash,
-            "status": "pending", "balance": 0.0,
+            "status": "onboarding", "balance": 0.0,
             "routing_number": gen_routing(),
             "account_number": gen_account(),
             "virtual_card_number": gen_card(),
@@ -231,13 +266,49 @@ def signup():
             "beat_v_enabled": False, "beat_v_used": False,
             "lifetime_deposited": 0.0, "funded_friends_count": 0,
         })
+        sg_id = saved.get("id","")
 
-        return jsonify({
-            "success": True,
-            "account_id": saved.get("id",""),
-            "status": "pending",
-            "message": "Account created! You will receive an email once approved."
-        })
+        # Step 2 — create Stripe Connect Express account
+        try:
+            base_url = request.host_url.rstrip("/")
+            stripe_acct = stripe.Account.create(
+                type="express",
+                country="US",
+                email=email,
+                capabilities={"transfers":{"requested":True},"card_payments":{"requested":True}},
+                business_type="individual",
+                individual={"first_name":first,"last_name":last,"email":email},
+                metadata={"sg_account_id": sg_id, "hashtag": tag},
+                settings={"payouts":{"schedule":{"interval":"manual"}}},
+            )
+            stripe_id = stripe_acct.id
+            # Save Stripe account ID
+            b44_put(f"{SG_URL}/{sg_id}", {"wise_account_id": stripe_id})
+
+            # Step 3 — create onboarding link
+            link = stripe.AccountLink.create(
+                account=stripe_id,
+                refresh_url=f"{base_url}/onboard/refresh?tag={tag}",
+                return_url=f"{base_url}/onboard/complete?tag={tag}",
+                type="account_onboarding",
+            )
+            return jsonify({
+                "success": True,
+                "account_id": sg_id,
+                "status": "onboarding",
+                "onboarding_url": link.url,
+                "message": "Almost there! Complete your identity verification to activate your account.",
+            })
+        except Exception as se:
+            # Stripe failed — fall back to manual pending review
+            print(f"[STRIPE SIGNUP ERR] {se}")
+            b44_put(f"{SG_URL}/{sg_id}", {"status": "pending"})
+            return jsonify({
+                "success": True,
+                "account_id": sg_id,
+                "status": "pending",
+                "message": "Account created! Our team will review and approve your account shortly.",
+            })
     except Exception as e:
         print(f"[SIGNUP ERROR] {e}")
         return jsonify({"error": str(e)}), 500
@@ -257,8 +328,12 @@ def login():
         status = acct.get("status","")
         if status in ("onboarding", "pending"):
             return jsonify({"status":"pending","message":"Your account is under review. You will be notified by email when approved."})
-        if status == "denied":
-            return jsonify({"error": "Your account was not approved. Contact support at taximizerpro@gmail.com."}), 403
+        if status in ("denied", "suspended"):
+            reason = acct.get("denied_reason","")
+            msg = f"Your account has been {status}."
+            if reason: msg += f" Reason: {reason}."
+            msg += " Contact taximizerpro@gmail.com for help."
+            return jsonify({"error": msg}), 403
         if acct.get("pin_hash") != hash_pin(pin):
             return jsonify({"error": "Incorrect PIN"}), 401
         stored_pw = acct.get("password_hash","")
@@ -795,15 +870,29 @@ def stripe_webhook():
     sg_id  = obj.get("metadata",{}).get("sg_account_id","")
 
     if evt == "account.updated":
-        # Stripe Express account fully verified
+        # Stripe Express account fully verified → AUTO-APPROVE
         stripe_id = obj.get("id","")
         if obj.get("charges_enabled") and obj.get("payouts_enabled"):
             try:
                 r = b44_get(f"{SG_URL}?wise_account_id={_uparse.quote(stripe_id)}&limit=1")
                 lst = r if isinstance(r,list) else r.get("results",[])
-                if lst and lst[0].get("status") == "onboarding":
-                    b44_put(f"{SG_URL}/{lst[0]['id']}", {"status":"pending"})
-            except: pass
+                if lst:
+                    acct = lst[0]
+                    sg_id = acct["id"]
+                    cur_status = acct.get("status","")
+                    if cur_status in ("onboarding","pending"):
+                        import datetime as _dt
+                        b44_put(f"{SG_URL}/{sg_id}", {
+                            "status": "approved",
+                            "approved_by": "stripe_auto",
+                            "approved_at": _dt.datetime.utcnow().isoformat(),
+                        })
+                        print(f"[STRIPE AUTO-APPROVE] {sg_id} / ${acct.get('hashtag')} approved")
+                        # Send welcome email
+                        try:
+                            _send_welcome_email(acct.get("email",""), acct.get("first_name",""), acct.get("hashtag",""))
+                        except: pass
+            except Exception as we: print(f"[WH account.updated ERR] {we}")
 
     elif evt == "payment_intent.succeeded" and sg_id:
         # ACH deposit confirmed (processing → succeeded)
@@ -866,8 +955,42 @@ def admin_deny(sg_id):
     is_admin = session.get("admin") or request.headers.get("X-Admin-Key") == os.environ.get("ADMIN_SECRET","txpro-admin-2026")
     if not is_admin: return jsonify({"error":"Unauthorized"}), 401
     d = request.json or {}
+    reason   = d.get("reason","").strip()
+    steps    = d.get("steps","").strip()   # steps to unsuspend
+    action   = d.get("action","deny")      # "deny" | "suspend"
+    new_status = "suspended" if action=="suspend" else "denied"
     try:
-        b44_put(f"{SG_URL}/{sg_id}", {"status":"denied","denied_reason":d.get("reason","")})
+        acct = b44_get(f"{SG_URL}/{sg_id}")
+        b44_put(f"{SG_URL}/{sg_id}", {"status": new_status, "denied_reason": reason})
+        # Send suspension email with steps to resolve
+        email = acct.get("email","")
+        name  = acct.get("first_name","")
+        tag   = acct.get("hashtag","")
+        GMAIL_USER = os.environ.get("GMAIL_USER","taximizerpro@gmail.com")
+        GMAIL_PASS = os.environ.get("GMAIL_APP_PASSWORD","")
+        import smtplib as _smtp; from email.mime.text import MIMEText as _MMT
+        steps_text = steps if steps else "Please contact support at taximizerpro@gmail.com for assistance."
+        body = f"""Hi {name},
+
+Your Shotgun Bank account (${{tag}}) has been {new_status}.
+
+Reason: {reason or "Policy violation"}
+
+To restore your account, please complete the following steps:
+
+{steps_text}
+
+Once resolved, reply to this email or contact support at taximizerpro@gmail.com.
+
+— Shotgun Bank Compliance
+Bisignano Holdings LLC"""
+        if GMAIL_PASS and email:
+            msg = _MMT(body)
+            msg["Subject"] = f"Shotgun Bank — Account {new_status.title()}: ${{tag}}"
+            msg["From"] = GMAIL_USER; msg["To"] = email
+            with _smtp.SMTP_SSL("smtp.gmail.com",465,timeout=10) as s:
+                s.login(GMAIL_USER,GMAIL_PASS); s.sendmail(GMAIL_USER,email,msg.as_string())
+        print(f"[ADMIN {new_status.upper()}] {sg_id} reason={reason}")
         return jsonify({"success":True})
     except Exception as e:
         return jsonify({"error":str(e)}), 500
