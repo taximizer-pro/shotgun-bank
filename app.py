@@ -1,8 +1,6 @@
 import os, json, hashlib, secrets, string, random, urllib.parse as _uparse, urllib.request, time, smtplib
 from email.mime.text import MIMEText
-from flask import Flask, request, jsonify, session, redirect, render_template
-import stripe
-from flask import Flask, request, jsonify, session, redirect, render_template
+from flask import Flask, request, jsonify, session, redirect, render_template, render_template_string
 import stripe
 
 app = Flask(__name__)
