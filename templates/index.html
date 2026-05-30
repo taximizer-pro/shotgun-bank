@@ -387,7 +387,7 @@ async function doSignup() {
   const password = document.getElementById('sgPassword').value;
 
 
-  if (!first||!last||!email||!hashtag||!password||!pin)
+  if (!first||!last||!email||!hashtag||!password)
     { showAlert('Please fill in all required fields.'); return; }
 
   if (password.length < 8)
