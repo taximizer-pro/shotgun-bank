@@ -468,57 +468,10 @@ async function doSignup() {
   } catch(e) { showAlert('Network error. Please try again.'); }
 }
 
-async function doSetPin() {
-  const pin1 = document.getElementById('newPin').value.trim();
-  const pin2 = document.getElementById('confirmPin').value.trim();
-  if (!pin1 || pin1.length !== 6 || !/^\d{6}$/.test(pin1)) {
-    showAlert('PIN must be exactly 6 digits.'); return;
-  }
-  if (pin1 !== pin2) { showAlert('PINs do not match.'); return; }
-  if (!pendingAccountId) { showAlert('Session error — please try logging in again.'); return; }
-  try {
-    const res = await fetch('/api/set-pin', {
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({account_id: pendingAccountId, pin: pin1})
-    });
-    const d = await res.json();
-    if (d.error) { showAlert(d.error); return; }
-    // PIN set — now send 2FA if email configured, else go to dashboard
-    showAlert('PIN set! Logging you in…','success');
-    setTimeout(() => window.location.href = '/dashboard', 1200);
-  } catch(e) { showAlert('Error setting PIN. Try again.'); }
-}
 
 
-async function doPinStep() {
-  const pin = document.getElementById('pinStepInput').value.trim();
-  if (!pin || pin.length !== 6 || !/^\d{6}$/.test(pin)) {
-    showAlert('PIN must be exactly 6 digits.'); return;
-  }
-  if (!pendingAccountId) { showAlert('Session error — please start over.'); return; }
-  showAlert('Verifying…','success');
-  try {
-    // Re-submit login with PIN
-    const res = await fetch('/api/login-pin', {
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({account_id: pendingAccountId, pin})
-    });
-    const d = await res.json();
-    if (d.error) { showAlert(d.error); return; }
-    if (d.requires_2fa) {
-      document.getElementById('pinStepSection').style.display = 'none';
-      document.getElementById('otpSection').style.display = 'flex';
-      document.getElementById('otpMsg').textContent = `Code sent to ${d.email_masked}`;
-      return;
-    }
-    if (d.success) {
-      localStorage.setItem('sg_account_id', d.account_id);
-      localStorage.setItem('sg_hashtag', d.hashtag || '');
-      localStorage.setItem('sg_first_name', d.first_name || '');
-      window.location.href = '/dashboard';
-    }
-  } catch(e) { showAlert('Error — please try again.'); }
-}
+
+
 
 </script>
 </body>
