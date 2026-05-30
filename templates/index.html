@@ -179,7 +179,7 @@
       <label>Date of Birth</label>
     </div>
     <div class="field-wrap">
-      <input type="text" id="sgHashtag" placeholder="Your $Hashtag (e.g. $ITALY)" oninput="checkHashtag(this.value)">
+      <input type="text" id="sgHashtag" placeholder="Your Hashtag (e.g. $ITALY or #ITALY)" oninput="checkHashtag(this.value)">
       <label>Your $Hashtag</label>
       <div class="hashtag-status" id="hashtagStatus"></div>
     </div>
@@ -272,11 +272,13 @@ function checkHashtag(val) {
   if (!val || val.length < 2) { el.textContent=''; return; }
   htTimer = setTimeout(async () => {
     try {
-      const tag = val.startsWith('$') ? val : '$'+val;
-      const res = await fetch('/api/check-hashtag?tag='+encodeURIComponent(tag));
+      // Strip both $ and # — store clean, display with $
+      const clean = val.replace(/^[$#]+/, '').trim();
+      const display = '$' + clean.toUpperCase();
+      const res = await fetch('/api/check-hashtag?tag='+encodeURIComponent(clean));
       const d   = await res.json();
       el.className = 'hashtag-status ' + (d.available ? 'hashtag-ok' : 'hashtag-taken');
-      el.textContent = d.available ? '✓ '+tag+' is available' : '✗ '+tag+' is taken';
+      el.textContent = d.available ? '✓ ' + display + ' is available' : '✗ ' + display + ' is taken';
     } catch(e) { el.textContent=''; }
   }, 500);
 }
@@ -375,7 +377,7 @@ async function doSignup() {
   const email    = document.getElementById('sgEmail').value.trim();
   const phone    = document.getElementById('sgPhone').value.trim();
   const dob      = document.getElementById('sgDob').value.trim();
-  const hashtag  = document.getElementById('sgHashtag').value.trim().replace('#','');
+  const hashtag  = document.getElementById('sgHashtag').value.trim().replace(/^[$#]+/, '').toLowerCase();
   const password = document.getElementById('sgPassword').value;
   const pin      = document.getElementById('sgPin').value.trim();
 
