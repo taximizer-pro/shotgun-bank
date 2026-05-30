@@ -68,6 +68,28 @@ def b44_put(url, data):
         return json.loads(r.read())
 
 def hash_pin(pin): return hashlib.sha256(pin.encode()).hexdigest()
+def hash_password(pw: str) -> str:
+    """Hash password with bcrypt (fallback: sha256 if bcrypt not available)."""
+    if _BCRYPT_OK:
+        return _bcrypt.hashpw(pw.encode(), _bcrypt.gensalt(rounds=12)).decode()
+    return "sha256:" + hashlib.sha256(pw.encode()).hexdigest()
+
+def verify_password(pw: str, stored: str) -> bool:
+    """Verify password against bcrypt or legacy sha256 hash."""
+    if not stored:
+        return False
+    if stored.startswith("sha256:"):
+        return stored == "sha256:" + hashlib.sha256(pw.encode()).hexdigest()
+    if stored.startswith("$2b$") or stored.startswith("$2a$"):
+        if _BCRYPT_OK:
+            try:
+                return _bcrypt.checkpw(pw.encode(), stored.encode())
+            except Exception:
+                return False
+    # Legacy raw sha256 hex
+    return stored == hashlib.sha256(pw.encode()).hexdigest()
+
+
 def gen_routing(): return "021" + str(random.randint(100000000, 999999999))
 def gen_account(): return str(random.randint(1000000000, 9999999999))
 def gen_card(): return "4" + "".join([str(random.randint(0,9)) for _ in range(15)])
@@ -405,7 +427,7 @@ def signup():
         if get_acct_by_email(email):
             return jsonify({"error": "An account with that email already exists"}), 409
 
-        pw_hash = hashlib.sha256(pw.encode()).hexdigest()
+        pw_hash = hash_password(pw)
 
         # Step 1 — create Base44 record with status=onboarding
         saved = b44_post(SG_URL, {
