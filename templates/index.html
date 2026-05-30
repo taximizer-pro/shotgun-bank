@@ -372,23 +372,8 @@ async function doLogin() {
       window.location.href = '/dashboard';
       return;
     }
-    if (d.setup_pin) {
-      // First time — user needs to create a PIN
-      pendingAccountId = d.account_id;
-      document.getElementById('loginSection').style.display  = 'none';
-      document.getElementById('signupSection').style.display = 'none';
-      document.getElementById('setPinSection').style.display = 'flex';
-      showAlert('Welcome! Please set a 6-digit PIN to secure your account.','success');
-      return;
-    }
-    if (d.requires_pin) {
-      // Step 2 — show PIN entry screen
-      pendingAccountId = d.account_id;
-      document.getElementById('loginSection').style.display = 'none';
-      document.getElementById('pinStepSection').style.display = 'flex';
-      document.getElementById('pinStepSection').scrollIntoView({behavior:'smooth'});
-      return;
-    }
+
+
     if (d.requires_2fa) {
       // Credentials OK — show OTP screen
       pendingAccountId = d.account_id;
@@ -459,12 +444,11 @@ async function doSignup() {
   const dob      = document.getElementById('sgDob').value.trim();
   const hashtag  = document.getElementById('sgHashtag').value.trim().replace(/^[$#]+/, '').toLowerCase();
   const password = document.getElementById('sgPassword').value;
-  const pin      = document.getElementById('sgPin').value.trim();
+
 
   if (!first||!last||!email||!hashtag||!password||!pin)
     { showAlert('Please fill in all required fields.'); return; }
-  if (pin.length < 6 || !/^\d+$/.test(pin))
-    { showAlert('PIN must be exactly 6 digits.'); return; }
+
   if (password.length < 8)
     { showAlert('Password must be at least 8 characters.'); return; }
 
@@ -472,7 +456,7 @@ async function doSignup() {
   try {
     const res = await fetch('/api/signup', {
       method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({first_name:first,last_name:last,email,phone,dob,hashtag,password,pin})
+      body: JSON.stringify({first_name:first,last_name:last,email,phone,dob,hashtag,password})
     });
     const d = await res.json();
     if (d.error) { showAlert(d.error); return; }
