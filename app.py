@@ -569,147 +569,83 @@ def signup():
 
 @app.route("/api/login", methods=["POST"])
 def login():
-    d = request.json or {}
-    identifier = d.get("identifier","").strip().lower().replace("#","")
+    d          = request.json or {}
+    identifier = d.get("identifier","").strip().lower().replace("$","").replace("#","")
     password   = d.get("password","")
-    pin        = d.get("pin","").strip()
-    if not identifier or not password or not pin:
-        return jsonify({"error": "All fields required"}), 400
-    try:
-        acct = get_acct_by_email(identifier) or get_acct_by_tag(identifier)
-        if not acct: return jsonify({"error": "Account not found"}), 404
-        status = acct.get("status","")
-        if status in ("onboarding", "pending"):
-            return jsonify({"status":"pending","message":"Your account is under review. You will be notified by email when approved."})
-        if status in ("denied", "suspended"):
-            reason = acct.get("denied_reason","")
-            msg = f"Your account has been {status}."
-            if reason: msg += f" Reason: {reason}."
-            msg += " Contact taximizerpro@gmail.com for help."
-            return jsonify({"error": msg}), 403
-        stored_pin = acct.get("pin_hash","")
-        if not stored_pin:
-            # No PIN set yet — prompt user to create one
-            return jsonify({"setup_pin": True, "account_id": acct["id"],
-                            "message": "Please set a 6-digit PIN to secure your account."}), 200
-        if stored_pin != hash_pin(pin):
-            return jsonify({"error": "Incorrect PIN"}), 401
-        stored_pw = acct.get("password_hash","")
-        if stored_pw:
-            try:
-                if not verify_password(password, stored_pw):
-                    return jsonify({"error": "Incorrect password"}), 401
-            except Exception:
-                pass  # bcrypt not available in some envs — skip pw check
-        # Credentials OK
-        acct_id = acct["id"]
-        email   = acct.get("email","")
-        GMAIL_PASS = os.environ.get("GMAIL_APP_PASSWORD","")
-        has_real_email = bool(email and "@" in email and not email.endswith(".test") and not email.endswith(".local"))
-        # Skip 2FA if Gmail not configured — log straight in
-        if not GMAIL_PASS or not has_real_email:
-            session.permanent = True
-            session["account_id"] = acct_id
-            return jsonify({"success": True, "account_id": acct_id,
-                            "first_name": acct.get("first_name",""),
-                            "hashtag": acct.get("hashtag",""),
-                            "status": acct.get("status","")})
-        # Gmail configured — send 2FA OTP
-        code = str(__import__('random').randint(100000,999999))
-        expires = int(time.time()) + OTP_TTL
-        _otp_store[acct_id] = {"code": code, "expires": expires, "email": email}
-        # Also persist in Base44 so OTP survives server restarts
-        try:
-            b44_put(f"{SG_URL}/{acct_id}", {"otp_code": code, "otp_expires": expires})
-        except Exception as store_err:
-            print(f"[OTP STORE ERR] {store_err}")
-        otp_sent = False
-        try:
-            otp_sent = send_otp_email(email, code, acct.get("first_name",""))
-        except Exception as otp_err:
-            print(f"[OTP SEND ERR] {otp_err}")
-        if not otp_sent:
-            # Email failed — log in directly
-            session.permanent = True
-            session["account_id"] = acct_id
-            return jsonify({"success": True, "account_id": acct_id,
-                            "first_name": acct.get("first_name",""),
-                            "hashtag": acct.get("hashtag",""),
-                            "status": acct.get("status","")})
-        masked = email[:2] + "***@" + email.split("@")[-1] if "@" in email else "your email"
-        return jsonify({"requires_2fa": True, "account_id": acct_id, "email_masked": masked, "otp_sent": True})
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+    pin_input  = d.get("pin","").strip()  # optional — only sent from PIN screen
 
+    if not identifier or not password:
+        return jsonify({"error":"Hashtag/email and password required"}), 400
 
+    # Find account
+    acct = get_acct_by_tag(identifier) or get_acct_by_email(identifier)
+    if not acct:
+        return jsonify({"error":"Account not found"}), 404
 
+    acct_id = acct.get("id","")
+    status  = acct.get("status","")
 
-# ─────────────────────────────────────────────────────────────────────────────
-# 2FA — OTP store + email + verify routes
-# ─────────────────────────────────────────────────────────────────────────────
-import smtplib, time
-from email.mime.text import MIMEText
+    # Verify password
+    if not check_password(password, acct.get("password_hash","")):
+        return jsonify({"error":"Incorrect password"}), 401
 
-_otp_store = {}   # {account_id: {code, expires, email}}
-OTP_TTL    = 600  # 10 minutes
+    # Account status gate
+    if status == "denied":
+        return jsonify({"error":"Your account application was not approved. Contact support."}), 403
+    if status == "suspended":
+        reason = acct.get("denied_reason","Contact support to restore your account.")
+        return jsonify({"error":f"Account suspended. {reason}"}), 403
+    if status in ("pending","onboarding"):
+        return jsonify({"error":"Your account is pending approval. You\'ll receive an email when approved."}), 403
 
-def send_otp_email(to_email, code, name=""):
-    """Send 2FA OTP via Gmail API (OAuth2 token) — no app password needed."""
-    GMAIL_USER = os.environ.get("GMAIL_USER","taximizerpro@gmail.com")
-    gmail_token = os.environ.get("GMAIL_ACCESS_TOKEN","")
-    subject = "🔐 Shotgun Bank — Your Login Code"
-    body = f"""Hi {name or "there"},
+    # ── STEP 1: If no PIN set yet → prompt user to create one ───────────────
+    if not acct.get("pin_hash"):
+        return jsonify({
+            "setup_pin":  True,
+            "account_id": acct_id,
+            "message":    "Welcome! Please set your 6-digit PIN to secure your account."
+        })
 
-Your Shotgun Bank verification code is:
-
-    {code}
-
-This code expires in 10 minutes. Do NOT share it with anyone.
-
-If you didn't request this, contact taximizerpro@gmail.com immediately.
-
-— Shotgun Bank Security
-Bisignano Holdings LLC"""
-    if gmail_token:
-        try:
-            import base64 as _b64
-            from email.mime.text import MIMEText as _MMT
-            _msg = _MMT(body, 'plain')
-            _msg["Subject"] = subject
-            _msg["From"]    = GMAIL_USER
-            _msg["To"]      = to_email
-            _raw = _b64.urlsafe_b64encode(_msg.as_bytes()).decode()
-            _req = urllib.request.Request(
-                "https://gmail.googleapis.com/gmail/v1/users/me/messages/send",
-                data=json.dumps({"raw": _raw}).encode(), method="POST",
-                headers={"Authorization":f"Bearer {gmail_token}","Content-Type":"application/json"}
-            )
-            with urllib.request.urlopen(_req, timeout=12) as _r:
-                _r.read()
-            print(f"[OTP] Sent to {to_email} via Gmail API")
-            return True
-        except Exception as ex:
-            print(f"[OTP EMAIL ERR] {ex}")
-    # Fallback: log the code (dev mode)
-    print(f"[2FA FALLBACK — no Gmail token] {to_email} code={code}")
-    return False
-
-def send_2fa():
-    d       = request.json or {}
-    acct_id = d.get("account_id","")
-    if not acct_id: return jsonify({"error":"Missing account"}), 400
-    try:
-        acct = get_acct(acct_id)
-        if not acct: return jsonify({"error":"Account not found"}), 404
-        import random as _r
-        code  = str(_r.randint(100000,999999))
+    # ── STEP 2: PIN provided → verify it ────────────────────────────────────
+    if pin_input:
+        if not check_pin(pin_input, acct.get("pin_hash","")):
+            return jsonify({"error":"Incorrect PIN"}), 401
+        # PIN correct → log in (skip 2FA for now if no Gmail token)
+        gmail_token = os.environ.get("GMAIL_ACCESS_TOKEN","")
         email = acct.get("email","")
-        _otp_store[acct_id] = {"code":code,"expires":time.time()+OTP_TTL,"email":email}
-        send_otp_email(email, code, acct.get("first_name",""))
-        masked = email[:2]+"***@"+email.split("@")[-1] if "@" in email else "your email"
-        return jsonify({"success":True,"email_masked":masked})
-    except Exception as e:
-        return jsonify({"error":str(e)}), 500
+        if gmail_token and email and "@" in email:
+            # Send 2FA OTP
+            code    = str(__import__('random').randint(100000,999999))
+            expires = int(time.time()) + OTP_TTL
+            _otp_store[acct_id] = {"code": code, "expires": expires, "email": email}
+            try:
+                b44_put(f"{SG_URL}/{acct_id}", {"otp_code": code, "otp_expires": expires})
+            except: pass
+            try:
+                send_otp_email(email, code, acct.get("first_name",""))
+                masked = email[:2] + "***@" + email.split("@")[-1] if "@" in email else email
+                return jsonify({"requires_2fa": True, "account_id": acct_id, "email_masked": masked})
+            except Exception as email_err:
+                print(f"[OTP EMAIL ERR] {email_err}")
+                # Email failed — log in directly
+        # No Gmail token or email failed — log in directly
+        session.permanent = True
+        session["account_id"] = acct_id
+        return jsonify({
+            "success":    True,
+            "account_id": acct_id,
+            "first_name": acct.get("first_name",""),
+            "hashtag":    acct.get("hashtag",""),
+            "status":     status
+        })
+
+    # ── STEP 2 NOT YET: Ask for PIN ─────────────────────────────────────────
+    return jsonify({
+        "requires_pin": True,
+        "account_id":   acct_id,
+        "message":      "Enter your 6-digit PIN"
+    })
+
 
 @app.route("/api/resend-2fa", methods=["POST"])
 def resend_2fa():
