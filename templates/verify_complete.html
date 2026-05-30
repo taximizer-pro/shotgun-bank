@@ -3,37 +3,123 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Account Activated — Shotgun Bank</title>
+<title>Verify Your Identity — Shotgun Bank</title>
+<script src="https://js.stripe.com/v3/"></script>
 <style>
-:root{--bg:#0a2218;--card:#0f2e1e;--border:#1a4a2e;--green:#16a34a;--gold:#eab308;--text:#f0fdf4;--muted:#6b7280;}
+:root{--bg:#0a2218;--card:#0f2e1e;--border:#1a4a2e;--green:#16a34a;--gold:#eab308;--text:#f0fdf4;--muted:#6b7280;--red:#dc2626;}
 *{box-sizing:border-box;margin:0;padding:0;}
 body{background:var(--bg);color:var(--text);font-family:'Segoe UI',sans-serif;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;}
-.box{background:var(--card);border:1px solid var(--gold);border-radius:20px;padding:40px 32px;width:100%;max-width:420px;text-align:center;box-shadow:0 8px 40px rgba(0,0,0,.6);}
-.logo{width:80px;margin:0 auto 20px;}
-.icon{font-size:60px;margin-bottom:16px;}
-h1{font-size:24px;font-weight:900;margin-bottom:8px;}
-.sub{color:var(--muted);font-size:14px;margin-bottom:28px;line-height:1.6;}
-.tag{color:var(--gold);font-size:22px;font-weight:900;margin-bottom:20px;}
-.btn{display:block;width:100%;padding:15px;background:var(--green);color:#fff;border:none;border-radius:12px;font-size:16px;font-weight:800;cursor:pointer;text-decoration:none;margin-bottom:10px;}
-.btn-ghost{background:transparent;border:1px solid var(--border);color:var(--muted);}
+.box{background:var(--card);border:1px solid var(--gold);border-radius:20px;padding:36px 32px;width:100%;max-width:440px;box-shadow:0 8px 40px rgba(0,0,0,.6);}
+.logo{width:90px;display:block;margin:0 auto 20px;}
+h1{text-align:center;font-size:22px;color:var(--gold);font-weight:900;margin-bottom:6px;}
+.sub{text-align:center;color:var(--muted);font-size:13px;margin-bottom:24px;line-height:1.5;}
+.step-bar{display:flex;gap:6px;margin-bottom:24px;}
+.step{flex:1;height:4px;border-radius:4px;background:var(--border);}
+.step.done{background:var(--green);}
+.step.active{background:var(--gold);}
+.label{font-size:11px;color:var(--muted);text-transform:uppercase;font-weight:700;margin-bottom:8px;letter-spacing:.5px;}
+#card-element{background:#0d2820;border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:16px;}
+#card-errors{color:var(--red);font-size:13px;min-height:20px;margin-bottom:12px;}
+.btn{width:100%;padding:15px;background:var(--green);color:#fff;border:none;border-radius:12px;font-size:16px;font-weight:800;cursor:pointer;transition:.2s;letter-spacing:.5px;}
+.btn:hover{background:#15803d;}
+.btn:disabled{background:#1a4a2e;color:var(--muted);cursor:not-allowed;}
+.security-note{display:flex;align-items:center;gap:8px;margin-top:16px;padding:12px;background:#0d2820;border-radius:10px;font-size:12px;color:var(--muted);}
+.security-note span{font-size:20px;}
+.spinner{display:none;text-align:center;padding:20px;color:var(--gold);font-size:14px;}
 </style>
 </head>
 <body>
 <div class="box">
   <img src="https://base44.app/api/apps/6a14ef767988d1ef0baff5aa/files/mp/public/6a14ef767988d1ef0baff5aa/7a46af0fc_shotgun_bank_REAL_logo.png" class="logo" onerror="this.style.display='none'">
-  {% if status == "approved" %}
-    <div class="icon">🎯</div>
-    <h1 style="color:var(--gold)">You're In!</h1>
-    <div class="tag">${{ tag }}</div>
-    <p class="sub">Your Shotgun Bank account is <strong style="color:#4ade80">LIVE</strong>. Load your account, send money, and unlock the V.</p>
-    <a href="/bank" class="btn">🎯 Go to My Account</a>
-  {% else %}
-    <div class="icon">⏳</div>
-    <h1>Almost There</h1>
-    <div class="tag">${{ tag }}</div>
-    <p class="sub">Stripe is finishing up your verification. You'll get an email the second you're approved — usually within minutes.</p>
-    <a href="/bank" class="btn btn-ghost">Check Status</a>
-  {% endif %}
+  <h1>Verify Your Identity</h1>
+  <p class="sub">Stripe securely verifies your card to activate your Shotgun Bank account. Your card will <strong>not</strong> be charged.</p>
+
+  <div class="step-bar">
+    <div class="step done"></div>
+    <div class="step done"></div>
+    <div class="step active"></div>
+  </div>
+
+  <div class="label">Card Details</div>
+  <div id="card-element"></div>
+  <div id="card-errors"></div>
+
+  <button class="btn" id="verifyBtn" onclick="verifyCard()">🔐 Verify & Activate Account</button>
+
+  <div class="spinner" id="spinner">⏳ Stripe is verifying your identity…</div>
+
+  <div class="security-note">
+    <span>🔒</span>
+    <div>256-bit SSL encrypted. Card info goes directly to Stripe — never stored on our servers. We use this to confirm you're a real person.</div>
+  </div>
 </div>
+
+<script>
+const CLIENT_SECRET = "{{ client_secret }}";
+const PK = "{{ publishable_key }}";
+const ACCOUNT_ID = "{{ account_id }}";
+const TAG = "{{ tag }}";
+
+const stripe = Stripe(PK);
+const elements = stripe.elements();
+const cardEl = elements.create("card", {
+  style: {
+    base: {
+      color: "#f0fdf4",
+      fontFamily: "Segoe UI, sans-serif",
+      fontSize: "16px",
+      "::placeholder": { color: "#6b7280" },
+      iconColor: "#eab308",
+    },
+    invalid: { color: "#f87171" }
+  }
+});
+cardEl.mount("#card-element");
+cardEl.on("change", e => {
+  document.getElementById("card-errors").textContent = e.error ? e.error.message : "";
+});
+
+async function verifyCard(){
+  const btn = document.getElementById("verifyBtn");
+  const spinner = document.getElementById("spinner");
+  btn.disabled = true;
+  btn.textContent = "Verifying…";
+  spinner.style.display = "block";
+
+  const {setupIntent, error} = await stripe.confirmCardSetup(CLIENT_SECRET, {
+    payment_method: { card: cardEl }
+  });
+
+  if(error){
+    document.getElementById("card-errors").textContent = error.message;
+    btn.disabled = false;
+    btn.textContent = "🔐 Verify & Activate Account";
+    spinner.style.display = "none";
+    return;
+  }
+
+  // Stripe approved — poll for account status
+  btn.textContent = "✅ Verified! Activating…";
+  await pollForApproval();
+}
+
+async function pollForApproval(tries=0){
+  if(tries > 12){ 
+    // Timeout — still redirect with pending message
+    window.location.href = "/verify/complete?tag="+TAG+"&status=pending";
+    return;
+  }
+  await new Promise(r=>setTimeout(r,2500));
+  try{
+    const r = await fetch("/api/login-status?account_id="+ACCOUNT_ID);
+    const d = await r.json();
+    if(d.status === "approved"){
+      window.location.href = "/verify/complete?tag="+TAG+"&status=approved";
+    } else {
+      pollForApproval(tries+1);
+    }
+  } catch(e){ pollForApproval(tries+1); }
+}
+</script>
 </body>
 </html>
