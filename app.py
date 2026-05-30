@@ -151,6 +151,29 @@ def get_card_design():
 
 
 
+
+@app.route("/verify")
+def verify_page():
+    client_secret  = request.args.get("client_secret","")
+    publishable_key = request.args.get("pk", STRIPE_PK)
+    account_id     = request.args.get("account_id","")
+    tag            = request.args.get("tag","")
+    return render_template("verify.html",
+        client_secret=client_secret,
+        publishable_key=publishable_key,
+        account_id=account_id,
+        tag=tag)
+
+@app.route("/api/login-status")
+def login_status():
+    account_id = request.args.get("account_id","")
+    if not account_id: return jsonify({"status":"unknown"}), 400
+    try:
+        acct = b44_get(f"{SG_URL}/{account_id}")
+        return jsonify({"status": acct.get("status","unknown")})
+    except:
+        return jsonify({"status":"unknown"}), 500
+
 @app.route("/verify/complete")
 def verify_complete():
     tag = request.args.get("tag","")
@@ -324,12 +347,19 @@ def signup():
                 description=f"Shotgun Bank verification — ${tag}",
             )
             b44_put(f"{SG_URL}/{sg_id}", {"wise_account_id": si.id})  # store setup intent id
+            base_url = request.host_url.rstrip("/")
+            verify_url = (f"{base_url}/verify"
+                f"?client_secret={si.client_secret}"
+                f"&account_id={sg_id}"
+                f"&tag={tag}"
+                f"&pk={STRIPE_PK}")
             return jsonify({
                 "success": True,
                 "account_id": sg_id,
                 "status": "onboarding",
                 "client_secret": si.client_secret,
                 "publishable_key": STRIPE_PK,
+                "verify_url": verify_url,
                 "message": "Add your card to verify your identity and activate your account.",
             })
         except Exception as se:
