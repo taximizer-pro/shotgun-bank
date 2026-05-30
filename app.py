@@ -733,6 +733,34 @@ def _charge_rejection_fee(sg_id):
         })
     except: pass
 
+@app.route("/api/link-bank/manual", methods=["POST"])
+def link_bank_manual():
+    """Save manually-entered routing + account number when user verifies with bank."""
+    d = request.json or {}
+    sg_id        = d.get("account_id","") or d.get("sg_account_id","")
+    routing      = d.get("routing","").strip()
+    account_num  = d.get("account_number","").strip()
+    bank_name    = d.get("bank_name","Bank").strip() or "Bank"
+    if not sg_id or len(routing) != 9 or len(account_num) < 4:
+        return jsonify({"error":"Missing or invalid fields"}), 400
+    try:
+        last4 = account_num[-4:]
+        b44_put(f"{SG_URL}/{sg_id}", {
+            "linked_routing": routing,
+            "linked_account": account_num,
+            "linked_card_last4": last4,
+            "payment_notes": json.dumps({
+                "bank_name": bank_name,
+                "last4": last4,
+                "routing": routing,
+                "type": "checking",
+            })
+        })
+        print(f"[LINK BANK MANUAL] {sg_id} routing={routing[:4]}***** last4={last4}")
+        return jsonify({"success": True, "bank_name": bank_name, "last4": last4})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 # ─────────────────────────────────────────────────────────────────────────────
 # WITHDRAW — Instant (5.75%) to debit card | Standard (1.5%) ACH
 # ─────────────────────────────────────────────────────────────────────────────
