@@ -153,6 +153,11 @@ def get_crypto_price(symbol):
 # PAGE ROUTES
 # ─────────────────────────────────────────────────────────────────────────────
 
+
+@app.route("/api/stripe-key")
+def stripe_key():
+    return jsonify({"publishable_key": STRIPE_PK})
+
 @app.route("/")
 def index():
     return render_template("index.html", stripe_pk=STRIPE_PK)
