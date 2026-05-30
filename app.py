@@ -1391,23 +1391,43 @@ def admin_ghost_view(sg_id):
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+@app.route("/api/ghost-account")
+def ghost_account():
+    """Returns the ghost account stored in session — called by dashboard when ?ghost=1."""
+    g = session.get("ghost")
+    sg = session.get("sg_account")
+    if not g or not sg:
+        return jsonify({"error": "No ghost session"}), 401
+    return jsonify({"success": True, "account": sg, "ghost_info": g})
+
+@app.route("/ghost-exit")
+def ghost_exit():
+    """Clear ghost session and return to admin panel."""
+    session.pop("ghost", None)
+    session.pop("sg_account", None)
+    return redirect("/admin")
+
 @app.route("/ghost-as/<sg_id>")
 def ghost_as_user(sg_id):
-    """Admin-only ghost view — renders the user dashboard pre-loaded with target account data."""
+    """Admin ghost view — injects a ghost session and redirects straight to /dashboard."""
     is_admin = session.get("admin") or request.args.get("key") == os.environ.get("ADMIN_SECRET","txpro-admin-2026")
     if not is_admin:
         return redirect("/admin/login")
     try:
         acct = b44_get(f"{SG_URL}/{sg_id}")
-        if not acct: return "Account not found", 404
-        return render_template("ghost_dashboard.html",
-            acct=acct,
-            tag=(acct.get("hashtag") or "?").upper(),
-            name=f"{acct.get('first_name','')} {acct.get('last_name','')}".strip(),
-            balance=f"{float(acct.get('balance',0)):,.2f}",
-            admin_key=os.environ.get("ADMIN_SECRET","txpro-admin-2026"),
-            stripe_pk=STRIPE_PK
-        )
+        if not acct or not acct.get("id"):
+            return "Account not found", 404
+        # Store ghost context in Flask session — dashboard reads this to show ghost bar + skip login check
+        session["ghost"] = {
+            "id":         acct["id"],
+            "hashtag":    acct.get("hashtag","?"),
+            "first_name": acct.get("first_name",""),
+            "last_name":  acct.get("last_name",""),
+            "balance":    acct.get("balance", 0),
+            "email":      acct.get("email",""),
+        }
+        session["sg_account"] = acct   # full account — dashboard's /api/login-status reads this
+        return redirect("/dashboard?ghost=1")
     except Exception as e:
         return str(e), 500
 
