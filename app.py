@@ -376,7 +376,7 @@ def demo_signup():
         if get_acct_by_email(email):
             return jsonify({"error": "An account with that email already exists"}), 409
 
-        pw_hash  = hashlib.sha256(pw.encode()).hexdigest()
+        pw_hash  = hash_password(pw)
         pin_hash = hash_pin(pin)
 
         # Create account — status=pending (Stripe skipped)
@@ -502,8 +502,7 @@ def login():
         if acct.get("pin_hash") != hash_pin(pin):
             return jsonify({"error": "Incorrect PIN"}), 401
         stored_pw = acct.get("password_hash","")
-        import hashlib as _hl
-        if stored_pw and stored_pw != _hl.sha256(password.encode()).hexdigest():
+        if stored_pw and not verify_password(password, stored_pw):
             return jsonify({"error": "Incorrect password"}), 401
         # Credentials OK — generate + send 2FA OTP
         acct_id = acct["id"]
