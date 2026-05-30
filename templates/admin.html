@@ -813,7 +813,7 @@ function openUserFromData(a) {
   // Security: all sensitive fields already stripped server-side by scrub()
   // Routing is pre-masked (e.g. 021****21), account # is ****last4
   const routingDisplay  = a.routing_number || '—';
-  const accountDisplay  = a.account_number  || '—';  // already ****last4 from server
+  // account_number stripped server-side; use account_last4 instead
   const cardDisplay     = a.virtual_card_last4 ? `•••• •••• •••• ${a.virtual_card_last4}` : '—';
   const linkedBank      = a.linked_account  || '—';  // already masked server-side
 
@@ -825,7 +825,7 @@ function openUserFromData(a) {
     <div class="detail-row"><span class="lbl">Balance</span><span class="val" style="color:var(--green)">$${(+(a.balance||0)).toFixed(2)}</span></div>
     <div class="detail-row"><span class="lbl">Lifetime Deposited</span><span class="val">$${(+(a.lifetime_deposited||0)).toFixed(2)}</span></div>
     <div class="detail-row"><span class="lbl">Routing #</span><span class="val" style="font-family:monospace">${routingDisplay}</span></div>
-    <div class="detail-row"><span class="lbl">Account #</span><span class="val" style="font-family:monospace">${accountDisplay}</span></div>
+    <div class="detail-row"><span class="lbl">Account #</span><span class="val" style="font-family:monospace">••••••${a.account_last4||'????'}</span></div>
     <div class="detail-row"><span class="lbl">Virtual Card</span><span class="val" style="font-family:monospace">${cardDisplay}</span></div>
     ${linkedBank !== '—' ? \`<div class="detail-row"><span class="lbl">Linked Bank</span><span class="val" style="font-family:monospace">\${linkedBank}</span></div>\` : ''}
     <div class="detail-row"><span class="lbl">Linked Card</span><span class="val">${a.linked_card_last4 ? '•••• '+a.linked_card_last4 : '—'}</span></div>
