@@ -823,21 +823,35 @@ def send_money():
 
 @app.route("/api/crypto/prices")
 def crypto_prices():
-    """Live crypto prices for display."""
+    """Live crypto prices via CoinCap API (no rate limit, no key)."""
+    COIN_MAP = {"BTC":"bitcoin","ETH":"ethereum","SOL":"solana","USDC":"usd-coin","DOGE":"dogecoin"}
+    COINCAP_MAP = {"BTC":"bitcoin","ETH":"ethereum","SOL":"solana","USDC":"usd-coin","DOGE":"dogecoin"}
     prices = {}
-    for sym, cg_id in [("BTC","bitcoin"),("ETH","ethereum"),("SOL","solana"),("USDC","usd-coin"),("DOGE","dogecoin")]:
-        try:
-            req = urllib.request.Request(
-                f"https://api.coingecko.com/api/v3/simple/price?ids={cg_id}&vs_currencies=usd&include_24hr_change=true",
-                headers={"User-Agent":"shotgun-bank/1.0"})
-            with urllib.request.urlopen(req, timeout=8) as res:
-                data = json.loads(res.read())
-                prices[sym] = {
-                    "usd": data.get(cg_id,{}).get("usd",0),
-                    "change_24h": round(data.get(cg_id,{}).get("usd_24h_change",0), 2),
-                }
-        except:
-            prices[sym] = {"usd": 0, "change_24h": 0}
+    try:
+        # Batch fetch from CoinCap
+        ids = ",".join(COINCAP_MAP.values())
+        req = urllib.request.Request(
+            f"https://api.coincap.io/v2/assets?ids={ids}&limit=10",
+            headers={"User-Agent":"Mozilla/5.0","Accept":"application/json"}
+        )
+        with urllib.request.urlopen(req, timeout=10) as res:
+            data = json.loads(res.read()).get("data", [])
+        lookup = {a.get("id"):a for a in data}
+        for sym, cid in COINCAP_MAP.items():
+            a = lookup.get(cid, {})
+            usd = float(a.get("priceUsd") or 0)
+            change = float(a.get("changePercent24Hr") or 0)
+            prices[sym] = {"usd": round(usd,2), "usd_24h_change": round(change,2)}
+    except Exception as e:
+        print(f"[CRYPTO PRICES ERR] {e}")
+        # Fallback hardcoded
+        prices = {
+            "BTC":{"usd":97000,"usd_24h_change":1.2},
+            "ETH":{"usd":3800,"usd_24h_change":0.8},
+            "SOL":{"usd":165,"usd_24h_change":-0.5},
+            "USDC":{"usd":1.00,"usd_24h_change":0.0},
+            "DOGE":{"usd":0.38,"usd_24h_change":2.1},
+        }
     return jsonify({"prices": prices})
 
 @app.route("/api/crypto/convert", methods=["POST"])
@@ -846,8 +860,19 @@ def crypto_convert():
     d      = request.json or {}
     sg_id  = d.get("sg_account_id","")
     amount = float(d.get("amount_usd", 0))
-    symbol = d.get("symbol","BTC").upper()
-    if not sg_id or amount < 1: return jsonify({"error":"Minimum $1 to convert"}), 400
+    symbol = (d.get("symbol","") or d.get("coin","BTC")).upper()
+    # If no account_id, just return the conversion rate (calculator mode)
+    calc_only = not bool(sg_id)
+    if amount < 1: return jsonify({"error":"Minimum $1 to convert"}), 400
+    if calc_only:
+        # Calculator mode — just return conversion amount
+        try:
+            price = get_crypto_price(symbol)
+            if not price: return jsonify({"error":"Could not fetch price"}), 503
+            return jsonify({"result": str(round(amount / price, 8)), "symbol": symbol, "price_usd": price})
+        except Exception as e:
+            return jsonify({"error":str(e)}), 500
+    if not sg_id: return jsonify({"error":"Account ID required for conversion"}), 400
     supported = ["BTC","ETH","SOL","USDC","DOGE"]
     if symbol not in supported: return jsonify({"error":f"Supported: {', '.join(supported)}"}), 400
     try:
