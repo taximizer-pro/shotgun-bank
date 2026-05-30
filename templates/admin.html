@@ -7,17 +7,25 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;font-family:'Inter',sans-serif;}
-  /* ── AI ICON WHITE-BG REMOVAL ── */
-  img[src*="generated_image"] {
+  /* ── ICON WHITE-BG FIX ── */
+  /* Remove white box baked into AI-generated PNGs — screen blend makes white transparent on dark bg */
+  img[src*="generated_image"],
+  img[src*="base44.app/api/apps"][src*="clean.png"],
+  img[src*="base44.app/api/apps"][src*="generated"] {
     mix-blend-mode: screen;
-    background: transparent;
+    background: transparent !important;
+    border: none !important;
+    outline: none !important;
+    box-shadow: none !important;
   }
-  /* Exception: card brand logos (Visa/MC/Amex/Discover) — keep their own colors */
-  img.vc-visa,
-  img[alt="visa"], img[alt="mastercard"], img[alt="amex"], img[alt="discover"],
-  #walletCardBrandLogo {
-    mix-blend-mode: normal;
+  /* Exempt: real logos, card brands, wallet card image — keep normal rendering */
+  img[src*="shotgun_bank_REAL_logo"],
+  img[src*="50205b368"],
+  img#walletCardBg,
+  img[alt="visa"], img[alt="mastercard"], img[alt="amex"], img[alt="discover"] {
+    mix-blend-mode: normal !important;
   }
+
 
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 :root{--bg:#0a2218;--bg2:#0f2e1e;--bg3:#153d28;--green:#16a34a;--gold:#eab308;--red:#ef4444;--text:#f0fdf4;--muted:#6b7280;--border:#1f4d33;}
