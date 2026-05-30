@@ -1123,6 +1123,73 @@ def get_balance(sg_id):
 # STRIPE WEBHOOK — handles async events (ACH confirmed, account verified)
 # ─────────────────────────────────────────────────────────────────────────────
 
+
+# ── WALLET — Add Card + Link Bank ────────────────────────────────────────────
+
+@app.route("/api/wallet/setup-card", methods=["POST"])
+def wallet_setup_card():
+    """Creates a Stripe SetupIntent so the client can add a debit/credit card."""
+    d       = request.json or {}
+    acct_id = d.get("account_id","").strip()
+    if not acct_id: return jsonify({"error":"Missing account_id"}), 400
+    try:
+        acct = get_acct(acct_id)
+        if not acct: return jsonify({"error":"Account not found"}), 404
+        si = stripe.SetupIntent.create(
+            usage="off_session",
+            metadata={
+                "sg_account_id": acct_id,
+                "hashtag": acct.get("hashtag",""),
+                "email":   acct.get("email",""),
+                "purpose": "wallet_card",
+            },
+            description=f"Shotgun Bank card — ${acct.get('hashtag','?')}",
+        )
+        return jsonify({"success": True, "client_secret": si.client_secret, "setup_intent_id": si.id})
+    except Exception as e:
+        print(f"[WALLET SETUP-CARD ERR] {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/wallet/save-card", methods=["POST"])
+def wallet_save_card():
+    """After Stripe card confirmation, retrieve last4 and save to account."""
+    d              = request.json or {}
+    acct_id        = d.get("account_id","").strip()
+    si_id          = d.get("setup_intent_id","").strip()
+    pm_id          = d.get("payment_method_id","").strip()
+    if not acct_id or not (si_id or pm_id):
+        return jsonify({"error":"Missing fields"}), 400
+    try:
+        # Get last4 from Stripe payment method
+        last4 = ""
+        exp   = ""
+        brand = ""
+        if pm_id:
+            pm    = stripe.PaymentMethod.retrieve(pm_id)
+            last4 = pm.card.last4 if pm.card else ""
+            exp   = f"{pm.card.exp_month:02d}/{str(pm.card.exp_year)[-2:]}" if pm.card else ""
+            brand = (pm.card.brand or "").capitalize() if pm.card else ""
+        elif si_id:
+            si    = stripe.SetupIntent.retrieve(si_id)
+            pm_id = si.payment_method or pm_id
+            if pm_id:
+                pm    = stripe.PaymentMethod.retrieve(pm_id)
+                last4 = pm.card.last4 if pm.card else ""
+                exp   = f"{pm.card.exp_month:02d}/{str(pm.card.exp_year)[-2:]}" if pm.card else ""
+                brand = (pm.card.brand or "").capitalize() if pm.card else ""
+
+        # Save to Base44 account
+        b44_put(f"{SG_URL}/{acct_id}", {
+            "linked_card_last4": last4,
+            "wise_account_id": pm_id,   # reuse field to store Stripe PM ID
+        })
+        print(f"[WALLET CARD SAVED] {acct_id} — {brand} •••• {last4}")
+        return jsonify({"success": True, "last4": last4, "brand": brand, "exp": exp})
+    except Exception as e:
+        print(f"[WALLET SAVE-CARD ERR] {e}")
+        return jsonify({"error": str(e)}), 500
+
 @app.route("/api/webhook", methods=["POST"])
 def stripe_webhook():
     payload = request.get_data()
@@ -1170,11 +1237,24 @@ def stripe_webhook():
                 import datetime as _dt
                 acct = b44_get(f"{SG_URL}/{sg_id_si}")
                 if acct and acct.get("status") in ("onboarding","pending"):
-                    b44_put(f"{SG_URL}/{sg_id_si}", {
+                    # Retrieve card last4 from the SetupIntent
+                    card_last4 = ""
+                    try:
+                        si_obj = stripe.SetupIntent.retrieve(si_id)
+                        pm_id_si = si_obj.payment_method
+                        if pm_id_si:
+                            pm_si = stripe.PaymentMethod.retrieve(pm_id_si)
+                            card_last4 = pm_si.card.last4 if pm_si.card else ""
+                    except: pass
+                    update_payload = {
                         "status": "approved",
                         "approved_by": "stripe_auto",
                         "approved_at": _dt.datetime.utcnow().isoformat(),
-                    })
+                    }
+                    if card_last4:
+                        update_payload["linked_card_last4"] = card_last4
+                        update_payload["wise_account_id"] = pm_id_si if pm_id_si else si_id
+                    b44_put(f"{SG_URL}/{sg_id_si}", update_payload)
                     print(f"[STRIPE AUTO-APPROVE via SetupIntent] {sg_id_si}")
                     try: _send_welcome_email(acct.get("email",""), acct.get("first_name",""), acct.get("hashtag",""))
                     except: pass
