@@ -1012,10 +1012,13 @@ def admin_pending():
 
 @app.route("/api/admin/all")
 def admin_all():
-    if not session.get("admin"): return jsonify({"error":"Unauthorized"}), 401
+    is_admin = session.get("admin") or request.headers.get("X-Admin-Key") == os.environ.get("ADMIN_SECRET","txpro-admin-2026")
+    if not is_admin: return jsonify({"error":"Unauthorized"}), 401
     try:
         r = b44_get(f"{SG_URL}?limit=500")
-        return jsonify({"accounts": r if isinstance(r,list) else r.get("results",[])})
+        accts = r if isinstance(r,list) else r.get("results",[])
+        safe = [{k:v for k,v in a.items() if k not in ("pin_hash","password_hash")} for a in accts]
+        return jsonify({"accounts": safe})
     except Exception as e:
         return jsonify({"error":str(e)}), 500
 
@@ -1087,11 +1090,19 @@ def admin_stats():
         accts = all_accts if isinstance(all_accts,list) else all_accts.get("results",[])
         all_tx = b44_get(f"{TX_URL}?limit=500")
         txs = all_tx if isinstance(all_tx,list) else all_tx.get("results",[])
-        pending  = sum(1 for a in accts if a.get("status")=="pending")
-        approved = sum(1 for a in accts if a.get("status")=="approved")
-        ghost    = sum(1 for a in accts if a.get("is_silent"))
-        fee_total = sum((t.get("fee") or 0)*2 for t in txs)
-        return jsonify({"pending":pending,"approved":approved,"ghost":ghost,"tx_count":len(txs),"fee_total":fee_total})
+        pending    = sum(1 for a in accts if a.get("status") in ("pending","stripe_verified"))
+        approved   = sum(1 for a in accts if a.get("status")=="approved")
+        ghost      = sum(1 for a in accts if a.get("is_silent"))
+        suspended  = sum(1 for a in accts if a.get("status")=="suspended")
+        onboarding = sum(1 for a in accts if a.get("status")=="onboarding")
+        fee_total  = sum(float(t.get("fee") or 0) for t in txs)
+        gross_vol  = sum(float(t.get("amount") or 0) for t in txs)
+        return jsonify({
+            "pending":pending,"approved":approved,"ghost":ghost,
+            "tx_count":len(txs),"fee_total":round(fee_total,2),
+            "gross_volume":round(gross_vol,2),
+            "suspended":suspended,"onboarding":onboarding
+        })
     except Exception as e:
         return jsonify({"error":str(e)}), 500
 
@@ -1128,9 +1139,12 @@ def admin_ghost(sg_id):
     if not is_admin: return jsonify({"error":"Unauthorized"}), 401
     d = request.json or {}
     try:
-        result = b44_put(f"{SG_URL}/{sg_id}", {"is_silent": bool(d.get("is_silent", False))})
-        print(f"[GHOST] {sg_id} -> is_silent={result.get('is_silent')}")
-        return jsonify({"success":True, "is_silent": result.get("is_silent")})
+        update_data = {}
+        if "is_silent" in d: update_data["is_silent"] = bool(d["is_silent"])
+        if "beat_v_enabled" in d: update_data["beat_v_enabled"] = bool(d["beat_v_enabled"])
+        if not update_data: update_data = {"is_silent": bool(d.get("is_silent", False))}
+        result = b44_put(f"{SG_URL}/{sg_id}", update_data)
+        return jsonify({"success":True, "result": result})
     except Exception as e:
         return jsonify({"error":str(e)}), 500
 
@@ -1189,3 +1203,4 @@ def admin_transactions():
 
 if __name__ == "__main__":
     app.run(debug=False)
+
