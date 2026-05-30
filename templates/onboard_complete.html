@@ -1,19 +1,43 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Verification Complete — Shotgun Bank</title>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;800;900&display=swap" rel="stylesheet">
-<style>*{margin:0;padding:0;box-sizing:border-box;}body{background:#07070f;color:#f1f5f9;font-family:'Inter',sans-serif;min-height:100vh;display:flex;align-items:center;justify-content:center;text-align:center;padding:40px 24px;}
-.icon{font-size:72px;margin-bottom:20px;}h1{font-size:26px;font-weight:900;margin-bottom:10px;}p{font-size:14px;color:#94a3b8;line-height:1.7;max-width:320px;margin:0 auto 28px;}
-.btn{display:inline-block;padding:15px 36px;background:linear-gradient(135deg,#e94560,#c0392b);border-radius:14px;color:#fff;font-size:15px;font-weight:800;text-decoration:none;}</style>
+<head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<title>Shotgun Bank — Verification Complete</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box;font-family:'Inter',sans-serif;}
+  
+  :root {
+    --bg:      #0a2218;
+    --bg2:     #071a12;
+    --card:    #0f2e1c;
+    --border:  rgba(255,255,255,0.08);
+    --green:   #16a34a;
+    --green2:  #22c55e;
+    --gold:    #eab308;
+    --gold2:   #fbbf24;
+    --text:    #ffffff;
+    --muted:   rgba(255,255,255,0.45);
+    --danger:  #ef4444;
+  }
+
+  body{min-height:100vh;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;text-align:center;}
+  .logo{width:120px;height:120px;object-fit:contain;filter:drop-shadow(0 8px 28px rgba(34,197,94,0.4));margin-bottom:24px;}
+  .check{font-size:64px;margin-bottom:16px;}
+  h1{color:var(--text);font-size:26px;font-weight:900;margin-bottom:10px;}
+  p{color:var(--muted);font-size:14px;line-height:1.7;max-width:340px;margin-bottom:32px;}
+  .hashtag{color:var(--green2);font-weight:800;font-size:18px;}
+  .btn{background:var(--green);color:#fff;border:none;border-radius:12px;padding:16px 40px;font-size:16px;font-weight:800;cursor:pointer;text-decoration:none;display:inline-block;letter-spacing:0.5px;transition:background 0.2s;}
+  .btn:hover{background:#15803d;}
+  .note{color:var(--muted);font-size:11px;margin-top:20px;}
+</style>
 </head>
 <body>
-<div>
-  <div class="icon">🎯</div>
-  <h1>Verification Submitted!</h1>
-  <p>Stripe has received your information. Once verified and approved by the Shotgun team, you'll receive an email to complete your setup.</p>
-  <a href="/" class="btn">Back to Shotgun →</a>
-</div>
+  <img src="https://base44.app/api/apps/6a14ef767988d1ef0baff5aa/files/mp/public/6a14ef767988d1ef0baff5aa/7a46af0fc_shotgun_bank_REAL_logo.png" class="logo" alt="Shotgun Bank" onerror="this.style.display='none'">
+  <div class="check">🎯</div>
+  <h1>You're In!</h1>
+  <p>Identity verified. Your Shotgun Bank account <span class="hashtag">#{{ tag }}</span> is being reviewed — you'll receive an email once approved.</p>
+  <a href="/" class="btn">Go to Sign In</a>
+  <p class="note">Questions? support@shotgunbank.com · Bisignano Holdings LLC</p>
 </body>
 </html>
