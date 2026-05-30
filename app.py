@@ -3,6 +3,13 @@ from email.mime.text import MIMEText
 from flask import Flask, request, jsonify, session, redirect, render_template, render_template_string
 import stripe
 
+# ── BCRYPT (optional — fallback to sha256 if not available) ───────────────
+try:
+    import bcrypt as _bcrypt
+    _BCRYPT_OK = True
+except ImportError:
+    _BCRYPT_OK = False
+
 app = Flask(__name__)
 app.secret_key = os.environ.get("FLASK_SECRET", secrets.token_hex(32))
 
