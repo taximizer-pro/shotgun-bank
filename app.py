@@ -395,7 +395,6 @@ def demo_signup():
             return jsonify({"error": "An account with that email already exists"}), 409
 
         pw_hash  = hash_password(pw)
-        pin_hash = hash_pin(pin)
 
         # Create account — status=pending (Stripe skipped)
         saved = b44_post(SG_URL, {
@@ -434,8 +433,6 @@ def signup():
 
     if not all([first, last, email, tag, pin, pw]):
         return jsonify({"error": "All fields required"}), 400
-    if len(pin) != 6 or not pin.isdigit():
-        return jsonify({"error": "PIN must be exactly 6 digits"}), 400
     if len(pw) < 6:
         return jsonify({"error": "Password must be at least 6 characters"}), 400
 
@@ -479,7 +476,6 @@ def signup():
         virtual_exp = f"{exp_month:02d}/{str(exp_year)[2:]}"
 
         pw_hash  = hash_password(pw)
-        pin_hash = hash_pin(pin)
 
         # ── Step 1: Create Stripe Customer (auto, no redirect) ───────────────
         stripe_customer_id = ""
@@ -514,7 +510,6 @@ def signup():
             "phone": phone,
             "hashtag": tag,
             "dob": dob,
-            "pin_hash": pin_hash,
             "password_hash": pw_hash,
             "status": "pending",
             "balance": 0.0,
