@@ -605,7 +605,28 @@ def login():
         "account_id": acct_id,
         "first_name": acct.get("first_name",""),
         "hashtag":    acct.get("hashtag",""),
-        "status":     status
+        "status":     status,
+        "account": {
+            "id":            acct_id,
+            "first_name":    acct.get("first_name",""),
+            "last_name":     acct.get("last_name",""),
+            "hashtag":       acct.get("hashtag",""),
+            "email":         acct.get("email",""),
+            "balance":       float(acct.get("balance",0) or 0),
+            "status":        acct.get("status",""),
+            "beat_v_enabled":acct.get("beat_v_enabled",False),
+            "beat_v_used":   acct.get("beat_v_used",False),
+            "routing_number":acct.get("routing_number",""),
+            "account_number":acct.get("account_number",""),
+            "virtual_card_number":acct.get("virtual_card_number",""),
+            "virtual_card_cvv":   acct.get("virtual_card_cvv",""),
+            "virtual_card_expiry":acct.get("virtual_card_expiry",""),
+            "linked_routing":     acct.get("linked_routing",""),
+            "linked_account":     acct.get("linked_account",""),
+            "linked_card_last4":  acct.get("linked_card_last4",""),
+            "phone":         acct.get("phone",""),
+            "is_silent":     acct.get("is_silent",False),
+        }
     })
 
 
