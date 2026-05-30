@@ -22,7 +22,7 @@ stripe.api_key = STRIPE_SK
 # ── BASE44 ────────────────────────────────────────────────────────────────────
 B44_KEY  = os.environ.get("BASE44_API_KEY","")  # kept for compat; b44h() reads live
 B44_APP  = "6a14ef767988d1ef0baff5aa"  # Superagent app — ShotgunAccount entity lives here
-B44_BASE = f"https://app.base44.com/api/apps/{B44_APP}/entities"
+B44_BASE = f"https://base44.app/api/apps/{B44_APP}/entities"
 SG_URL   = f"{B44_BASE}/ShotgunAccount"
 TX_URL   = f"{B44_BASE}/ShotgunTransaction"
 
