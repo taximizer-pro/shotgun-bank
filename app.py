@@ -567,6 +567,52 @@ def signup():
         return jsonify({"error": str(e)}), 500
 
 
+
+@app.route("/api/login-pin", methods=["POST"])
+def login_pin():
+    """Step 2 of login — verify PIN, then issue 2FA or session."""
+    d          = request.json or {}
+    acct_id    = d.get("account_id","").strip()
+    pin_input  = d.get("pin","").strip()
+
+    if not acct_id or not pin_input:
+        return jsonify({"error":"Missing fields"}), 400
+
+    acct = get_acct(acct_id)
+    if not acct:
+        return jsonify({"error":"Account not found"}), 404
+
+    if not check_pin(pin_input, acct.get("pin_hash","")):
+        return jsonify({"error":"Incorrect PIN. Try again."}), 401
+
+    email = acct.get("email","")
+    gmail_token = os.environ.get("GMAIL_ACCESS_TOKEN","")
+
+    if gmail_token and email and "@" in email:
+        code    = str(__import__('random').randint(100000,999999))
+        expires = int(time.time()) + OTP_TTL
+        _otp_store[acct_id] = {"code": code, "expires": expires, "email": email}
+        try:
+            b44_put(f"{SG_URL}/{acct_id}", {"otp_code": code, "otp_expires": expires})
+        except: pass
+        try:
+            send_otp_email(email, code, acct.get("first_name",""))
+            masked = email[:2] + "***@" + email.split("@")[-1] if "@" in email else email
+            return jsonify({"requires_2fa": True, "account_id": acct_id, "email_masked": masked})
+        except Exception as e:
+            print(f"[2FA EMAIL ERR] {e}")
+
+    # No 2FA — log in directly
+    session.permanent = True
+    session["account_id"] = acct_id
+    return jsonify({
+        "success":    True,
+        "account_id": acct_id,
+        "first_name": acct.get("first_name",""),
+        "hashtag":    acct.get("hashtag",""),
+        "status":     acct.get("status","")
+    })
+
 @app.route("/api/login", methods=["POST"])
 def login():
     d          = request.json or {}
