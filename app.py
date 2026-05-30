@@ -36,13 +36,25 @@ def b44h():
 
 def b44_get(url):
     req = urllib.request.Request(url, headers=b44h())
-    with urllib.request.urlopen(req, timeout=20) as r:
-        return json.loads(r.read())
+    req.add_header("User-Agent", "ShotgunBank/1.0")
+    try:
+        with urllib.request.urlopen(req, timeout=20) as r:
+            return json.loads(r.read())
+    except urllib.error.HTTPError as e:
+        body = e.read().decode()
+        print(f"[B44_GET ERROR] {e.code} {url}: {body[:200]}")
+        raise
 
 def b44_post(url, data):
     req = urllib.request.Request(url, data=json.dumps(data).encode(), method="POST", headers=b44h())
-    with urllib.request.urlopen(req, timeout=20) as r:
-        return json.loads(r.read())
+    req.add_header("User-Agent", "ShotgunBank/1.0")
+    try:
+        with urllib.request.urlopen(req, timeout=20) as r:
+            return json.loads(r.read())
+    except urllib.error.HTTPError as e:
+        body = e.read().decode()
+        print(f"[B44_POST ERROR] {e.code} {url}: {body[:200]}")
+        raise
 
 def b44_put(url, data):
     req = urllib.request.Request(url, data=json.dumps(data).encode(), method="PUT", headers=b44h())
