@@ -1282,6 +1282,39 @@ def admin_ghost(sg_id):
     except Exception as e:
         return jsonify({"error":str(e)}), 500
 
+# ── ADMIN: ADJUST BALANCE (credit/debit) ─────────────────────────────────────
+@app.route("/api/admin/balance/<sg_id>", methods=["POST"])
+def admin_balance_adjust(sg_id):
+    is_admin = session.get("admin") or request.headers.get("X-Admin-Key") == os.environ.get("ADMIN_SECRET","txpro-admin-2026")
+    if not is_admin: return jsonify({"error":"Unauthorized"}), 401
+    d = request.json or {}
+    action = d.get("action","credit")  # "credit" | "debit"
+    amount = float(d.get("amount", 0))
+    note   = d.get("note","Admin adjustment")
+    if amount <= 0: return jsonify({"error":"Amount must be positive"}), 400
+    try:
+        acct = b44_get(f"{SG_URL}/{sg_id}")
+        if not acct: return jsonify({"error":"Account not found"}), 404
+        cur_bal = float(acct.get("balance",0))
+        new_bal = round(cur_bal + amount if action=="credit" else cur_bal - amount, 2)
+        if action == "debit" and new_bal < 0:
+            return jsonify({"error":f"Balance would go negative (${cur_bal:.2f} available)"}), 400
+        import datetime as _dt
+        b44_put(f"{SG_URL}/{sg_id}", {"balance": new_bal})
+        b44_post(TX_URL, {
+            "from_account_id": "platform" if action=="credit" else sg_id,
+            "to_account_id":   sg_id if action=="credit" else "platform",
+            "from_hashtag": "platform" if action=="credit" else acct.get("hashtag",""),
+            "to_hashtag":   acct.get("hashtag","") if action=="credit" else "platform",
+            "amount": amount, "fee": 0, "net_amount": amount,
+            "type": f"admin_{action}", "status": "completed",
+            "note": note,
+        })
+        print(f"[ADMIN BALANCE] {sg_id} {action} ${amount} → new bal ${new_bal}")
+        return jsonify({"success":True,"new_balance":new_bal})
+    except Exception as e:
+        return jsonify({"error":str(e)}), 500
+
 # ── ADMIN: SEND SUPPORT MESSAGE ───────────────────────────────────────────────
 @app.route("/api/admin/support-msg", methods=["POST"])
 def admin_support_msg():
