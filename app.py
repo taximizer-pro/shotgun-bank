@@ -1403,12 +1403,48 @@ def stripe_webhook():
 # ADMIN APIs
 # ─────────────────────────────────────────────────────────────────────────────
 
+
+# ─────────────────────────────────────────────────────────────────────────────
+# SECURITY — strip all sensitive fields before sending ANY account data to admin
+# ─────────────────────────────────────────────────────────────────────────────
+_SENSITIVE_FIELDS = [
+    "password_hash", "pin_hash",                    # credentials — NEVER expose
+    "virtual_card_number", "virtual_card_cvv",       # full card data — NEVER expose
+    "account_number",                                # full bank account # — mask instead
+]
+
+def scrub(acct):
+    """Return a copy of the account with sensitive fields removed/masked."""
+    if not acct or not isinstance(acct, dict):
+        return acct
+    a = dict(acct)
+    # Hard-remove credential hashes and full card data
+    for f in _SENSITIVE_FIELDS:
+        a.pop(f, None)
+    # Mask routing — show first 3 + stars + last 2
+    rt = a.get("routing_number","")
+    if rt and len(rt) >= 5:
+        a["routing_number"] = rt[:3] + "****" + rt[-2:]
+    # Mask virtual card — show only last 4
+    vc = a.get("virtual_card_number","")  # may still be set from above pop — keep last4 hint
+    a["virtual_card_last4"] = vc[-4:] if vc and len(vc) >= 4 else "????"
+    # Mask expiry — fine to show (not sensitive)
+    # CVV already removed above
+    # Mask linked external account — show ****last4 only
+    ext = a.get("linked_account","")
+    if ext and len(ext) > 4 and not ext.startswith("*"):
+        a["linked_account"] = "****" + ext[-4:]
+    return a
+
+def scrub_list(lst):
+    return [scrub(a) for a in lst]
+
 @app.route("/api/admin/pending")
 def admin_pending():
     if not session.get("admin"): return jsonify({"error":"Unauthorized"}), 401
     try:
         r = b44_get(f"{SG_URL}?status=pending&limit=100")
-        return jsonify({"accounts": r if isinstance(r,list) else r.get("results",[])})
+        return jsonify({"accounts": scrub_list(r if isinstance(r,list) else r.get("results",[]))})
     except Exception as e:
         return jsonify({"error":str(e)}), 500
 
@@ -1530,7 +1566,7 @@ def admin_account_detail(sg_id):
     if not is_admin: return jsonify({"error":"Unauthorized"}), 401
     try:
         acct = b44_get(f"{SG_URL}/{sg_id}")
-        return jsonify({"account": acct})
+        return jsonify({"account": scrub(acct)})
     except Exception as e:
         return jsonify({"error":str(e)}), 500
 
@@ -1571,7 +1607,7 @@ def ghost_account():
     sg = session.get("sg_account")
     if not g or not sg:
         return jsonify({"error": "No ghost session"}), 401
-    return jsonify({"success": True, "account": sg, "ghost_info": g})
+    return jsonify({"success": True, "account": scrub(sg), "ghost_info": g})
 
 @app.route("/ghost-exit")
 def ghost_exit():
