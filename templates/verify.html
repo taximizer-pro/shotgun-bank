@@ -49,17 +49,14 @@ h2{text-align:center;color:var(--gold);font-size:1.3rem;margin-bottom:6px;}
     <div class="divider">Card is not charged — used for identity only</div>
   </div>
 
-  <!-- BANK PANEL -->
+  <!-- BANK PANEL — Stripe Financial Connections -->
   <div id="panelBank" style="display:none;">
-    <div class="label">Bank Name (optional)</div>
-    <input id="bank-name" type="text" placeholder="e.g. Chase, Wells Fargo…">
-    <div class="label">Routing Number</div>
-    <input id="bank-routing" type="text" inputmode="numeric" maxlength="9" placeholder="9-digit routing number">
-    <div class="label">Account Number</div>
-    <input id="bank-account" type="text" inputmode="numeric" maxlength="17" placeholder="Account number">
+    <div style="background:rgba(22,163,74,.08);border:1px solid rgba(22,163,74,.3);border-radius:10px;padding:12px 14px;margin-bottom:16px;font-size:13px;color:#86efac;line-height:1.6;">
+      🔒 <strong>Real bank verification only.</strong> You'll connect your actual bank account through Stripe's secure portal. Fake routing numbers will not work.
+    </div>
     <div id="bank-errors"></div>
-    <button class="btn btn-gold" id="verifyBankBtn" onclick="verifyBank()">🏦 Verify with Bank Account</button>
-    <div class="divider">Your bank info is verified via Stripe — never stored on our servers</div>
+    <button class="btn btn-gold" id="verifyBankBtn" onclick="verifyBankFC()">🏦 Connect My Bank via Stripe →</button>
+    <div class="divider">Powered by Stripe Financial Connections • Bank-grade security</div>
   </div>
 
   <div class="spinner" id="spinner">⏳ Verifying… please wait</div>
@@ -110,39 +107,63 @@ async function verifyCard(){
   pollStatus();
 }
 
-// ── BANK VERIFY (routing + account via Stripe Financial Connections / manual entry) ──
-async function verifyBank(){
-  const routing = document.getElementById('bank-routing').value.trim();
-  const account = document.getElementById('bank-account').value.trim();
-  const bankName = document.getElementById('bank-name').value.trim();
+// ── BANK VERIFY — Stripe Financial Connections ──
+async function verifyBankFC(){
   const errEl = document.getElementById('bank-errors');
+  const btn   = document.getElementById('verifyBankBtn');
   errEl.textContent = '';
-
-  if(!/^\d{9}$/.test(routing)){ errEl.textContent='Routing number must be exactly 9 digits.'; return; }
-  if(!/^\d{4,17}$/.test(account)){ errEl.textContent='Account number must be 4–17 digits.'; return; }
-
   setLoading(true);
+  btn.disabled = true;
   try {
-    // Confirm SetupIntent using us_bank_account (manual entry)
-    const {setupIntent, error} = await stripe.confirmUsBankAccountSetup(CLIENT_SECRET, {
-      payment_method: {
-        us_bank_account: { routing_number: routing, account_number: account, account_holder_type: 'individual' },
-        billing_details: { name: TAG || 'Shotgun Bank User' }
-      }
+    // Get a fresh SetupIntent for bank linking from our server
+    const r = await fetch('/api/link-bank/session', {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ account_id: ACCOUNT_ID })
     });
-    if(error){
-      errEl.textContent = error.message;
-      setLoading(false); return;
+    const d = await r.json();
+    if(!d.client_secret) {
+      errEl.textContent = d.error || 'Could not start bank verification';
+      setLoading(false); btn.disabled=false; return;
     }
-    // Save routing/account to our backend too
-    await fetch('/api/link-bank/manual', {
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({account_id: ACCOUNT_ID, routing, account_number: account, bank_name: bankName})
+
+    // Stripe Financial Connections — opens real bank login portal
+    const result = await stripe.collectBankAccountForSetup({
+      clientSecret: d.client_secret,
+      params: {
+        payment_method_type: 'us_bank_account',
+        payment_method_data: {
+          billing_details: { name: TAG || 'Shotgun Bank User' }
+        }
+      },
+      expand: ['payment_method'],
     });
+
+    if(result.error) {
+      errEl.textContent = result.error.message || 'Bank verification failed';
+      setLoading(false); btn.disabled=false; return;
+    }
+
+    const si = result.setupIntent;
+    if(si.status === 'requires_confirmation') {
+      const confirmed = await stripe.confirmUsBankAccountSetup(d.client_secret);
+      if(confirmed.error) {
+        errEl.textContent = confirmed.error.message;
+        setLoading(false); btn.disabled=false; return;
+      }
+    }
+
+    // Confirm on our backend — saves verified bank details from Stripe
+    const pm_id = si.payment_method?.id || si.payment_method || '';
+    await fetch('/api/link-bank/confirm', {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ account_id: ACCOUNT_ID, setup_intent_id: si.id, payment_method_id: pm_id })
+    });
+
     pollStatus();
-  } catch(e){
-    errEl.textContent = 'Verification failed. Check your details and try again.';
-    setLoading(false);
+  } catch(e) {
+    console.error(e);
+    errEl.textContent = 'Verification error. Please try again.';
+    setLoading(false); btn.disabled=false;
   }
 }
 
