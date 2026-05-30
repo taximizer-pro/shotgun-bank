@@ -452,81 +452,118 @@ def signup():
 
     if not all([first, last, email, tag, pin, pw]):
         return jsonify({"error": "All fields required"}), 400
-    if len(pin) < 4 or not pin.isdigit():
-        return jsonify({"error": "PIN must be 4+ digits"}), 400
+    if len(pin) != 6 or not pin.isdigit():
+        return jsonify({"error": "PIN must be exactly 6 digits"}), 400
     if len(pw) < 6:
         return jsonify({"error": "Password must be at least 6 characters"}), 400
 
     try:
         if get_acct_by_tag(tag):
-            return jsonify({"error": "That hashtag is already taken"}), 409
+            return jsonify({"error": "That $hashtag is already taken"}), 409
         if get_acct_by_email(email):
             return jsonify({"error": "An account with that email already exists"}), 409
 
-        pw_hash = hash_password(pw)
+        # ── Generate virtual Visa card (Visa BIN: starts with 4) ─────────────
+        import random, string
+        def luhn_check(n):
+            digits = [int(x) for x in str(n)]
+            odd = digits[-1::-2]
+            even = [sum(divmod(d*2,10)) for d in digits[-2::-2]]
+            return (sum(odd)+sum(even)) % 10 == 0
+        def gen_visa():
+            # Visa BIN 4532 (real Visa range)
+            prefix = "4532"
+            while True:
+                mid = ''.join([str(random.randint(0,9)) for _ in range(11)])
+                candidate = prefix + mid
+                # Add Luhn check digit
+                digits = [int(x) for x in candidate]
+                total = 0
+                for i, d in enumerate(reversed(digits)):
+                    if i % 2 == 1:
+                        d *= 2
+                        if d > 9: d -= 9
+                    total += d
+                check = (10 - (total % 10)) % 10
+                full = candidate + str(check)
+                if luhn_check(full):
+                    return full
 
-        # Step 1 — create Base44 record with status=onboarding
+        virtual_card = gen_visa()
+        virtual_cvv  = str(random.randint(100,999))
+        import datetime
+        exp_year  = datetime.date.today().year + 4
+        exp_month = random.randint(1,12)
+        virtual_exp = f"{exp_month:02d}/{str(exp_year)[2:]}"
+
+        pw_hash  = hash_password(pw)
+        pin_hash = hash_pin(pin)
+
+        # ── Step 1: Create Stripe Customer (auto, no redirect) ───────────────
+        stripe_customer_id = ""
+        if STRIPE_SK:
+            try:
+                import urllib.parse as _up
+                _body = _up.urlencode({
+                    "email": email,
+                    "name": f"{first} {last}",
+                    "phone": phone,
+                    "metadata[platform]": "shotgun_bank",
+                    "metadata[hashtag]": tag,
+                }).encode()
+                _req = urllib.request.Request("https://api.stripe.com/v1/customers",
+                    data=_body, method="POST",
+                    headers={"Authorization":f"Bearer {STRIPE_SK}",
+                             "Content-Type":"application/x-www-form-urlencoded"})
+                import ssl as _ssl
+                _ctx = _ssl.create_default_context()
+                with urllib.request.urlopen(_req, context=_ctx, timeout=10) as _r:
+                    _cust = json.loads(_r.read())
+                stripe_customer_id = _cust.get("id","")
+            except Exception as se:
+                print(f"[STRIPE CUSTOMER ERR] {se}")
+
+        # ── Step 2: Save to Base44 with status=pending ───────────────────────
         saved = b44_post(SG_URL, {
-            "first_name": first, "last_name": last,
+            "first_name": first,
+            "last_name": last,
             "full_name": f"{first} {last}",
-            "email": email, "phone": phone, "hashtag": tag,
-            "dob": dob, "pin_hash": hash_pin(pin),
+            "email": email,
+            "phone": phone,
+            "hashtag": tag,
+            "dob": dob,
+            "pin_hash": pin_hash,
             "password_hash": pw_hash,
-            "status": "onboarding", "balance": 0.0,
+            "status": "pending",
+            "balance": 0.0,
             "routing_number": gen_routing(),
             "account_number": gen_account(),
-            "virtual_card_number": gen_card(),
-            "virtual_card_cvv": gen_cvv(),
-            "virtual_card_expiry": gen_exp(),
-            "beat_v_enabled": False, "beat_v_used": False,
-            "lifetime_deposited": 0.0, "funded_friends_count": 0,
+            "virtual_card_number": virtual_card,
+            "virtual_card_cvv": virtual_cvv,
+            "virtual_card_expiry": virtual_exp,
+            "wise_account_id": stripe_customer_id,
+            "beat_v_enabled": False,
+            "beat_v_used": False,
+            "lifetime_deposited": 0.0,
+            "funded_friends_count": 0,
         })
         sg_id = saved.get("id","")
 
-        # Step 2 — Stripe SetupIntent for card verification (optional — falls back gracefully)
-        base_url = request.host_url.rstrip("/")
-        if STRIPE_SK:
-            try:
-                si = stripe.SetupIntent.create(
-                    usage="off_session",
-                    metadata={"sg_account_id": sg_id, "hashtag": tag, "email": email},
-                    description=f"Shotgun Bank card verification — ${tag}",
-                )
-                b44_put(f"{SG_URL}/{sg_id}", {"wise_account_id": si.id})
-                verify_url = (f"{base_url}/verify"
-                    f"?client_secret={si.client_secret}"
-                    f"&account_id={sg_id}"
-                    f"&tag={tag}"
-                    f"&pk={STRIPE_PK}")
-                return jsonify({
-                    "success": True,
-                    "account_id": sg_id,
-                    "status": "onboarding",
-                    "client_secret": si.client_secret,
-                    "publishable_key": STRIPE_PK,
-                    "verify_url": verify_url,
-                    "message": "Add your card to verify your identity and activate your account.",
-                })
-            except Exception as stripe_err:
-                print(f"[SIGNUP] Stripe SetupIntent failed: {stripe_err} — falling back to pending")
-                b44_put(f"{SG_URL}/{sg_id}", {"status": "pending"})
-                return jsonify({
-                    "success": True,
-                    "account_id": sg_id,
-                    "status": "pending",
-                    "message": "Account created. Awaiting admin approval.",
-                })
-        else:
-            # No Stripe configured — go straight to pending for manual approval
-            b44_put(f"{SG_URL}/{sg_id}", {"status": "pending"})
-            return jsonify({
-                "success": True,
-                "account_id": sg_id,
-                "status": "pending",
-                "message": "Account created. Awaiting admin approval.",
-            })
+        # ── Step 3: Notify admins ─────────────────────────────────────────────
+        try:
+            notify_admins_new_signup(first, last, email, tag, sg_id)
+        except Exception as ne:
+            print(f"[NOTIFY ERR] {ne}")
+
+        return jsonify({
+            "success": True,
+            "account_id": sg_id,
+            "status": "pending",
+            "stripe_customer": stripe_customer_id,
+            "message": "Account created! You\'ll get an email once approved by our team.",
+        })
+
     except Exception as e:
-        print(f"[SIGNUP ERROR] {e}")
         return jsonify({"error": str(e)}), 500
 
 
