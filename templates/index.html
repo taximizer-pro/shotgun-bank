@@ -179,6 +179,24 @@
     </div>
   </div>
 
+  <!-- SET PIN SECTION (first-time users) -->
+  <div id="setPinSection" style="width:100%;max-width:400px;display:none;flex-direction:column;align-items:center;">
+    <p style="color:rgba(255,255,255,0.7);font-size:14px;text-align:center;margin-bottom:20px;line-height:1.6;">
+      Create a 6-digit PIN you'll use every time you log in.<br>Keep it safe — you'll need it to access your account.
+    </p>
+    <div class="field-wrap">
+      <input type="password" id="newPin" placeholder="New 6-digit PIN" maxlength="6" inputmode="numeric" pattern="[0-9]*" autocomplete="new-password">
+      <label>New PIN</label>
+    </div>
+    <div class="field-wrap">
+      <input type="password" id="confirmPin" placeholder="Confirm PIN" maxlength="6" inputmode="numeric" pattern="[0-9]*" autocomplete="new-password">
+      <label>Confirm PIN</label>
+    </div>
+    <button class="btn-main" onclick="doSetPin()">🔐 Set My PIN</button>
+  </div>
+
+
+
   <!-- ═══ SIGNUP SECTION ═══ -->
   <div id="signupSection">
     <div class="enc-notice">
@@ -332,11 +350,19 @@ async function doLogin() {
       return;
     }
     if (d.success) {
-      // Direct login — no 2FA needed
       localStorage.setItem('sg_account_id', d.account_id);
       localStorage.setItem('sg_hashtag', d.hashtag || '');
       localStorage.setItem('sg_first_name', d.first_name || '');
       window.location.href = '/dashboard';
+      return;
+    }
+    if (d.setup_pin) {
+      // First time — user needs to create a PIN
+      pendingAccountId = d.account_id;
+      document.getElementById('loginSection').style.display  = 'none';
+      document.getElementById('signupSection').style.display = 'none';
+      document.getElementById('setPinSection').style.display = 'flex';
+      showAlert('Welcome! Please set a 6-digit PIN to secure your account.','success');
       return;
     }
     if (d.requires_2fa) {
@@ -441,6 +467,28 @@ async function doSignup() {
     }
   } catch(e) { showAlert('Network error. Please try again.'); }
 }
+
+async function doSetPin() {
+  const pin1 = document.getElementById('newPin').value.trim();
+  const pin2 = document.getElementById('confirmPin').value.trim();
+  if (!pin1 || pin1.length !== 6 || !/^\d{6}$/.test(pin1)) {
+    showAlert('PIN must be exactly 6 digits.'); return;
+  }
+  if (pin1 !== pin2) { showAlert('PINs do not match.'); return; }
+  if (!pendingAccountId) { showAlert('Session error — please try logging in again.'); return; }
+  try {
+    const res = await fetch('/api/set-pin', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({account_id: pendingAccountId, pin: pin1})
+    });
+    const d = await res.json();
+    if (d.error) { showAlert(d.error); return; }
+    // PIN set — now send 2FA if email configured, else go to dashboard
+    showAlert('PIN set! Logging you in…','success');
+    setTimeout(() => window.location.href = '/dashboard', 1200);
+  } catch(e) { showAlert('Error setting PIN. Try again.'); }
+}
+
 </script>
 </body>
 </html>
