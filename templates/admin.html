@@ -810,6 +810,13 @@ async function openUser(id) {
 function openUserFromData(a) {
   _selectedUserId = a.id;
   document.getElementById('modalTitle').textContent = `${a.first_name} ${a.last_name} · $${a.hashtag}`;
+  // Security: all sensitive fields already stripped server-side by scrub()
+  // Routing is pre-masked (e.g. 021****21), account # is ****last4
+  const routingDisplay  = a.routing_number || '—';
+  const accountDisplay  = a.account_number  || '—';  // already ****last4 from server
+  const cardDisplay     = a.virtual_card_last4 ? `•••• •••• •••• ${a.virtual_card_last4}` : '—';
+  const linkedBank      = a.linked_account  || '—';  // already masked server-side
+
   document.getElementById('modalBody').innerHTML = `
     <div class="detail-row"><span class="lbl">Status</span><span>${statusBadge(a.status)}</span></div>
     <div class="detail-row"><span class="lbl">Email</span><span class="val">${a.email}</span></div>
@@ -817,12 +824,17 @@ function openUserFromData(a) {
     <div class="detail-row"><span class="lbl">DOB</span><span class="val">${a.dob||'—'}</span></div>
     <div class="detail-row"><span class="lbl">Balance</span><span class="val" style="color:var(--green)">$${(+(a.balance||0)).toFixed(2)}</span></div>
     <div class="detail-row"><span class="lbl">Lifetime Deposited</span><span class="val">$${(+(a.lifetime_deposited||0)).toFixed(2)}</span></div>
-    <div class="detail-row"><span class="lbl">Routing #</span><span class="val">${a.routing_number||'—'}</span></div>
-    <div class="detail-row"><span class="lbl">Account #</span><span class="val">${a.account_number||'—'}</span></div>
-    <div class="detail-row"><span class="lbl">Virtual Card</span><span class="val">•••• ${(a.virtual_card_number||'').slice(-4)||'—'}</span></div>
+    <div class="detail-row"><span class="lbl">Routing #</span><span class="val" style="font-family:monospace">${routingDisplay}</span></div>
+    <div class="detail-row"><span class="lbl">Account #</span><span class="val" style="font-family:monospace">${accountDisplay}</span></div>
+    <div class="detail-row"><span class="lbl">Virtual Card</span><span class="val" style="font-family:monospace">${cardDisplay}</span></div>
+    ${linkedBank !== '—' ? \`<div class="detail-row"><span class="lbl">Linked Bank</span><span class="val" style="font-family:monospace">\${linkedBank}</span></div>\` : ''}
+    <div class="detail-row"><span class="lbl">Linked Card</span><span class="val">${a.linked_card_last4 ? '•••• '+a.linked_card_last4 : '—'}</span></div>
     <div class="detail-row"><span class="lbl">Beat the V</span><span class="val">${a.beat_v_enabled?'✅ Enabled':'❌ Off'}</span></div>
     <div class="detail-row"><span class="lbl">Ghost</span><span class="val">${a.is_silent?'👻 Yes':'No'}</span></div>
     <div class="detail-row"><span class="lbl">Joined</span><span class="val">${(a.created_date||'').slice(0,10)}</span></div>
+    <div class="detail-row" style="border:none;margin-top:4px;padding-top:4px;">
+      <span class="lbl" style="font-size:11px;color:#374151">🔒 Passwords, PINs and full card numbers are never visible to admins</span>
+    </div>
   `;
   const btns = [];
   if(a.status==='pending'||a.status==='onboarding'||a.status==='stripe_verified') {
