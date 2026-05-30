@@ -255,12 +255,10 @@ def login():
         acct = get_acct_by_email(identifier) or get_acct_by_tag(identifier)
         if not acct: return jsonify({"error": "Account not found"}), 404
         status = acct.get("status","")
-        if status == "onboarding":
-            return jsonify({"status":"onboarding","stripe_account":acct.get("wise_account_id",""),"account_id":acct.get("id","")})
-        if status == "pending":
-            return jsonify({"status":"pending","message":"Your account is under review."})
+        if status in ("onboarding", "pending"):
+            return jsonify({"status":"pending","message":"Your account is under review. You will be notified by email when approved."})
         if status == "denied":
-            return jsonify({"error": "Account not approved. Contact support."}), 403
+            return jsonify({"error": "Your account was not approved. Contact support at taximizerpro@gmail.com."}), 403
         if acct.get("pin_hash") != hash_pin(pin):
             return jsonify({"error": "Incorrect PIN"}), 401
         stored_pw = acct.get("password_hash","")
