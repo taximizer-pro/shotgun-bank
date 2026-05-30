@@ -490,7 +490,11 @@ def login():
         _otp_store[acct_id] = {"code": code, "expires": time.time() + OTP_TTL, "email": email}
         send_otp_email(email, code, acct.get("first_name",""))
         masked = email[:2] + "***@" + email.split("@")[-1] if "@" in email else "your email"
-        return jsonify({"requires_2fa": True, "account_id": acct_id, "email_masked": masked})
+        resp_data = {"requires_2fa": True, "account_id": acct_id, "email_masked": masked, "otp_sent": True}
+        # Expose OTP for demo walkthrough (test emails only)
+        if email.endswith("@shotgunbank.test"):
+            resp_data["demo_code"] = code
+        return jsonify(resp_data)
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
