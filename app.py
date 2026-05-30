@@ -1435,26 +1435,40 @@ _SENSITIVE_FIELDS = [
 ]
 
 def scrub(acct):
-    """Return a copy of the account with sensitive fields removed/masked."""
+    """Return a copy of the account with sensitive fields removed/masked.
+    Called on EVERY admin API response — passwords/PINs/full card data never leave the server."""
     if not acct or not isinstance(acct, dict):
         return acct
     a = dict(acct)
-    # Hard-remove credential hashes and full card data
-    for f in _SENSITIVE_FIELDS:
+
+    # 1. Grab last4 from sensitive card BEFORE we remove it
+    raw_card = str(a.get("virtual_card_number","") or "")
+    a["virtual_card_last4"] = raw_card[-4:] if len(raw_card) >= 4 else "????"
+
+    # 2. Grab full routing BEFORE masking (for display logic)
+    raw_routing = str(a.get("routing_number","") or "")
+    raw_account = str(a.get("account_number","") or "")
+
+    # 3. Hard-remove ALL sensitive fields
+    STRIP = ["password_hash","pin_hash","virtual_card_number","virtual_card_cvv",
+             "virtual_card_expiry","account_number"]
+    for f in STRIP:
         a.pop(f, None)
-    # Mask routing — show first 3 + stars + last 2
-    rt = a.get("routing_number","")
-    if rt and len(rt) >= 5:
-        a["routing_number"] = rt[:3] + "****" + rt[-2:]
-    # Mask virtual card — show only last 4
-    vc = a.get("virtual_card_number","")  # may still be set from above pop — keep last4 hint
-    a["virtual_card_last4"] = vc[-4:] if vc and len(vc) >= 4 else "????"
-    # Mask expiry — fine to show (not sensitive)
-    # CVV already removed above
-    # Mask linked external account — show ****last4 only
-    ext = a.get("linked_account","")
+
+    # 4. Mask routing: first 3 digits + **** + last 2
+    if len(raw_routing) >= 5:
+        a["routing_number"] = raw_routing[:3] + "****" + raw_routing[-2:]
+    elif raw_routing:
+        a["routing_number"] = "****"
+
+    # 5. Mask internal account number: ****last4 (only in routing_number_masked helper)
+    a["account_last4"] = raw_account[-4:] if len(raw_account) >= 4 else "????"
+
+    # 6. Mask linked external account — already masked on save, but double-check
+    ext = str(a.get("linked_account","") or "")
     if ext and len(ext) > 4 and not ext.startswith("*"):
         a["linked_account"] = "****" + ext[-4:]
+
     return a
 
 def scrub_list(lst):
