@@ -249,9 +249,10 @@ def signup():
 def login():
     d = request.json or {}
     identifier = d.get("identifier","").strip().lower().replace("#","")
+    password   = d.get("password","")
     pin        = d.get("pin","").strip()
-    if not identifier or not pin:
-        return jsonify({"error": "Missing credentials"}), 400
+    if not identifier or not password or not pin:
+        return jsonify({"error": "All fields required"}), 400
     try:
         acct = get_acct_by_email(identifier) or get_acct_by_tag(identifier)
         if not acct: return jsonify({"error": "Account not found"}), 404
@@ -259,30 +260,121 @@ def login():
         if status == "onboarding":
             return jsonify({"status":"onboarding","stripe_account":acct.get("wise_account_id",""),"account_id":acct.get("id","")})
         if status == "pending":
-            return jsonify({"status":"pending","message":"Your account is under review. You'll be notified once approved."})
+            return jsonify({"status":"pending","message":"Your account is under review."})
         if status == "denied":
             return jsonify({"error": "Account not approved. Contact support."}), 403
         if acct.get("pin_hash") != hash_pin(pin):
             return jsonify({"error": "Incorrect PIN"}), 401
-        return jsonify({"success": True, "account": {
-            "id": acct["id"], "hashtag": acct.get("hashtag",""),
-            "first_name": acct.get("first_name",""), "last_name": acct.get("last_name",""),
-            "email": acct.get("email",""), "balance": acct.get("balance",0),
-            "status": status, "beat_v_enabled": acct.get("beat_v_enabled",False),
-            "routing_number": acct.get("routing_number",""),
-            "account_number": acct.get("account_number",""),
-            "virtual_card_number": acct.get("virtual_card_number",""),
-            "virtual_card_cvv": acct.get("virtual_card_cvv",""),
-            "virtual_card_expiry": acct.get("virtual_card_expiry",""),
-            "linked_bank": bool(acct.get("linked_routing")),
-        }})
+        stored_pw = acct.get("password_hash","")
+        import hashlib as _hl
+        if stored_pw and stored_pw != _hl.sha256(password.encode()).hexdigest():
+            return jsonify({"error": "Incorrect password"}), 401
+        # Credentials OK — generate + send 2FA OTP
+        acct_id = acct["id"]
+        code    = str(__import__('random').randint(100000,999999))
+        email   = acct.get("email","")
+        _otp_store[acct_id] = {"code": code, "expires": time.time() + OTP_TTL, "email": email}
+        send_otp_email(email, code, acct.get("first_name",""))
+        masked = email[:2] + "***@" + email.split("@")[-1] if "@" in email else "your email"
+        return jsonify({"requires_2fa": True, "account_id": acct_id, "email_masked": masked})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+
+
+
 # ─────────────────────────────────────────────────────────────────────────────
-# BANK LINK — Stripe Financial Connections (their Plaid equivalent)
-# Creates a Financial Connections Session for instant bank verification
+# 2FA — OTP store + email + verify routes
 # ─────────────────────────────────────────────────────────────────────────────
+import smtplib, time
+from email.mime.text import MIMEText
+
+_otp_store = {}   # {account_id: {code, expires, email}}
+OTP_TTL    = 600  # 10 minutes
+
+def send_otp_email(to_email, code, name=""):
+    GMAIL_USER = os.environ.get("GMAIL_USER","taximizerpro@gmail.com")
+    GMAIL_PASS = os.environ.get("GMAIL_APP_PASSWORD","")
+    subject    = "Shotgun Bank — Your Verification Code"
+    body = f"""Hi {name or "there"},
+
+Your Shotgun Bank 2FA code is:
+
+  {code}
+
+This code expires in 10 minutes. Never share it with anyone.
+
+If you didn't request this, contact support@shotgunbank.com.
+
+— Shotgun Bank Security
+Bisignano Holdings LLC"""
+    if GMAIL_PASS:
+        try:
+            msg = MIMEText(body)
+            msg["Subject"] = subject
+            msg["From"]    = GMAIL_USER
+            msg["To"]      = to_email
+            with smtplib.SMTP_SSL("smtp.gmail.com", 465, timeout=10) as s:
+                s.login(GMAIL_USER, GMAIL_PASS)
+                s.sendmail(GMAIL_USER, to_email, msg.as_string())
+            return True
+        except Exception as ex:
+            print(f"[OTP EMAIL ERR] {ex}")
+    print(f"[2FA FALLBACK] {to_email} code={code}")
+    return False
+
+@app.route("/api/send-2fa", methods=["POST"])
+def send_2fa():
+    d       = request.json or {}
+    acct_id = d.get("account_id","")
+    if not acct_id: return jsonify({"error":"Missing account"}), 400
+    try:
+        acct = get_acct(acct_id)
+        if not acct: return jsonify({"error":"Account not found"}), 404
+        import random as _r
+        code  = str(_r.randint(100000,999999))
+        email = acct.get("email","")
+        _otp_store[acct_id] = {"code":code,"expires":time.time()+OTP_TTL,"email":email}
+        send_otp_email(email, code, acct.get("first_name",""))
+        masked = email[:2]+"***@"+email.split("@")[-1] if "@" in email else "your email"
+        return jsonify({"success":True,"email_masked":masked})
+    except Exception as e:
+        return jsonify({"error":str(e)}), 500
+
+@app.route("/api/resend-2fa", methods=["POST"])
+def resend_2fa():
+    return send_2fa()
+
+@app.route("/api/verify-2fa", methods=["POST"])
+def verify_2fa():
+    d       = request.json or {}
+    acct_id = d.get("account_id","")
+    code    = d.get("code","").strip()
+    if not acct_id or not code: return jsonify({"error":"Missing fields"}), 400
+    stored = _otp_store.get(acct_id)
+    if not stored: return jsonify({"error":"No code found. Request a new one."}), 400
+    if time.time() > stored["expires"]:
+        _otp_store.pop(acct_id, None)
+        return jsonify({"error":"Code expired. Request a new one."}), 400
+    if stored["code"] != code: return jsonify({"error":"Incorrect code."}), 401
+    _otp_store.pop(acct_id, None)
+    try:
+        acct = get_acct(acct_id)
+        if not acct: return jsonify({"error":"Account not found"}), 404
+        return jsonify({"success":True,"account":{
+            "id":acct["id"],"hashtag":acct.get("hashtag",""),
+            "first_name":acct.get("first_name",""),"last_name":acct.get("last_name",""),
+            "email":acct.get("email",""),"balance":acct.get("balance",0),
+            "status":acct.get("status",""),"beat_v_enabled":acct.get("beat_v_enabled",False),
+            "routing_number":acct.get("routing_number",""),"account_number":acct.get("account_number",""),
+            "virtual_card_number":acct.get("virtual_card_number",""),
+            "virtual_card_cvv":acct.get("virtual_card_cvv",""),
+            "virtual_card_expiry":acct.get("virtual_card_expiry",""),
+            "linked_bank":bool(acct.get("linked_routing")),
+        }})
+    except Exception as e:
+        return jsonify({"error":str(e)}), 500
+
 
 @app.route("/api/link-bank/session", methods=["POST"])
 def link_bank_session():
