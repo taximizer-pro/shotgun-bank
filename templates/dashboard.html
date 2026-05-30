@@ -12,6 +12,19 @@
   --text:#f0fdf4;--muted:#6b7280;--border:#1f4d33;
   --purple:#7c3aed;--card:#0f2d1e;
 }
+
+  /* ── AI ICON WHITE-BG REMOVAL ── */
+  img[src*="generated_image"] {
+    mix-blend-mode: screen;
+    background: transparent;
+  }
+  /* Exception: card brand logos (Visa/MC/Amex/Discover) — keep their own colors */
+  img.vc-visa,
+  img[alt="visa"], img[alt="mastercard"], img[alt="amex"], img[alt="discover"],
+  #walletCardBrandLogo {
+    mix-blend-mode: normal;
+  }
+
 </style>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
