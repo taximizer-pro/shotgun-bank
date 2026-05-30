@@ -6,8 +6,16 @@
 <title>Shotgun Bank — Dashboard</title>
 <script src="https://js.stripe.com/v3/"></script>
 <style>
+:root{
+  --bg:#0a2218;--bg2:#0f2e1e;--bg3:#153d28;
+  --green:#16a34a;--gold:#eab308;--red:#ef4444;
+  --text:#f0fdf4;--muted:#6b7280;--border:#1f4d33;
+  --purple:#7c3aed;--card:#0f2d1e;
+}
+</style>
+<style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
-body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#0a2218;color:#fff;min-height:100vh;max-width:480px;margin:0 auto;display:flex;flex-direction:column;}
+body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#0a2218;color:#fff;min-height:100vh;max-width:480px;margin:0 auto;display:flex;flex-direction:column;}
 /* ── TOP BAR ── */
 .topbar{background:#071a11;display:flex;align-items:center;justify-content:space-between;padding:14px 18px;position:sticky;top:0;z-index:100;border-bottom:1px solid rgba(234,179,8,0.15);}
 .topbar-logo{height:36px;}
@@ -124,8 +132,67 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 /* ── LOADER ── */
 .loader{text-align:center;padding:40px;color:rgba(255,255,255,0.4);}
 </style>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 </head>
 <body>
+
+<!-- ── GHOST BAR (only shown when ?ghost=1 is in URL) ── -->
+<style>
+#ghost-bar{
+  position:fixed;top:0;left:0;right:0;z-index:99999;
+  background:#7c3aed;color:#fff;
+  display:none;align-items:center;justify-content:space-between;
+  padding:0 20px;height:44px;font-size:13px;font-weight:700;
+  box-shadow:0 2px 16px rgba(124,58,237,.6);letter-spacing:.03em;
+}
+#ghost-bar.visible{display:flex;}
+#ghost-bar .g-info{display:flex;align-items:center;gap:12px;}
+#ghost-bar .g-tag{color:#e9d5ff;font-size:15px;font-weight:800;}
+#ghost-bar .g-name{color:#ddd6fe;}
+#ghost-bar .g-bal{color:#fde68a;font-weight:700;}
+#ghost-bar .g-exit{background:#dc2626;border:none;color:#fff;padding:6px 14px;border-radius:7px;font-weight:700;cursor:pointer;font-size:12px;}
+#ghost-bar .g-exit:hover{background:#b91c1c;}
+body.ghost-mode{padding-top:44px!important;}
+</style>
+<div id="ghost-bar">
+  <div class="g-info">
+    <span>👻 GHOST MODE</span>
+    <span class="g-tag" id="g-tag"></span>
+    <span class="g-name" id="g-name"></span>
+    <span class="g-bal" id="g-bal"></span>
+  </div>
+  <button class="g-exit" onclick="exitGhost()">✖ Exit Ghost</button>
+</div>
+<script>
+(async function ghostInit(){
+  const params = new URLSearchParams(location.search);
+  if(!params.get('ghost')) return;
+  try{
+    const r = await fetch('/api/ghost-account');
+    if(!r.ok) return;
+    const d = await r.json();
+    if(!d.success) return;
+    const a = d.account;
+    const g = d.ghost_info;
+    // Inject into localStorage so dashboard init finds it
+    localStorage.setItem('sg_account', JSON.stringify(a));
+    localStorage.setItem('sg_session', JSON.stringify({id:a.id, ghost:true}));
+    // Show ghost bar
+    document.getElementById('g-tag').textContent  = '$'+(g.hashtag||'?').toUpperCase();
+    document.getElementById('g-name').textContent = (g.first_name+' '+g.last_name).trim();
+    document.getElementById('g-bal').textContent  = '$'+parseFloat(g.balance||0).toFixed(2);
+    document.getElementById('ghost-bar').classList.add('visible');
+    document.body.classList.add('ghost-mode');
+  }catch(e){console.warn('Ghost init error',e);}
+})();
+function exitGhost(){
+  localStorage.removeItem('sg_account');
+  localStorage.removeItem('sg_session');
+  window.location.href='/ghost-exit';
+}
+</script>
+
 
 <!-- TOP BAR -->
 <div class="topbar">
