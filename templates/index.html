@@ -300,13 +300,8 @@ async function doLogin() {
     });
     const d = await res.json();
     if (d.error) { showAlert(d.error); return; }
-    if (d.status === 'onboarding') {
-      showAlert('Complete your Stripe onboarding to activate your account.','success');
-      // account pending — stay on login
-      return;
-    }
-    if (d.status === 'pending') {
-      showAlert('Your account is under review. You will be notified when approved.','success');
+    if (d.status === 'pending' || d.status === 'onboarding') {
+      showAlert('⏳ Your account is under review. You will be notified by email once approved.','success');
       return;
     }
     if (d.requires_2fa) {
