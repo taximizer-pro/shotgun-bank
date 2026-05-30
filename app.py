@@ -873,6 +873,105 @@ def admin_deny(sg_id):
     except Exception as e:
         return jsonify({"error":str(e)}), 500
 
+# ── ADMIN: STATS ──────────────────────────────────────────────────────────────
+@app.route("/api/admin/stats")
+def admin_stats():
+    is_admin = session.get("admin") or request.headers.get("X-Admin-Key") == os.environ.get("ADMIN_SECRET","txpro-admin-2026")
+    if not is_admin: return jsonify({"error":"Unauthorized"}), 401
+    try:
+        all_accts = b44_get(f"{SG_URL}?limit=500")
+        accts = all_accts if isinstance(all_accts,list) else all_accts.get("results",[])
+        all_tx = b44_get(f"{TX_URL}?limit=500")
+        txs = all_tx if isinstance(all_tx,list) else all_tx.get("results",[])
+        pending  = sum(1 for a in accts if a.get("status")=="pending")
+        approved = sum(1 for a in accts if a.get("status")=="approved")
+        ghost    = sum(1 for a in accts if a.get("is_silent"))
+        fee_total = sum((t.get("fee") or 0)*2 for t in txs)
+        return jsonify({"pending":pending,"approved":approved,"ghost":ghost,"tx_count":len(txs),"fee_total":fee_total})
+    except Exception as e:
+        return jsonify({"error":str(e)}), 500
+
+# ── ADMIN: GET ALL / FILTERED ACCOUNTS ───────────────────────────────────────
+@app.route("/api/admin/accounts")
+def admin_accounts():
+    is_admin = session.get("admin") or request.headers.get("X-Admin-Key") == os.environ.get("ADMIN_SECRET","txpro-admin-2026")
+    if not is_admin: return jsonify({"error":"Unauthorized"}), 401
+    status_filter = request.args.get("status","")
+    try:
+        url = f"{SG_URL}?limit=500"
+        if status_filter: url += f"&status={status_filter}"
+        r = b44_get(url)
+        accts = r if isinstance(r,list) else r.get("results",[])
+        return jsonify({"accounts": accts})
+    except Exception as e:
+        return jsonify({"error":str(e)}), 500
+
+# ── ADMIN: SINGLE ACCOUNT DETAIL ─────────────────────────────────────────────
+@app.route("/api/admin/account/<sg_id>")
+def admin_account_detail(sg_id):
+    is_admin = session.get("admin") or request.headers.get("X-Admin-Key") == os.environ.get("ADMIN_SECRET","txpro-admin-2026")
+    if not is_admin: return jsonify({"error":"Unauthorized"}), 401
+    try:
+        acct = b44_get(f"{SG_URL}/{sg_id}")
+        return jsonify({"account": acct})
+    except Exception as e:
+        return jsonify({"error":str(e)}), 500
+
+# ── ADMIN: GHOST TOGGLE ───────────────────────────────────────────────────────
+@app.route("/api/admin/ghost/<sg_id>", methods=["POST"])
+def admin_ghost(sg_id):
+    is_admin = session.get("admin") or request.headers.get("X-Admin-Key") == os.environ.get("ADMIN_SECRET","txpro-admin-2026")
+    if not is_admin: return jsonify({"error":"Unauthorized"}), 401
+    d = request.json or {}
+    try:
+        result = b44_put(f"{SG_URL}/{sg_id}", {"is_silent": bool(d.get("is_silent", False))})
+        print(f"[GHOST] {sg_id} -> is_silent={result.get('is_silent')}")
+        return jsonify({"success":True, "is_silent": result.get("is_silent")})
+    except Exception as e:
+        return jsonify({"error":str(e)}), 500
+
+# ── ADMIN: SEND SUPPORT MESSAGE ───────────────────────────────────────────────
+@app.route("/api/admin/support-msg", methods=["POST"])
+def admin_support_msg():
+    is_admin = session.get("admin") or request.headers.get("X-Admin-Key") == os.environ.get("ADMIN_SECRET","txpro-admin-2026")
+    if not is_admin: return jsonify({"error":"Unauthorized"}), 401
+    d = request.json or {}
+    account_id = d.get("account_id","")
+    message    = d.get("message","").strip()
+    if not account_id or not message:
+        return jsonify({"error":"Missing account_id or message"}), 400
+    try:
+        acct = b44_get(f"{SG_URL}/{account_id}")
+        email = acct.get("email","")
+        name  = acct.get("first_name","there")
+        GMAIL_USER = os.environ.get("GMAIL_USER","taximizerpro@gmail.com")
+        GMAIL_PASS = os.environ.get("GMAIL_APP_PASSWORD","")
+        import smtplib as _smtp
+        from email.mime.text import MIMEText as _MMT
+        body = f"""Hi {name},
+
+You have a new message from Shotgun Bank Support:
+
+{message}
+
+Reply directly to this email or visit shotgun-bank.onrender.com for help.
+
+— Shotgun Bank Support
+Bisignano Holdings LLC"""
+        if GMAIL_PASS and email:
+            msg = _MMT(body)
+            msg["Subject"] = f"Shotgun Bank Support — Message for ${acct.get('hashtag','you')}"
+            msg["From"]    = GMAIL_USER
+            msg["To"]      = email
+            with _smtp.SMTP_SSL("smtp.gmail.com", 465, timeout=10) as s:
+                s.login(GMAIL_USER, GMAIL_PASS)
+                s.sendmail(GMAIL_USER, email, msg.as_string())
+        print(f"[SUPPORT MSG] -> {email}: {message[:60]}")
+        return jsonify({"success":True})
+    except Exception as e:
+        print(f"[SUPPORT MSG ERROR] {e}")
+        return jsonify({"error":str(e)}), 500
+
 @app.route("/api/admin/transactions")
 def admin_transactions():
     if not session.get("admin"): return jsonify({"error":"Unauthorized"}), 401
