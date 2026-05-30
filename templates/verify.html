@@ -1,124 +1,166 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Verify Your Identity — Shotgun Bank</title>
 <script src="https://js.stripe.com/v3/"></script>
 <style>
+*{box-sizing:border-box;margin:0;padding:0}
 :root{--bg:#0a2218;--card:#0f2e1e;--border:#1a4a2e;--green:#16a34a;--gold:#eab308;--text:#f0fdf4;--muted:#6b7280;--red:#dc2626;}
-*{box-sizing:border-box;margin:0;padding:0;}
 body{background:var(--bg);color:var(--text);font-family:'Segoe UI',sans-serif;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;}
-.box{background:var(--card);border:1px solid var(--gold);border-radius:20px;padding:36px 32px;width:100%;max-width:440px;box-shadow:0 8px 40px rgba(0,0,0,.6);}
-.logo{width:90px;display:block;margin:0 auto 20px;}
-h1{text-align:center;font-size:22px;color:var(--gold);font-weight:900;margin-bottom:6px;}
+.box{background:var(--card);border:1px solid var(--gold);border-radius:20px;padding:36px 32px;width:100%;max-width:460px;box-shadow:0 8px 40px rgba(0,0,0,.6);}
+.logo{width:120px;display:block;margin:0 auto 16px;}
+h2{text-align:center;color:var(--gold);font-size:1.3rem;margin-bottom:6px;}
 .sub{text-align:center;color:var(--muted);font-size:13px;margin-bottom:24px;line-height:1.5;}
-.step-bar{display:flex;gap:6px;margin-bottom:24px;}
-.step{flex:1;height:4px;border-radius:4px;background:var(--border);}
-.step.done{background:var(--green);}
-.step.active{background:var(--gold);}
-.label{font-size:11px;color:var(--muted);text-transform:uppercase;font-weight:700;margin-bottom:8px;letter-spacing:.5px;}
-#card-element{background:#0d2820;border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:16px;}
-#card-errors{color:var(--red);font-size:13px;min-height:20px;margin-bottom:12px;}
-.btn{width:100%;padding:15px;background:var(--green);color:#fff;border:none;border-radius:12px;font-size:16px;font-weight:800;cursor:pointer;transition:.2s;letter-spacing:.5px;}
-.btn:hover{background:#15803d;}
-.btn:disabled{background:#1a4a2e;color:var(--muted);cursor:not-allowed;}
-.security-note{display:flex;align-items:center;gap:8px;margin-top:16px;padding:12px;background:#0d2820;border-radius:10px;font-size:12px;color:var(--muted);}
-.security-note span{font-size:20px;}
-.spinner{display:none;text-align:center;padding:20px;color:var(--gold);font-size:14px;}
+.tab-row{display:flex;gap:8px;margin-bottom:24px;}
+.tab{flex:1;padding:11px;border-radius:10px;border:2px solid var(--border);background:transparent;color:var(--muted);font-size:14px;cursor:pointer;transition:.2s;}
+.tab.active{border-color:var(--gold);color:var(--gold);background:rgba(234,179,8,.08);}
+.label{font-size:12px;color:var(--muted);margin-bottom:6px;letter-spacing:.04em;text-transform:uppercase;}
+#card-element,#bank-routing,#bank-account,#bank-name{background:#0d2820;border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:14px;color:var(--text);font-size:15px;width:100%;}
+#card-element{padding:14px 16px;}
+#card-errors,#bank-errors{color:var(--red);font-size:13px;min-height:20px;margin-bottom:12px;}
+.btn{width:100%;padding:15px;border-radius:12px;border:none;background:var(--green);color:#fff;font-size:16px;font-weight:700;cursor:pointer;margin-bottom:10px;}
+.btn:disabled{opacity:.6;cursor:not-allowed;}
+.btn-gold{background:var(--gold);color:#0a2218;}
+.spinner{display:none;text-align:center;color:var(--muted);font-size:14px;padding:10px;}
+.safe{font-size:12px;color:var(--muted);text-align:center;margin-top:14px;line-height:1.6;}
+.safe strong{color:var(--gold);}
+.divider{text-align:center;color:var(--muted);font-size:12px;margin:6px 0 14px;}
 </style>
 </head>
 <body>
 <div class="box">
   <img src="https://base44.app/api/apps/6a14ef767988d1ef0baff5aa/files/mp/public/6a14ef767988d1ef0baff5aa/7a46af0fc_shotgun_bank_REAL_logo.png" class="logo" onerror="this.style.display='none'">
-  <h1>Verify Your Identity</h1>
-  <p class="sub">Stripe securely verifies your card to activate your Shotgun Bank account. Your card will <strong>not</strong> be charged.</p>
+  <h2>Verify Your Identity</h2>
+  <p class="sub">Choose how to verify. Your account activates instantly once confirmed.</p>
 
-  <div class="step-bar">
-    <div class="step done"></div>
-    <div class="step done"></div>
-    <div class="step active"></div>
+  <!-- Tab switcher -->
+  <div class="tab-row">
+    <button class="tab active" id="tabCard" onclick="switchTab('card')">💳 Debit / Credit Card</button>
+    <button class="tab" id="tabBank" onclick="switchTab('bank')">🏦 Bank Account</button>
   </div>
 
-  <div class="label">Card Details</div>
-  <div id="card-element"></div>
-  <div id="card-errors"></div>
+  <!-- CARD PANEL -->
+  <div id="panelCard">
+    <div class="label">Card Details</div>
+    <div id="card-element"></div>
+    <div id="card-errors"></div>
+    <button class="btn" id="verifyCardBtn" onclick="verifyCard()">🔐 Verify with Card</button>
+    <div class="divider">Card is not charged — used for identity only</div>
+  </div>
 
-  <button class="btn" id="verifyBtn" onclick="verifyCard()">🔐 Verify & Activate Account</button>
+  <!-- BANK PANEL -->
+  <div id="panelBank" style="display:none;">
+    <div class="label">Bank Name (optional)</div>
+    <input id="bank-name" type="text" placeholder="e.g. Chase, Wells Fargo…">
+    <div class="label">Routing Number</div>
+    <input id="bank-routing" type="text" inputmode="numeric" maxlength="9" placeholder="9-digit routing number">
+    <div class="label">Account Number</div>
+    <input id="bank-account" type="text" inputmode="numeric" maxlength="17" placeholder="Account number">
+    <div id="bank-errors"></div>
+    <button class="btn btn-gold" id="verifyBankBtn" onclick="verifyBank()">🏦 Verify with Bank Account</button>
+    <div class="divider">Your bank info is verified via Stripe — never stored on our servers</div>
+  </div>
 
-  <div class="spinner" id="spinner">⏳ Stripe is verifying your identity…</div>
-
-  <div class="security-note">
-    <span>🔒</span>
-    <div>256-bit SSL encrypted. Card info goes directly to Stripe — never stored on our servers. We use this to confirm you're a real person.</div>
+  <div class="spinner" id="spinner">⏳ Verifying… please wait</div>
+  <div class="safe">
+    <strong>256-bit SSL encrypted.</strong> Info goes directly to Stripe — never stored on our servers.
   </div>
 </div>
 
 <script>
 const CLIENT_SECRET = "{{ client_secret }}";
-const PK = "{{ publishable_key }}";
-const ACCOUNT_ID = "{{ account_id }}";
-const TAG = "{{ tag }}";
+const PK            = "{{ publishable_key }}";
+const ACCOUNT_ID    = "{{ account_id }}";
+const TAG           = "{{ tag }}";
 
-const stripe = Stripe(PK);
+const stripe   = Stripe(PK);
 const elements = stripe.elements();
-const cardEl = elements.create("card", {
-  style: {
-    base: {
-      color: "#f0fdf4",
-      fontFamily: "Segoe UI, sans-serif",
-      fontSize: "16px",
-      "::placeholder": { color: "#6b7280" },
-      iconColor: "#eab308",
-    },
-    invalid: { color: "#f87171" }
-  }
+const cardEl   = elements.create("card", {
+  style:{base:{color:"#f0fdf4",fontFamily:"'Segoe UI',sans-serif",fontSize:"15px","::placeholder":{color:"#6b7280"}},invalid:{color:"#dc2626"}}
 });
 cardEl.mount("#card-element");
 cardEl.on("change", e => {
   document.getElementById("card-errors").textContent = e.error ? e.error.message : "";
 });
 
-async function verifyCard(){
-  const btn = document.getElementById("verifyBtn");
-  const spinner = document.getElementById("spinner");
-  btn.disabled = true;
-  btn.textContent = "Verifying…";
-  spinner.style.display = "block";
+function switchTab(tab){
+  document.getElementById('panelCard').style.display = tab==='card'?'block':'none';
+  document.getElementById('panelBank').style.display = tab==='bank'?'block':'none';
+  document.getElementById('tabCard').className = 'tab'+(tab==='card'?' active':'');
+  document.getElementById('tabBank').className = 'tab'+(tab==='bank'?' active':'');
+}
 
+function setLoading(on){
+  document.getElementById('spinner').style.display = on?'block':'none';
+  document.getElementById('verifyCardBtn').disabled = on;
+  document.getElementById('verifyBankBtn').disabled = on;
+}
+
+// ── CARD VERIFY ──
+async function verifyCard(){
+  setLoading(true);
   const {setupIntent, error} = await stripe.confirmCardSetup(CLIENT_SECRET, {
     payment_method: { card: cardEl }
   });
-
   if(error){
     document.getElementById("card-errors").textContent = error.message;
-    btn.disabled = false;
-    btn.textContent = "🔐 Verify & Activate Account";
-    spinner.style.display = "none";
-    return;
+    setLoading(false); return;
   }
-
-  // Stripe approved — poll for account status
-  btn.textContent = "✅ Verified! Activating…";
-  await pollForApproval();
+  pollStatus();
 }
 
-async function pollForApproval(tries=0){
-  if(tries > 12){ 
-    // Timeout — still redirect with pending message
-    window.location.href = "/verify/complete?tag="+TAG+"&status=pending";
-    return;
-  }
-  await new Promise(r=>setTimeout(r,2500));
-  try{
-    const r = await fetch("/api/login-status?account_id="+ACCOUNT_ID);
-    const d = await r.json();
-    if(d.status === "approved"){
-      window.location.href = "/verify/complete?tag="+TAG+"&status=approved";
-    } else {
-      pollForApproval(tries+1);
+// ── BANK VERIFY (routing + account via Stripe Financial Connections / manual entry) ──
+async function verifyBank(){
+  const routing = document.getElementById('bank-routing').value.trim();
+  const account = document.getElementById('bank-account').value.trim();
+  const bankName = document.getElementById('bank-name').value.trim();
+  const errEl = document.getElementById('bank-errors');
+  errEl.textContent = '';
+
+  if(!/^\d{9}$/.test(routing)){ errEl.textContent='Routing number must be exactly 9 digits.'; return; }
+  if(!/^\d{4,17}$/.test(account)){ errEl.textContent='Account number must be 4–17 digits.'; return; }
+
+  setLoading(true);
+  try {
+    // Confirm SetupIntent using us_bank_account (manual entry)
+    const {setupIntent, error} = await stripe.confirmUsBankAccountSetup(CLIENT_SECRET, {
+      payment_method: {
+        us_bank_account: { routing_number: routing, account_number: account, account_holder_type: 'individual' },
+        billing_details: { name: TAG || 'Shotgun Bank User' }
+      }
+    });
+    if(error){
+      errEl.textContent = error.message;
+      setLoading(false); return;
     }
-  } catch(e){ pollForApproval(tries+1); }
+    // Save routing/account to our backend too
+    await fetch('/api/link-bank/manual', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({account_id: ACCOUNT_ID, routing, account_number: account, bank_name: bankName})
+    });
+    pollStatus();
+  } catch(e){
+    errEl.textContent = 'Verification failed. Check your details and try again.';
+    setLoading(false);
+  }
+}
+
+// ── POLL until account is approved ──
+function pollStatus(){
+  let tries = 0;
+  const iv = setInterval(async ()=>{
+    tries++;
+    if(tries > 30){ clearInterval(iv); window.location.href='/verify/complete?tag='+TAG; return; }
+    try{
+      const r = await fetch('/api/login-status?account_id='+ACCOUNT_ID);
+      const d = await r.json();
+      if(d.status === 'approved'){
+        clearInterval(iv);
+        window.location.href = '/verify/complete?tag='+TAG;
+      }
+    } catch(e){}
+  }, 2000);
 }
 </script>
 </body>
