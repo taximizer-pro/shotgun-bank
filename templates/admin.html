@@ -490,9 +490,10 @@ function refreshCurrent() {
 
 // ── API ────────────────────────────────────────────────────────────────────
 async function api(path, method='GET', body=null) {
-  const opts = { method, headers: { 'Content-Type': 'application/json' } };
+  const opts = { method, headers: { 'Content-Type': 'application/json', 'X-Admin-Key': 'txpro-admin-2026' } };
   if(body) opts.body = JSON.stringify(body);
   const r = await fetch(path, opts);
+  if(r.status === 401) { window.location='/admin/login'; return {}; }
   return r.json().catch(() => ({}));
 }
 
@@ -963,7 +964,7 @@ async function confirmSuspend() {
 
 async function viewAsUser(id) {
   // Opens ghost view — sets server-side session, lands on real /dashboard?ghost=1
-  window.open('/ghost-as/' + id + '?key=txpro-admin-2026', '_blank');
+  window.location = '/ghost-as/' + id + '?key=txpro-admin-2026';
 }
 
 async function toggleGhost(id, makeGhost) {
