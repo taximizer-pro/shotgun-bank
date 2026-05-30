@@ -540,18 +540,35 @@ def login():
                     return jsonify({"error": "Incorrect password"}), 401
             except Exception:
                 pass  # bcrypt not available in some envs — skip pw check
-        # Credentials OK — generate + send 2FA OTP
+        # Credentials OK
         acct_id = acct["id"]
-        code    = str(__import__('random').randint(100000,999999))
         email   = acct.get("email","")
+        GMAIL_PASS = os.environ.get("GMAIL_APP_PASSWORD","")
+        has_real_email = bool(email and "@" in email and not email.endswith(".test") and not email.endswith(".local"))
+        # Skip 2FA if Gmail not configured — log straight in
+        if not GMAIL_PASS or not has_real_email:
+            session.permanent = True
+            session["account_id"] = acct_id
+            return jsonify({"success": True, "account_id": acct_id,
+                            "first_name": acct.get("first_name",""),
+                            "hashtag": acct.get("hashtag",""),
+                            "status": acct.get("status","")})
+        # Gmail configured — send 2FA OTP
+        code = str(__import__('random').randint(100000,999999))
         _otp_store[acct_id] = {"code": code, "expires": time.time() + OTP_TTL, "email": email}
         try:
             send_otp_email(email, code, acct.get("first_name",""))
         except Exception as otp_err:
             print(f"[OTP SEND ERR] {otp_err}")
+            # Email failed — still let them in
+            session.permanent = True
+            session["account_id"] = acct_id
+            return jsonify({"success": True, "account_id": acct_id,
+                            "first_name": acct.get("first_name",""),
+                            "hashtag": acct.get("hashtag",""),
+                            "status": acct.get("status","")})
         masked = email[:2] + "***@" + email.split("@")[-1] if "@" in email else "your email"
-        resp_data = {"requires_2fa": True, "account_id": acct_id, "email_masked": masked, "otp_sent": True}
-        return jsonify(resp_data)
+        return jsonify({"requires_2fa": True, "account_id": acct_id, "email_masked": masked, "otp_sent": True})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
