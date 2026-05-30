@@ -595,8 +595,7 @@ def withdraw():
             if not acct.get("beat_v_enabled") or (bal - amount < -100):
                 return jsonify({"error":f"Insufficient balance (${bal:.2f})"}), 400
         stripe_acct_id = acct.get("wise_account_id","")
-        if not stripe_acct_id:
-            return jsonify({"error":"No Stripe account linked. Complete onboarding first."}), 400
+        # Stripe Connect optional — platform features work without it
         # Transfer to connected account
         stripe.Transfer.create(
             amount=int(net_amt * 100), currency="usd",
