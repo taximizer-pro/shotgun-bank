@@ -61,15 +61,23 @@ def get_acct(sg_id):
     return r if isinstance(r, dict) else (r[0] if r else None)
 
 def get_acct_by_tag(tag):
-    tag = tag.lower().replace("#","")
-    r = b44_get(f"{SG_URL}?hashtag={_uparse.quote(tag)}&limit=1")
-    lst = r if isinstance(r,list) else r.get("results",[])
-    return lst[0] if lst else None
+    tag = tag.lower().replace("#","").replace("$","").strip()
+    try:
+        r = b44_get(f"{SG_URL}?hashtag={_uparse.quote(tag)}&limit=1")
+        lst = r if isinstance(r,list) else (r.get("results") or r.get("data") or [])
+        return lst[0] if lst else None
+    except Exception as e:
+        print(f"[GET_ACCT_BY_TAG ERROR] {e}")
+        return None
 
 def get_acct_by_email(email):
-    r = b44_get(f"{SG_URL}?email={_uparse.quote(email)}&limit=1")
-    lst = r if isinstance(r,list) else r.get("results",[])
-    return lst[0] if lst else None
+    try:
+        r = b44_get(f"{SG_URL}?email={_uparse.quote(email.lower().strip())}&limit=1")
+        lst = r if isinstance(r,list) else (r.get("results") or r.get("data") or [])
+        return lst[0] if lst else None
+    except Exception as e:
+        print(f"[GET_ACCT_BY_EMAIL ERROR] {e}")
+        return None
 
 def get_crypto_price(symbol):
     """Fetch live crypto price via CoinGecko (free, no key)."""
@@ -155,14 +163,16 @@ def api_config():
 
 @app.route("/api/check-hashtag")
 def check_hashtag():
-    tag = request.args.get("tag","").strip().lower().replace("#","")
+    tag = request.args.get("tag","").strip().lower().replace("#","").replace("$","")
     if not tag or len(tag) < 2:
         return jsonify({"available": False, "reason": "Too short"})
     try:
         acct = get_acct_by_tag(tag)
         return jsonify({"available": acct is None})
-    except:
-        return jsonify({"available": False})
+    except Exception as e:
+        print(f"[HASHTAG CHECK ERROR] {e}")
+        # Fail open — don't block signup on API errors
+        return jsonify({"available": True})
 
 # ─────────────────────────────────────────────────────────────────────────────
 # SIGNUP — creates Stripe Connect Express + Base44 record
