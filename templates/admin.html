@@ -1,231 +1,304 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Shotgun Admin Panel</title>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<title>Shotgun Bank — Admin Panel</title>
 <style>
-*{margin:0;padding:0;box-sizing:border-box;}
-body{background:#f8fafc;color:#0f172a;font-family:'Inter',sans-serif;}
-.hdr{background:#0f172a;padding:16px 28px;display:flex;align-items:center;justify-content:space-between;}
-.hdr-logo{display:flex;align-items:center;gap:10px;color:#f1f5f9;}
-.hdr-logo-ico{width:36px;height:36px;background:linear-gradient(135deg,#e94560,#c0392b);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;}
-.hdr-name{font-size:16px;font-weight:900;color:#f1f5f9;}
-.hdr-right{display:flex;align-items:center;gap:12px;}
-.client-link{background:#e94560;color:#fff;text-decoration:none;border-radius:8px;padding:7px 14px;font-size:12px;font-weight:700;}
-.logout-link{color:#94a3b8;text-decoration:none;font-size:12px;}
-.main{max-width:1000px;margin:0 auto;padding:28px;}
-.stats{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:24px;}
-.stat{background:#fff;border:1px solid #e2e8f0;border-radius:16px;padding:18px;text-align:center;}
-.stat-val{font-size:26px;font-weight:900;margin-bottom:4px;}
-.stat-lbl{font-size:10px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px;}
-.tabs{display:flex;gap:8px;margin-bottom:20px;}
-.tab{background:#fff;border:1px solid #e2e8f0;border-radius:20px;padding:8px 18px;font-size:13px;font-weight:700;cursor:pointer;color:#64748b;}
-.tab.on{background:#0f172a;color:#fff;border-color:#0f172a;}
-.panel{display:none;} .panel.on{display:block;}
-.card{background:#fff;border:1px solid #e2e8f0;border-radius:16px;overflow:hidden;}
-.card-hdr{padding:14px 20px;border-bottom:1px solid #f1f5f9;display:flex;justify-content:space-between;align-items:center;font-size:14px;font-weight:800;}
-.card-body{padding:16px;}
-.mrow{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid #f8fafc;}
-.mrow:last-child{border-bottom:none;}
-.av{width:40px;height:40px;border-radius:12px;background:linear-gradient(135deg,#e94560,#c0392b);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:15px;flex-shrink:0;}
-.minfo{flex:1;}
-.mname{font-size:13px;font-weight:800;}
-.mtag{font-size:11px;color:#e94560;font-weight:700;}
-.memail{font-size:11px;color:#64748b;}
-.mright{text-align:right;}
-.mbal{font-size:14px;font-weight:900;}
-.badge{padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;display:inline-block;}
-.bp{background:#fef3c7;color:#92400e;}
-.ba{background:#dcfce7;color:#166534;}
-.bd{background:#fee2e2;color:#991b1b;}
-.bo{background:#dbeafe;color:#1e40af;}
-.arow{display:flex;gap:6px;margin-top:6px;}
-.abtn{border:none;border-radius:7px;padding:4px 11px;font-size:11px;font-weight:700;cursor:pointer;}
-.app{background:#22c55e;color:#fff;}
-.aden{background:#ef4444;color:#fff;}
-.aghst{background:#7c3aed;color:#fff;}
-.search{width:100%;padding:10px 14px;border:1.5px solid #e2e8f0;border-radius:10px;font-size:13px;margin-bottom:14px;outline:none;font-family:inherit;}
-.tx-row{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid #f8fafc;}
-.tx-ico{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;background:#f1f5f9;flex-shrink:0;}
-.tx-info{flex:1;}
-.tx-name{font-size:12px;font-weight:700;}
-.tx-note{font-size:11px;color:#94a3b8;}
-.tx-amt{font-size:13px;font-weight:800;text-align:right;}
-.tx-amt.cr{color:#22c55e;} .tx-amt.db{color:#ef4444;}
+  *{margin:0;padding:0;box-sizing:border-box;font-family:'Inter',sans-serif;}
+  
+  :root {
+    --bg:      #0a2218;
+    --bg2:     #071a12;
+    --card:    #0f2e1c;
+    --border:  rgba(255,255,255,0.08);
+    --green:   #16a34a;
+    --green2:  #22c55e;
+    --gold:    #eab308;
+    --gold2:   #fbbf24;
+    --text:    #ffffff;
+    --muted:   rgba(255,255,255,0.45);
+    --danger:  #ef4444;
+  }
+
+  body{min-height:100vh;background:var(--bg);color:var(--text);}
+
+  /* Header */
+  .hdr{background:var(--bg2);border-bottom:1px solid var(--border);padding:14px 24px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;}
+  .hdr-left{display:flex;align-items:center;gap:12px;}
+  .hdr-logo{width:42px;height:42px;object-fit:contain;}
+  .hdr-title{font-size:16px;font-weight:900;color:var(--text);}
+  .hdr-sub{font-size:11px;color:var(--gold);font-weight:700;letter-spacing:1px;text-transform:uppercase;}
+  .hdr-right{display:flex;align-items:center;gap:10px;}
+  .badge-admin{background:rgba(234,179,8,0.15);border:1px solid rgba(234,179,8,0.3);border-radius:20px;padding:4px 12px;color:var(--gold);font-size:11px;font-weight:700;}
+  .logout{color:var(--muted);font-size:12px;font-weight:600;text-decoration:none;padding:7px 14px;border:1px solid var(--border);border-radius:8px;transition:all 0.2s;}
+  .logout:hover{color:var(--text);border-color:var(--green);}
+
+  /* Stats */
+  .main{max-width:1100px;margin:0 auto;padding:24px;}
+  .stats{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:24px;}
+  @media(max-width:700px){.stats{grid-template-columns:repeat(2,1fr);}}
+  .stat{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:18px 14px;text-align:center;}
+  .stat-val{font-size:26px;font-weight:900;color:var(--green2);margin-bottom:4px;}
+  .stat-val.gold{color:var(--gold);}
+  .stat-lbl{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.8px;}
+
+  /* Tabs */
+  .tab-row{display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap;}
+  .tab{background:var(--card);border:1px solid var(--border);border-radius:20px;padding:8px 18px;font-size:13px;font-weight:700;cursor:pointer;color:var(--muted);transition:all 0.2s;}
+  .tab.on{background:var(--green);color:#fff;border-color:var(--green);}
+  .panel{display:none;}.panel.on{display:block;}
+
+  /* Cards */
+  .card{background:var(--card);border:1px solid var(--border);border-radius:14px;overflow:hidden;margin-bottom:16px;}
+  .card-hdr{padding:14px 20px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;}
+  .card-hdr-title{font-size:14px;font-weight:800;color:var(--text);}
+  .card-body{padding:16px;}
+
+  /* Search */
+  .search{width:100%;padding:11px 16px;background:rgba(255,255,255,0.05);border:1.5px solid var(--border);border-radius:10px;color:var(--text);font-size:13px;outline:none;margin-bottom:14px;}
+  .search:focus{border-color:var(--green2);}
+  .search::placeholder{color:var(--muted);}
+
+  /* Account rows */
+  .mrow{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--border);}
+  .mrow:last-child{border-bottom:none;}
+  .av{width:42px;height:42px;border-radius:12px;background:linear-gradient(135deg,var(--green),var(--gold));display:flex;align-items:center;justify-content:center;color:#000;font-weight:900;font-size:15px;flex-shrink:0;}
+  .minfo{flex:1;min-width:0;}
+  .mname{font-size:13px;font-weight:800;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .mtag{font-size:11px;color:var(--green2);font-weight:700;}
+  .memail{font-size:11px;color:var(--muted);}
+  .mright{text-align:right;flex-shrink:0;}
+  .mbal{font-size:14px;font-weight:900;color:var(--green2);}
+  .badge{padding:3px 10px;border-radius:20px;font-size:10px;font-weight:700;display:inline-block;text-transform:uppercase;letter-spacing:0.5px;}
+  .bp{background:rgba(234,179,8,0.15);color:var(--gold);border:1px solid rgba(234,179,8,0.3);}
+  .ba{background:rgba(22,163,74,0.15);color:var(--green2);border:1px solid rgba(22,163,74,0.3);}
+  .bd{background:rgba(239,68,68,0.15);color:#fca5a5;border:1px solid rgba(239,68,68,0.3);}
+  .bo{background:rgba(99,102,241,0.15);color:#a5b4fc;border:1px solid rgba(99,102,241,0.3);}
+
+  /* Action buttons */
+  .arow{display:flex;gap:6px;margin-top:8px;}
+  .abtn{border:none;border-radius:7px;padding:5px 12px;font-size:11px;font-weight:700;cursor:pointer;transition:opacity 0.2s;}
+  .abtn:hover{opacity:0.85;}
+  .app{background:var(--green);color:#fff;}
+  .aden{background:var(--danger);color:#fff;}
+  .aview{background:rgba(255,255,255,0.1);color:var(--text);}
+
+  /* TX rows */
+  .tx-row{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border);}
+  .tx-row:last-child{border-bottom:none;}
+  .tx-ico{width:38px;height:38px;border-radius:10px;background:rgba(255,255,255,0.06);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;}
+  .tx-info{flex:1;min-width:0;}
+  .tx-name{font-size:12px;font-weight:700;color:var(--text);}
+  .tx-note{font-size:11px;color:var(--muted);}
+  .tx-amt{font-size:13px;font-weight:900;text-align:right;flex-shrink:0;}
+  .cr{color:var(--green2);}.dr{color:var(--danger);}
+  .neutral{color:var(--gold);}
+
+  /* Empty state */
+  .empty{text-align:center;padding:40px;color:var(--muted);font-size:13px;}
+  .empty-ico{font-size:36px;margin-bottom:12px;}
 </style>
 </head>
 <body>
+
+<!-- HEADER -->
 <div class="hdr">
-  <div class="hdr-logo">
-    <div class="hdr-logo-ico">🔫</div>
+  <div class="hdr-left">
+    <img src="https://base44.app/api/apps/6a14ef767988d1ef0baff5aa/files/mp/public/6a14ef767988d1ef0baff5aa/7a46af0fc_shotgun_bank_REAL_logo.png" class="hdr-logo" alt="Shotgun" onerror="this.style.display='none'">
     <div>
-      <div class="hdr-name">Shotgun Bank — Admin</div>
-      <div style="font-size:11px;color:#475569;">Bisignano Holdings LLC</div>
+      <div class="hdr-title">Shotgun Bank</div>
+      <div class="hdr-sub">Admin Panel — Bisignano Holdings</div>
     </div>
   </div>
   <div class="hdr-right">
-    <a href="/" target="_blank" class="client-link">Open Client App ↗</a>
-    <a href="/admin/logout" class="logout-link">Sign Out</a>
+    <span class="badge-admin">⚡ Super Admin</span>
+    <a href="/" class="logout">View App</a>
+    <a href="/admin/logout" class="logout">Logout</a>
   </div>
 </div>
 
 <div class="main">
-  <div class="stats">
-    <div class="stat"><div class="stat-val" id="st-pending" style="color:#f59e0b;">—</div><div class="stat-lbl">Pending</div></div>
-    <div class="stat"><div class="stat-val" id="st-onboard" style="color:#3b82f6;">—</div><div class="stat-lbl">Onboarding</div></div>
-    <div class="stat"><div class="stat-val" id="st-approved" style="color:#22c55e;">—</div><div class="stat-lbl">Approved</div></div>
-    <div class="stat"><div class="stat-val" id="st-total" style="color:#0f172a;">—</div><div class="stat-lbl">Total Members</div></div>
-    <div class="stat"><div class="stat-val" id="st-fees" style="color:#e94560;">—</div><div class="stat-lbl">Fee Revenue</div></div>
+
+  <!-- STATS -->
+  <div class="stats" id="statsRow">
+    <div class="stat"><div class="stat-val" id="sTotal">—</div><div class="stat-lbl">Total Accounts</div></div>
+    <div class="stat"><div class="stat-val" id="sPending">—</div><div class="stat-lbl">Pending</div></div>
+    <div class="stat"><div class="stat-val gold" id="sBalance">—</div><div class="stat-lbl">Total Balances</div></div>
+    <div class="stat"><div class="stat-val" id="sTx">—</div><div class="stat-lbl">Transactions</div></div>
+    <div class="stat"><div class="stat-val gold" id="sFees">—</div><div class="stat-lbl">Fees Collected</div></div>
   </div>
 
-  <div class="tabs">
-    <div class="tab on" onclick="tab(this,'pending')">⏳ Pending</div>
-    <div class="tab" onclick="tab(this,'all')">👥 All Members</div>
-    <div class="tab" onclick="tab(this,'tx')">💸 Transactions</div>
+  <!-- TABS -->
+  <div class="tab-row">
+    <div class="tab on" onclick="switchTab('pending')">🕐 Pending Approval</div>
+    <div class="tab" onclick="switchTab('all')">👥 All Accounts</div>
+    <div class="tab" onclick="switchTab('tx')">💸 Transactions</div>
   </div>
 
-  <div class="panel on" id="p-pending">
+  <!-- PENDING -->
+  <div class="panel on" id="panel-pending">
     <div class="card">
-      <div class="card-hdr">Pending Applications <button onclick="load()" style="background:#f1f5f9;border:none;border-radius:8px;padding:4px 12px;font-size:12px;font-weight:600;color:#64748b;cursor:pointer;">Refresh</button></div>
-      <div class="card-body" id="pending-list"><div style="text-align:center;padding:30px;color:#94a3b8;">Loading…</div></div>
+      <div class="card-hdr"><span class="card-hdr-title">Pending Accounts</span><span id="pendingCount" style="color:var(--gold);font-size:12px;font-weight:700;"></span></div>
+      <div class="card-body" id="pendingList"><div class="empty"><div class="empty-ico">✅</div>No pending accounts</div></div>
     </div>
   </div>
 
-  <div class="panel" id="p-all">
-    <input class="search" placeholder="Search name, email, #hashtag…" oninput="filterMembers(this.value)">
-    <div class="card"><div class="card-body" id="member-list"><div style="text-align:center;padding:30px;color:#94a3b8;">Loading…</div></div></div>
+  <!-- ALL -->
+  <div class="panel" id="panel-all">
+    <div class="card">
+      <div class="card-hdr"><span class="card-hdr-title">All Accounts</span><span id="allCount" style="color:var(--muted);font-size:12px;font-weight:600;"></span></div>
+      <div class="card-body">
+        <input class="search" id="searchInput" placeholder="Search by name, #hashtag, or email…" oninput="filterAll()">
+        <div id="allList"><div class="empty"><div class="empty-ico">⏳</div>Loading…</div></div>
+      </div>
+    </div>
   </div>
 
-  <div class="panel" id="p-tx">
-    <div class="card"><div class="card-body" id="tx-list"><div style="text-align:center;padding:30px;color:#94a3b8;">Loading…</div></div></div>
+  <!-- TX -->
+  <div class="panel" id="panel-tx">
+    <div class="card">
+      <div class="card-hdr"><span class="card-hdr-title">Transactions</span></div>
+      <div class="card-body" id="txList"><div class="empty"><div class="empty-ico">⏳</div>Loading…</div></div>
+    </div>
   </div>
-</div>
+
+</div><!-- /main -->
 
 <script>
-let allMembers=[];
+let allAccounts = [];
+const TX_ICONS = {
+  deposit:'💰', ach_deposit:'🏦', p2p:'🎯', crypto_convert:'🪙',
+  instant_withdrawal:'⚡', standard_withdrawal:'🏧', rejection_fee:'💀', default:'💸'
+};
 
-function tab(el,name){
-  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));
-  el.classList.add('on');
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach((t,i)=>{
+    const names=['pending','all','tx'];
+    t.classList.toggle('on', names[i]===name);
+  });
   document.querySelectorAll('.panel').forEach(p=>p.classList.remove('on'));
-  document.getElementById('p-'+name).classList.add('on');
-  if(name==='tx') loadTx();
+  document.getElementById('panel-'+name).classList.add('on');
 }
 
-async function load(){
-  try{
-    const [pr,mr]=await Promise.all([
-      fetch('/api/admin/pending').then(r=>r.json()),
-      fetch('/api/admin/all').then(r=>r.json())
-    ]);
-    renderPending(pr.accounts||[]);
-    allMembers=mr.accounts||[];
-    renderMembers(allMembers);
-    updateStats(allMembers);
-  }catch(e){console.error(e);}
+function statusBadge(s) {
+  const map={pending:'bp',approved:'ba',denied:'bd',onboarding:'bo'};
+  return `<span class="badge ${map[s]||'bo'}">${s}</span>`;
 }
 
-function updateStats(m){
-  document.getElementById('st-pending').textContent=m.filter(x=>x.status==='pending').length;
-  document.getElementById('st-onboard').textContent=m.filter(x=>x.status==='onboarding').length;
-  document.getElementById('st-approved').textContent=m.filter(x=>x.status==='approved').length;
-  document.getElementById('st-total').textContent=m.length;
-  // Fee revenue — rough calc from total tx
-  document.getElementById('st-fees').textContent='—';
-}
-
-function renderPending(accts){
-  const el=document.getElementById('pending-list');
-  if(!accts.length){el.innerHTML='<div style="text-align:center;padding:28px;color:#94a3b8;">No pending applications 🎉</div>';return;}
-  el.innerHTML=accts.map(a=>`
-    <div class="mrow" id="row-${a.id}">
-      <div class="av">${(a.first_name||'?')[0]}${(a.last_name||'?')[0]}</div>
-      <div class="minfo">
-        <div class="mname">${a.first_name} ${a.last_name}</div>
-        <div class="mtag">#${a.hashtag}</div>
-        <div class="memail">${a.email} · ${a.phone||'—'}</div>
-        <div class="arow">
-          <button class="abtn app" onclick="approve('${a.id}')">✓ Approve</button>
-          <button class="abtn aden" onclick="deny('${a.id}')">✗ Deny</button>
-        </div>
-      </div>
-      <span class="badge bp">Pending</span>
-    </div>`).join('');
-}
-
-function renderMembers(m){
-  const el=document.getElementById('member-list');
-  if(!m.length){el.innerHTML='<div style="text-align:center;padding:28px;color:#94a3b8;">No members yet</div>';return;}
-  el.innerHTML=m.map(a=>{
-    const bal=parseFloat(a.balance||0);
-    const bc=a.status==='approved'?'ba':a.status==='denied'?'bd':a.status==='onboarding'?'bo':'bp';
-    return `<div class="mrow">
-      <div class="av">${(a.first_name||'?')[0]}${(a.last_name||'?')[0]}</div>
-      <div class="minfo">
-        <div class="mname">${a.first_name} ${a.last_name}</div>
-        <div class="mtag">#${a.hashtag}</div>
-        <div class="memail">${a.email}</div>
-      </div>
-      <div class="mright">
-        <span class="badge ${bc}">${a.status}</span>
-        <div class="mbal" style="color:${bal<0?'#ef4444':'#0f172a'}">${bal<0?'-':''}$${Math.abs(bal).toFixed(2)}</div>
-        ${a.status==='approved'?`<div class="arow" style="justify-content:flex-end;"><button class="abtn aghst" onclick="ghost('${a.id}')">👻 Ghost</button></div>`:''}
-      </div>
+function acctRow(a, showActions=false) {
+  const init = ((a.first_name||'?')[0]+(a.last_name||'?')[0]).toUpperCase();
+  const bal  = parseFloat(a.balance||0).toFixed(2);
+  const btv  = a.beat_v_enabled ? ' <span style="color:var(--gold);font-size:10px;">⚡BTV</span>' : '';
+  let actions = '';
+  if (showActions && a.status==='pending') {
+    actions = `<div class="arow">
+      <button class="abtn app" onclick="approve('${a.id}')">✓ Approve</button>
+      <button class="abtn aden" onclick="deny('${a.id}')">✗ Deny</button>
     </div>`;
-  }).join('');
+  }
+  return `<div class="mrow" id="row-${a.id}">
+    <div class="av">${init}</div>
+    <div class="minfo">
+      <div class="mname">${a.first_name||''} ${a.last_name||''}${btv}</div>
+      <div class="mtag">#${a.hashtag||'—'}</div>
+      <div class="memail">${a.email||''}</div>
+      ${actions}
+    </div>
+    <div class="mright">
+      <div class="mbal">$${bal}</div>
+      ${statusBadge(a.status||'?')}
+    </div>
+  </div>`;
 }
 
-async function loadTx(){
-  try{
-    const r=await fetch('/api/admin/transactions');
-    const d=await r.json();
-    const el=document.getElementById('tx-list');
-    const txs=d.transactions||[];
-    if(!txs.length){el.innerHTML='<div style="text-align:center;padding:28px;color:#94a3b8;">No transactions yet</div>';return;}
-    el.innerHTML=txs.map(tx=>{
-      const isIncome=['deposit','incoming'].includes(tx.type);
-      const ico=tx.status==='completed'?(isIncome?'🎯':'💸'):'💀';
-      const amt=parseFloat(tx.amount||0);
-      const fee=parseFloat(tx.fee||0);
-      const date=new Date(tx.created_date||Date.now()).toLocaleDateString('en-US',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});
-      return `<div class="tx-row">
-        <div class="tx-ico">${ico}</div>
-        <div class="tx-info">
-          <div class="tx-name">${tx.from_name||'#'+tx.from_hashtag||'—'} → ${tx.to_name||'#'+tx.to_hashtag||'—'}</div>
-          <div class="tx-note">${tx.type||''} · ${tx.note||''} · ${date}</div>
-        </div>
-        <div>
-          <div class="tx-amt ${isIncome?'cr':'db'}">${isIncome?'+':'-'}$${amt.toFixed(2)}</div>
-          <div style="font-size:10px;color:#94a3b8;text-align:right;">Fee: $${fee.toFixed(2)}</div>
-        </div>
-      </div>`;
-    }).join('');
-  }catch(e){console.error(e);}
+async function loadPending() {
+  const res = await fetch('/api/admin/pending');
+  const d   = await res.json();
+  const list = d.accounts||[];
+  document.getElementById('pendingCount').textContent = list.length + ' accounts';
+  document.getElementById('pendingList').innerHTML = list.length
+    ? list.map(a=>acctRow(a,true)).join('')
+    : '<div class="empty"><div class="empty-ico">✅</div>No pending accounts — all clear</div>';
 }
 
-function filterMembers(q){
-  q=q.toLowerCase();
-  renderMembers(allMembers.filter(m=>(m.first_name+' '+m.last_name).toLowerCase().includes(q)||(m.email||'').toLowerCase().includes(q)||(m.hashtag||'').toLowerCase().includes(q)));
+async function loadAll() {
+  const res = await fetch('/api/admin/all');
+  const d   = await res.json();
+  allAccounts = d.accounts||[];
+  document.getElementById('allCount').textContent = allAccounts.length + ' total';
+  renderAll(allAccounts);
+  // Stats
+  const total   = allAccounts.length;
+  const pending = allAccounts.filter(a=>a.status==='pending').length;
+  const totalBal = allAccounts.reduce((s,a)=>s+parseFloat(a.balance||0),0);
+  document.getElementById('sTotal').textContent   = total;
+  document.getElementById('sPending').textContent = pending;
+  document.getElementById('sBalance').textContent = '$'+totalBal.toFixed(2);
 }
 
-async function approve(id){
-  if(!confirm('Approve this account?'))return;
-  const r=await fetch('/api/admin/approve/'+id,{method:'POST'});
-  const d=await r.json();
-  if(d.success){document.getElementById('row-'+id)?.remove();load();}
-  else alert(d.error||'Error');
+function renderAll(list) {
+  document.getElementById('allList').innerHTML = list.length
+    ? list.map(a=>acctRow(a,false)).join('')
+    : '<div class="empty"><div class="empty-ico">🔍</div>No results</div>';
 }
-async function deny(id){
-  const reason=prompt('Reason (optional):')||'';
-  const r=await fetch('/api/admin/deny/'+id,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({reason})});
-  const d=await r.json();
-  if(d.success){document.getElementById('row-'+id)?.remove();load();}
-  else alert(d.error||'Error');
-}
-function ghost(id){window.open('/admin/ghost/'+id,'_blank');}
 
-load();
+function filterAll() {
+  const q = document.getElementById('searchInput').value.toLowerCase();
+  if (!q) { renderAll(allAccounts); return; }
+  renderAll(allAccounts.filter(a=>
+    (a.first_name+' '+a.last_name+' '+a.hashtag+' '+a.email).toLowerCase().includes(q)
+  ));
+}
+
+async function loadTx() {
+  const res = await fetch('/api/admin/transactions');
+  const d   = await res.json();
+  const txs = d.transactions||[];
+  let fees = 0;
+  document.getElementById('sTx').textContent = txs.length;
+  const rows = txs.map(t=>{
+    fees += parseFloat(t.fee||0);
+    const ico   = TX_ICONS[t.type]||TX_ICONS.default;
+    const isIn  = t.type==='deposit'||t.type==='ach_deposit';
+    const isFee = t.type==='rejection_fee';
+    const cls   = isFee?'dr':isIn?'cr':'dr';
+    const sign  = isIn?'+':'-';
+    const amt   = parseFloat(t.amount||0).toFixed(2);
+    const from  = t.from_hashtag ? '#'+t.from_hashtag : t.from_name||'—';
+    const to    = t.to_hashtag   ? '#'+t.to_hashtag   : t.to_name||'—';
+    const note  = t.note||t.type?.replace(/_/g,' ')||'';
+    const dt    = t.created_date ? new Date(t.created_date).toLocaleDateString('en-US',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}) : '';
+    return `<div class="tx-row">
+      <div class="tx-ico">${ico}</div>
+      <div class="tx-info">
+        <div class="tx-name">${from} → ${to}</div>
+        <div class="tx-note">${note} · ${dt}</div>
+      </div>
+      <div class="tx-amt ${cls}">${sign}$${amt}</div>
+    </div>`;
+  }).join('') || '<div class="empty"><div class="empty-ico">📭</div>No transactions yet</div>';
+  document.getElementById('txList').innerHTML = rows;
+  document.getElementById('sFees').textContent = '$'+fees.toFixed(2);
+}
+
+async function approve(id) {
+  if (!confirm('Approve this account?')) return;
+  await fetch('/api/admin/approve/'+id, {method:'POST'});
+  document.getElementById('row-'+id).remove();
+  loadAll();
+}
+
+async function deny(id) {
+  const reason = prompt('Reason for denial (optional):') || '';
+  await fetch('/api/admin/deny/'+id, {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({reason})});
+  document.getElementById('row-'+id).remove();
+}
+
+// Init
+loadPending();
+loadAll();
+loadTx();
 </script>
 </body>
 </html>
