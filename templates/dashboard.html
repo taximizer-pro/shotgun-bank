@@ -1,0 +1,767 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Shotgun Bank — Dashboard</title>
+<script src="https://js.stripe.com/v3/"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#0a2218;color:#fff;min-height:100vh;max-width:480px;margin:0 auto;display:flex;flex-direction:column;}
+/* ── TOP BAR ── */
+.topbar{background:#071a11;display:flex;align-items:center;justify-content:space-between;padding:14px 18px;position:sticky;top:0;z-index:100;border-bottom:1px solid rgba(234,179,8,0.15);}
+.topbar-logo{height:36px;}
+.topbar-name{font-size:13px;color:#eab308;font-weight:700;letter-spacing:0.5px;}
+.topbar-right{display:flex;align-items:center;gap:12px;}
+.bell-btn{background:none;border:none;font-size:20px;cursor:pointer;color:#eab308;padding:4px;}
+.avatar{width:34px;height:34px;border-radius:50%;background:#16a34a;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;color:#fff;cursor:pointer;border:2px solid #eab308;}
+/* ── BALANCE CARD ── */
+.balance-card{background:linear-gradient(135deg,#16a34a 0%,#0a2218 100%);margin:16px;border-radius:16px;padding:24px 20px;border:1.5px solid rgba(234,179,8,0.3);position:relative;overflow:hidden;}
+.balance-card::before{content:'';position:absolute;top:-30px;right:-30px;width:120px;height:120px;border-radius:50%;background:rgba(234,179,8,0.08);}
+.balance-label{font-size:12px;color:rgba(255,255,255,0.7);letter-spacing:1px;text-transform:uppercase;margin-bottom:6px;}
+.balance-amount{font-size:38px;font-weight:800;color:#fff;letter-spacing:-1px;}
+.balance-change{font-size:12px;color:#86efac;margin-top:4px;}
+.card-row{display:flex;justify-content:space-between;margin-top:16px;padding-top:14px;border-top:1px solid rgba(255,255,255,0.1);}
+.card-info{font-size:11px;color:rgba(255,255,255,0.6);}
+.card-info span{display:block;font-size:14px;color:#fff;font-weight:600;margin-top:2px;}
+.beat-v-badge{background:#eab308;color:#0a2218;font-size:10px;font-weight:800;padding:3px 8px;border-radius:12px;letter-spacing:0.5px;}
+/* ── QUICK ACTIONS ── */
+.quick-actions{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:0 16px 16px;}
+.qa-btn{background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:14px 8px;text-align:center;cursor:pointer;transition:all 0.15s;}
+.qa-btn:active{transform:scale(0.95);background:rgba(22,163,74,0.2);}
+.qa-icon{font-size:22px;margin-bottom:6px;}
+.qa-label{font-size:11px;color:rgba(255,255,255,0.7);font-weight:600;}
+/* ── NAV TABS ── */
+.nav-tabs{display:flex;background:rgba(0,0,0,0.3);margin:0 16px 16px;border-radius:10px;padding:4px;}
+.nav-tab{flex:1;padding:9px;text-align:center;font-size:12px;font-weight:600;color:rgba(255,255,255,0.4);cursor:pointer;border-radius:7px;transition:all 0.2s;}
+.nav-tab.active{background:#16a34a;color:#fff;}
+/* ── SECTION PANELS ── */
+.panel{display:none;padding:0 16px 100px;}
+.panel.active{display:block;}
+/* ── TRANSACTIONS ── */
+.tx-header{font-size:13px;color:rgba(255,255,255,0.5);font-weight:700;letter-spacing:0.5px;text-transform:uppercase;margin-bottom:12px;}
+.tx-item{background:rgba(255,255,255,0.04);border-radius:12px;padding:14px;margin-bottom:8px;display:flex;align-items:center;gap:12px;border:1px solid rgba(255,255,255,0.06);}
+.tx-icon{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;}
+.tx-icon.sent{background:rgba(239,68,68,0.15);}
+.tx-icon.recv{background:rgba(22,163,74,0.15);}
+.tx-details{flex:1;}
+.tx-name{font-size:14px;font-weight:600;color:#fff;}
+.tx-date{font-size:11px;color:rgba(255,255,255,0.4);margin-top:2px;}
+.tx-amount{font-size:15px;font-weight:700;}
+.tx-amount.sent{color:#f87171;}
+.tx-amount.recv{color:#4ade80;}
+.empty-state{text-align:center;padding:40px 20px;color:rgba(255,255,255,0.4);}
+.empty-state .empty-icon{font-size:40px;margin-bottom:12px;}
+/* ── SEND MONEY ── */
+.send-card{background:rgba(255,255,255,0.04);border-radius:14px;padding:20px;border:1px solid rgba(255,255,255,0.08);margin-bottom:16px;}
+.input-group{margin-bottom:14px;}
+.input-group label{font-size:12px;color:rgba(255,255,255,0.5);font-weight:600;letter-spacing:0.5px;margin-bottom:6px;display:block;text-transform:uppercase;}
+.inp{width:100%;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.12);border-radius:8px;padding:13px 14px;color:#fff;font-size:15px;outline:none;transition:border 0.2s;}
+.inp:focus{border-color:#16a34a;}
+.inp::placeholder{color:rgba(255,255,255,0.3);}
+.amount-wrap{position:relative;}
+.amount-wrap .dollar{position:absolute;left:14px;top:50%;transform:translateY(-50%);color:rgba(255,255,255,0.5);font-size:16px;}
+.amount-wrap .inp{padding-left:28px;}
+.btn-green{width:100%;background:#16a34a;color:#fff;border:none;border-radius:10px;padding:15px;font-size:16px;font-weight:700;cursor:pointer;transition:all 0.2s;letter-spacing:0.3px;}
+.btn-green:active{transform:scale(0.98);background:#15803d;}
+.btn-green:disabled{opacity:0.5;cursor:not-allowed;}
+.btn-gold{width:100%;background:#eab308;color:#0a2218;border:none;border-radius:10px;padding:15px;font-size:16px;font-weight:700;cursor:pointer;transition:all 0.2s;}
+.btn-gold:active{transform:scale(0.98);}
+.fee-note{font-size:11px;color:rgba(255,255,255,0.4);text-align:center;margin-top:8px;}
+/* ── ACCOUNT ── */
+.acct-section{margin-bottom:20px;}
+.acct-title{font-size:13px;color:rgba(255,255,255,0.5);font-weight:700;letter-spacing:0.5px;text-transform:uppercase;margin-bottom:10px;}
+.acct-row{background:rgba(255,255,255,0.04);border-radius:12px;padding:14px 16px;display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;border:1px solid rgba(255,255,255,0.06);}
+.acct-row-label{font-size:13px;color:rgba(255,255,255,0.5);}
+.acct-row-val{font-size:14px;font-weight:600;color:#fff;max-width:200px;text-align:right;word-break:break-all;}
+.copy-btn{background:rgba(234,179,8,0.15);border:1px solid rgba(234,179,8,0.3);color:#eab308;border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer;margin-left:8px;font-weight:600;}
+/* ── CARD DISPLAY ── */
+.virtual-card{background:linear-gradient(135deg,#0f3d20 0%,#1a5c35 50%,#0a2218 100%);border-radius:16px;padding:24px;margin-bottom:16px;border:2px solid #eab308;position:relative;overflow:hidden;aspect-ratio:1.586;}
+.virtual-card::after{content:'';position:absolute;inset:0;background:url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="60" height="60"><circle cx="30" cy="30" r="25" fill="none" stroke="rgba(255,255,255,0.04)" stroke-width="1"/></svg>') repeat;}
+.vc-logo{height:28px;margin-bottom:auto;}
+.vc-number{font-size:17px;letter-spacing:3px;color:#fff;font-weight:600;margin:auto 0 12px;}
+.vc-row{display:flex;justify-content:space-between;align-items:flex-end;}
+.vc-label{font-size:9px;color:rgba(255,255,255,0.5);text-transform:uppercase;letter-spacing:1px;}
+.vc-val{font-size:13px;color:#fff;font-weight:600;}
+.vc-chip{width:36px;height:28px;background:linear-gradient(135deg,#eab308,#ca8a04);border-radius:4px;margin-bottom:12px;}
+/* ── BEAT THE V ── */
+.btv-card{background:linear-gradient(135deg,#1a0a00,#3d1a00);border:2px solid #eab308;border-radius:16px;padding:24px;margin-bottom:16px;text-align:center;}
+.btv-title{font-size:20px;font-weight:800;color:#eab308;margin-bottom:8px;}
+.btv-desc{font-size:13px;color:rgba(255,255,255,0.6);line-height:1.6;margin-bottom:20px;}
+.btv-stat{font-size:32px;font-weight:800;color:#fff;margin-bottom:4px;}
+.btv-stat-label{font-size:11px;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:1px;}
+.progress-bar{background:rgba(255,255,255,0.1);border-radius:99px;height:8px;margin:16px 0;}
+.progress-fill{background:linear-gradient(90deg,#16a34a,#eab308);height:100%;border-radius:99px;transition:width 0.5s;}
+/* ── CRYPTO ── */
+.crypto-item{background:rgba(255,255,255,0.04);border-radius:12px;padding:14px;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;border:1px solid rgba(255,255,255,0.06);}
+.crypto-left{display:flex;align-items:center;gap:12px;}
+.crypto-icon{font-size:28px;}
+.crypto-name{font-size:15px;font-weight:700;color:#fff;}
+.crypto-sym{font-size:12px;color:rgba(255,255,255,0.4);}
+.crypto-price{text-align:right;}
+.crypto-usd{font-size:15px;font-weight:700;color:#fff;}
+.crypto-change{font-size:12px;font-weight:600;}
+.crypto-change.up{color:#4ade80;}
+.crypto-change.down{color:#f87171;}
+/* ── DEPOSIT MODAL ── */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:200;align-items:flex-end;}
+.modal-overlay.open{display:flex;}
+.modal-sheet{background:#0d2e1b;border-radius:20px 20px 0 0;width:100%;max-width:480px;margin:0 auto;padding:24px;max-height:90vh;overflow-y:auto;}
+.modal-handle{width:40px;height:4px;background:rgba(255,255,255,0.2);border-radius:2px;margin:0 auto 20px;}
+.modal-title{font-size:18px;font-weight:800;color:#fff;margin-bottom:20px;}
+.modal-close{float:right;background:none;border:none;color:rgba(255,255,255,0.5);font-size:24px;cursor:pointer;line-height:1;}
+/* ── BOTTOM NAV ── */
+.bottom-nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;background:#071a11;border-top:1px solid rgba(234,179,8,0.15);display:flex;padding:8px 0 16px;z-index:100;}
+.bnav-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;padding:6px 0;}
+.bnav-icon{font-size:20px;}
+.bnav-label{font-size:10px;color:rgba(255,255,255,0.4);font-weight:600;letter-spacing:0.3px;}
+.bnav-item.active .bnav-icon{filter:none;}
+.bnav-item.active .bnav-label{color:#16a34a;}
+/* ── ALERTS ── */
+.toast{position:fixed;top:70px;left:50%;transform:translateX(-50%);background:#16a34a;color:#fff;padding:12px 24px;border-radius:10px;font-weight:600;font-size:14px;z-index:300;opacity:0;transition:opacity 0.3s;white-space:nowrap;max-width:90vw;}
+.toast.error{background:#dc2626;}
+.toast.show{opacity:1;}
+/* ── LOADER ── */
+.loader{text-align:center;padding:40px;color:rgba(255,255,255,0.4);}
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <img src="https://base44.app/api/apps/6a14ef767988d1ef0baff5aa/files/mp/public/6a14ef767988d1ef0baff5aa/7a46af0fc_shotgun_bank_REAL_logo.png" class="topbar-logo" alt="Shotgun Bank">
+  <span class="topbar-name" id="topbarHashtag">$---</span>
+  <div class="topbar-right">
+    <button class="bell-btn" title="Notifications">🔔</button>
+    <div class="avatar" id="avatarInit" onclick="showPanel('account')">?</div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<!-- BALANCE CARD -->
+<div class="balance-card" id="balanceCard">
+  <div class="balance-label">Available Balance</div>
+  <div class="balance-amount" id="balanceAmt">$--</div>
+  <div class="balance-change" id="balanceChange">Loading…</div>
+  <div class="card-row">
+    <div class="card-info">Routing<span id="routingDisplay">···</span></div>
+    <div class="card-info">Account<span id="accountDisplay">···</span></div>
+    <div id="beatVBadge" style="display:none"><span class="beat-v-badge">🎯 BEAT THE V</span></div>
+  </div>
+</div>
+
+<!-- QUICK ACTIONS -->
+<div class="quick-actions">
+  <div class="qa-btn" onclick="openModal('sendModal')">
+    <div class="qa-icon">💸</div>
+    <div class="qa-label">Send</div>
+  </div>
+  <div class="qa-btn" onclick="openModal('depositModal')">
+    <div class="qa-icon">💳</div>
+    <div class="qa-label">Deposit</div>
+  </div>
+  <div class="qa-btn" onclick="openModal('withdrawModal')">
+    <div class="qa-icon">🏦</div>
+    <div class="qa-label">Withdraw</div>
+  </div>
+  <div class="qa-btn" onclick="showPanel('card')">
+    <div class="qa-icon">🃏</div>
+    <div class="qa-label">My Card</div>
+  </div>
+</div>
+
+<!-- NAV TABS -->
+<div class="nav-tabs">
+  <div class="nav-tab active" onclick="showPanel('home')" id="nav-home">Home</div>
+  <div class="nav-tab" onclick="showPanel('send')" id="nav-send">Send</div>
+  <div class="nav-tab" onclick="showPanel('crypto')" id="nav-crypto">Crypto</div>
+  <div class="nav-tab" onclick="showPanel('beat')" id="nav-beat">Beat V</div>
+  <div class="nav-tab" onclick="showPanel('account')" id="nav-account">Account</div>
+</div>
+
+<!-- ====== PANELS ====== -->
+
+<!-- HOME (Transactions) -->
+<div class="panel active" id="panel-home">
+  <div class="tx-header">Recent Activity</div>
+  <div id="txList"><div class="loader">⏳ Loading transactions…</div></div>
+</div>
+
+<!-- SEND -->
+<div class="panel" id="panel-send">
+  <div class="send-card">
+    <div class="input-group">
+      <label>Recipient $Hashtag</label>
+      <input class="inp" id="sendTo" placeholder="$HASHTAG or email" oninput="lookupRecipient(this.value)">
+      <div id="recipientPreview" style="font-size:12px;color:#4ade80;margin-top:6px;min-height:16px;"></div>
+    </div>
+    <div class="input-group">
+      <label>Amount</label>
+      <div class="amount-wrap">
+        <span class="dollar">$</span>
+        <input class="inp" id="sendAmt" type="number" placeholder="0.00" min="0.01" step="0.01">
+      </div>
+    </div>
+    <div class="input-group">
+      <label>Note (optional)</label>
+      <input class="inp" id="sendNote" placeholder="What's it for?">
+    </div>
+    <button class="btn-green" onclick="doSend()">Send Money 💸</button>
+    <div class="fee-note">$1.50 fee applies to sender and recipient</div>
+  </div>
+</div>
+
+<!-- CRYPTO -->
+<div class="panel" id="panel-crypto">
+  <div id="cryptoList"><div class="loader">⏳ Loading prices…</div></div>
+  <div class="send-card" style="margin-top:16px;">
+    <div class="input-group">
+      <label>Convert USD → Crypto</label>
+      <div class="amount-wrap">
+        <span class="dollar">$</span>
+        <input class="inp" id="cryptoAmt" type="number" placeholder="Amount in USD" min="1">
+      </div>
+    </div>
+    <div class="input-group">
+      <label>Coin</label>
+      <select class="inp" id="cryptoCoin" style="color:#fff;background:rgba(255,255,255,0.07);">
+        <option value="BTC">Bitcoin (BTC)</option>
+        <option value="ETH">Ethereum (ETH)</option>
+        <option value="USDC">USDC</option>
+        <option value="SOL">Solana (SOL)</option>
+        <option value="DOGE">Dogecoin (DOGE)</option>
+      </select>
+    </div>
+    <div id="cryptoConvertResult" style="font-size:20px;font-weight:800;color:#eab308;text-align:center;min-height:30px;margin-bottom:16px;"></div>
+    <button class="btn-gold" onclick="doCryptoConvert()">Calculate</button>
+  </div>
+</div>
+
+<!-- BEAT THE V -->
+<div class="panel" id="panel-beat">
+  <div class="btv-card">
+    <div class="btv-title">🎯 Beat the V</div>
+    <div class="btv-desc">Reach <strong>$500</strong> in monthly transactions and unlock up to <strong>$100 overdraft</strong> — no fees, no questions.</div>
+    <div class="btv-stat" id="btvVolume">$0</div>
+    <div class="btv-stat-label">Monthly Transaction Volume</div>
+    <div class="progress-bar">
+      <div class="progress-fill" id="btvProgress" style="width:0%"></div>
+    </div>
+    <div style="display:flex;justify-content:space-between;font-size:11px;color:rgba(255,255,255,0.4);margin-bottom:20px;">
+      <span>$0</span><span>$500 goal</span>
+    </div>
+    <div id="btvStatus" style="font-size:14px;color:#eab308;font-weight:700;"></div>
+  </div>
+  <div class="send-card">
+    <div style="font-size:13px;color:rgba(255,255,255,0.6);line-height:1.7;">
+      <strong style="color:#eab308;">How it works:</strong><br>
+      • Send or receive $500+ in a calendar month<br>
+      • Beat the V unlocks automatically<br>
+      • Go up to $100 negative — we cover you<br>
+      • Repay when your next deposit lands<br>
+      • No credit check. No interest.
+    </div>
+  </div>
+</div>
+
+<!-- ACCOUNT -->
+<div class="panel" id="panel-account">
+  <div class="acct-section">
+    <div class="acct-title">Account Info</div>
+    <div class="acct-row">
+      <span class="acct-row-label">Full Name</span>
+      <span class="acct-row-val" id="acctFullName">—</span>
+    </div>
+    <div class="acct-row">
+      <span class="acct-row-label">$Hashtag</span>
+      <span class="acct-row-val" id="acctHashtag">—</span>
+    </div>
+    <div class="acct-row">
+      <span class="acct-row-label">Email</span>
+      <span class="acct-row-val" id="acctEmail">—</span>
+    </div>
+    <div class="acct-row">
+      <span class="acct-row-label">Status</span>
+      <span class="acct-row-val" id="acctStatus">—</span>
+    </div>
+  </div>
+  <div class="acct-section">
+    <div class="acct-title">Banking Details</div>
+    <div class="acct-row">
+      <span class="acct-row-label">Routing #</span>
+      <span class="acct-row-val" id="acctRouting">—</span>
+      <button class="copy-btn" onclick="copyText(document.getElementById('acctRouting').textContent)">Copy</button>
+    </div>
+    <div class="acct-row">
+      <span class="acct-row-label">Account #</span>
+      <span class="acct-row-val" id="acctAccount">—</span>
+      <button class="copy-btn" onclick="copyText(document.getElementById('acctAccount').textContent)">Copy</button>
+    </div>
+  </div>
+  <div class="acct-section">
+    <div class="acct-title">Virtual Card</div>
+    <div class="virtual-card" id="virtualCard">
+      <img src="https://base44.app/api/apps/6a14ef767988d1ef0baff5aa/files/mp/public/6a14ef767988d1ef0baff5aa/7a46af0fc_shotgun_bank_REAL_logo.png" class="vc-logo" alt="">
+      <div class="vc-chip"></div>
+      <div class="vc-number" id="vcNumber">•••• •••• •••• ••••</div>
+      <div class="vc-row">
+        <div><div class="vc-label">Card Holder</div><div class="vc-val" id="vcName">—</div></div>
+        <div><div class="vc-label">Expires</div><div class="vc-val" id="vcExp">—</div></div>
+        <div><div class="vc-label">CVV</div><div class="vc-val" id="vcCvv">•••</div></div>
+      </div>
+    </div>
+    <div style="display:flex;gap:10px;margin-bottom:16px;">
+      <button class="btn-green" style="flex:1" onclick="toggleCardReveal()">👁 Reveal Card</button>
+      <button class="btn-gold" style="flex:1" onclick="window.location.href='/card/design'">🎨 Design Card</button>
+    </div>
+  </div>
+  <div style="padding-bottom:20px;">
+    <button onclick="doLogout()" style="width:100%;background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.4);color:#f87171;border-radius:10px;padding:15px;font-size:15px;font-weight:700;cursor:pointer;">Sign Out</button>
+  </div>
+</div>
+
+<!-- CARD PANEL (shortcut) -->
+<div class="panel" id="panel-card">
+  <div class="virtual-card" id="virtualCard2">
+    <img src="https://base44.app/api/apps/6a14ef767988d1ef0baff5aa/files/mp/public/6a14ef767988d1ef0baff5aa/7a46af0fc_shotgun_bank_REAL_logo.png" class="vc-logo" alt="">
+    <div class="vc-chip"></div>
+    <div class="vc-number" id="vcNumber2">•••• •••• •••• ••••</div>
+    <div class="vc-row">
+      <div><div class="vc-label">Card Holder</div><div class="vc-val" id="vcName2">—</div></div>
+      <div><div class="vc-label">Expires</div><div class="vc-val" id="vcExp2">—</div></div>
+      <div><div class="vc-label">CVV</div><div class="vc-val" id="vcCvv2">•••</div></div>
+    </div>
+  </div>
+  <div style="display:flex;gap:10px;">
+    <button class="btn-green" style="flex:1" onclick="toggleCardReveal2()">👁 Reveal Card</button>
+    <button class="btn-gold" style="flex:1" onclick="window.location.href='/card/design'">🎨 Design Card</button>
+  </div>
+</div>
+
+<!-- ===== MODALS ===== -->
+
+<!-- SEND MODAL (quick) -->
+<div class="modal-overlay" id="sendModal">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <button class="modal-close" onclick="closeModal('sendModal')">×</button>
+    <div class="modal-title">💸 Send Money</div>
+    <div class="input-group">
+      <label>To ($Hashtag or Email)</label>
+      <input class="inp" id="mSendTo" placeholder="$HASHTAG" oninput="lookupRecipient2(this.value)">
+      <div id="mRecipientPreview" style="font-size:12px;color:#4ade80;margin-top:6px;min-height:16px;"></div>
+    </div>
+    <div class="input-group">
+      <label>Amount</label>
+      <div class="amount-wrap"><span class="dollar">$</span>
+        <input class="inp" id="mSendAmt" type="number" placeholder="0.00" min="0.01" step="0.01">
+      </div>
+    </div>
+    <div class="input-group">
+      <label>Note</label>
+      <input class="inp" id="mSendNote" placeholder="What's it for?">
+    </div>
+    <button class="btn-green" onclick="doModalSend()">Send 💸</button>
+    <div class="fee-note">$1.50 fee applies</div>
+  </div>
+</div>
+
+<!-- DEPOSIT MODAL -->
+<div class="modal-overlay" id="depositModal">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <button class="modal-close" onclick="closeModal('depositModal')">×</button>
+    <div class="modal-title">💳 Deposit Funds</div>
+    <div class="input-group">
+      <label>Amount to Deposit</label>
+      <div class="amount-wrap"><span class="dollar">$</span>
+        <input class="inp" id="dAmt" type="number" placeholder="0.00" min="1" step="0.01">
+      </div>
+    </div>
+    <div style="font-size:13px;color:rgba(255,255,255,0.5);margin-bottom:16px;line-height:1.6;">
+      Choose how to deposit: card (instant) or bank transfer (1-3 days)
+    </div>
+    <button class="btn-green" style="margin-bottom:10px;" onclick="doDeposit('card')">💳 Deposit via Card</button>
+    <button class="btn-gold" onclick="doDeposit('ach')">🏦 Deposit via Bank Transfer</button>
+  </div>
+</div>
+
+<!-- WITHDRAW MODAL -->
+<div class="modal-overlay" id="withdrawModal">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <button class="modal-close" onclick="closeModal('withdrawModal')">×</button>
+    <div class="modal-title">🏦 Withdraw Funds</div>
+    <div class="input-group">
+      <label>Amount to Withdraw</label>
+      <div class="amount-wrap"><span class="dollar">$</span>
+        <input class="inp" id="wAmt" type="number" placeholder="0.00" min="1" step="0.01">
+      </div>
+    </div>
+    <div style="font-size:13px;color:rgba(255,255,255,0.5);margin-bottom:16px;line-height:1.6;">
+      Funds sent to your linked bank account (ACH, 1-3 business days)
+    </div>
+    <button class="btn-green" onclick="doWithdraw()">Withdraw to Bank 🏦</button>
+  </div>
+</div>
+
+<!-- BOTTOM NAV -->
+<div class="bottom-nav">
+  <div class="bnav-item active" onclick="showPanel('home')" id="bnav-home">
+    <div class="bnav-icon">🏠</div><div class="bnav-label">Home</div>
+  </div>
+  <div class="bnav-item" onclick="showPanel('send')" id="bnav-send">
+    <div class="bnav-icon">💸</div><div class="bnav-label">Send</div>
+  </div>
+  <div class="bnav-item" onclick="showPanel('crypto')" id="bnav-crypto">
+    <div class="bnav-icon">₿</div><div class="bnav-label">Crypto</div>
+  </div>
+  <div class="bnav-item" onclick="showPanel('beat')" id="bnav-beat">
+    <div class="bnav-icon">🎯</div><div class="bnav-label">Beat V</div>
+  </div>
+  <div class="bnav-item" onclick="showPanel('account')" id="bnav-account">
+    <div class="bnav-icon">👤</div><div class="bnav-label">Account</div>
+  </div>
+</div>
+
+<script>
+// ── STATE ──
+let acct = null;
+let txs  = [];
+let cardRevealed = false;
+const STRIPE_PK = '{{ stripe_pk }}';
+
+// ── INIT ──
+window.addEventListener('DOMContentLoaded', async () => {
+  const raw = localStorage.getItem('sg_account');
+  if (!raw) { window.location.href = '/'; return; }
+  acct = JSON.parse(raw);
+  if (!acct || !acct.id) { window.location.href = '/'; return; }
+
+  // Populate UI
+  renderAccount();
+  loadBalance();
+  loadTransactions();
+  loadCrypto();
+  loadBeatV();
+});
+
+function renderAccount() {
+  document.getElementById('topbarHashtag').textContent = '$' + (acct.hashtag || '?').toUpperCase();
+  document.getElementById('avatarInit').textContent = (acct.first_name || '?')[0].toUpperCase();
+  document.getElementById('balanceAmt').textContent = '$' + fmtMoney(acct.balance || 0);
+  document.getElementById('routingDisplay').textContent = '···' + (acct.routing_number || '').slice(-4);
+  document.getElementById('accountDisplay').textContent = '···' + (acct.account_number || '').slice(-4);
+  // Account panel
+  document.getElementById('acctFullName').textContent = acct.full_name || (acct.first_name + ' ' + acct.last_name);
+  document.getElementById('acctHashtag').textContent = '$' + (acct.hashtag || '').toUpperCase();
+  document.getElementById('acctEmail').textContent = acct.email || '—';
+  document.getElementById('acctStatus').textContent = acct.status ? acct.status.toUpperCase() : '—';
+  document.getElementById('acctRouting').textContent = acct.routing_number || '—';
+  document.getElementById('acctAccount').textContent = acct.account_number || '—';
+  // Virtual card
+  const cardNum = acct.virtual_card_number || '4000000000000000';
+  const masked = cardNum.replace(/(\d{4})(\d{4})(\d{4})(\d{4})/, '•••• •••• •••• $4');
+  ['vcNumber','vcNumber2'].forEach(id => document.getElementById(id).textContent = masked);
+  ['vcName','vcName2'].forEach(id => document.getElementById(id).textContent = acct.full_name || '—');
+  ['vcExp','vcExp2'].forEach(id => document.getElementById(id).textContent = acct.virtual_card_expiry || '—');
+  // Beat V badge
+  if (acct.beat_v_enabled) document.getElementById('beatVBadge').style.display='block';
+}
+
+async function loadBalance() {
+  try {
+    const r = await fetch('/api/balance/' + acct.id);
+    const d = await r.json();
+    if (d.balance !== undefined) {
+      acct.balance = d.balance;
+      localStorage.setItem('sg_account', JSON.stringify(acct));
+      document.getElementById('balanceAmt').textContent = '$' + fmtMoney(d.balance);
+      document.getElementById('balanceChange').textContent = d.lifetime_deposited 
+        ? 'Lifetime deposited: $' + fmtMoney(d.lifetime_deposited) 
+        : 'Shotgun Bank — Your Money, Reloaded';
+    }
+  } catch(e) {}
+}
+
+async function loadTransactions() {
+  try {
+    const r = await fetch('/api/transactions/' + acct.id);
+    const d = await r.json();
+    txs = d.transactions || [];
+    renderTxList();
+  } catch(e) {
+    document.getElementById('txList').innerHTML = '<div class="empty-state"><div class="empty-icon">💤</div><div>No transactions yet</div></div>';
+  }
+}
+
+function renderTxList() {
+  if (!txs.length) {
+    document.getElementById('txList').innerHTML = '<div class="empty-state"><div class="empty-icon">💤</div><div>No transactions yet<br><small style="font-size:11px;color:rgba(255,255,255,0.3)">Send or receive money to get started</small></div></div>';
+    return;
+  }
+  const html = txs.map(t => {
+    const sent = t.from_account_id === acct.id;
+    const name = sent ? (t.to_name || t.to_hashtag) : (t.from_name || t.from_hashtag);
+    const amt  = sent ? '-$' + fmtMoney(t.amount) : '+$' + fmtMoney(t.net_amount || t.amount);
+    const icon = typeIcon(t.type);
+    const cls  = sent ? 'sent' : 'recv';
+    const date = t.created_date ? new Date(t.created_date).toLocaleDateString('en-US',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}) : '';
+    return `<div class="tx-item">
+      <div class="tx-icon ${cls}">${icon}</div>
+      <div class="tx-details">
+        <div class="tx-name">${escHtml(name || t.type || 'Transaction')}</div>
+        <div class="tx-date">${date}${t.note ? ' · ' + escHtml(t.note) : ''}</div>
+      </div>
+      <div class="tx-amount ${cls}">${amt}</div>
+    </div>`;
+  }).join('');
+  document.getElementById('txList').innerHTML = html;
+}
+
+function typeIcon(type) {
+  const m = {send:'💸',receive:'💚',deposit:'💳',withdraw:'🏦',ach_deposit:'🏦',fee:'⚡'};
+  return m[type] || '💰';
+}
+
+async function loadCrypto() {
+  try {
+    const r = await fetch('/api/crypto/prices');
+    const d = await r.json();
+    const prices = d.prices || {};
+    const coins = [
+      {k:'BTC',n:'Bitcoin',sym:'BTC',icon:'₿'},
+      {k:'ETH',n:'Ethereum',sym:'ETH',icon:'⧫'},
+      {k:'USDC',n:'USD Coin',sym:'USDC',icon:'💲'},
+      {k:'SOL',n:'Solana',sym:'SOL',icon:'◎'},
+      {k:'DOGE',n:'Dogecoin',sym:'DOGE',icon:'🐕'},
+    ];
+    const html = coins.map(c => {
+      const p = prices[c.k] || {};
+      const price = p.usd ? '$' + fmtBig(p.usd) : '—';
+      const ch = p.usd_24h_change;
+      const chStr = ch !== undefined ? (ch >= 0 ? '+' : '') + ch.toFixed(2) + '%' : '—';
+      const chCls = ch >= 0 ? 'up' : 'down';
+      return `<div class="crypto-item">
+        <div class="crypto-left"><div class="crypto-icon">${c.icon}</div>
+        <div><div class="crypto-name">${c.n}</div><div class="crypto-sym">${c.sym}</div></div></div>
+        <div class="crypto-price"><div class="crypto-usd">${price}</div><div class="crypto-change ${chCls}">${chStr}</div></div>
+      </div>`;
+    }).join('');
+    document.getElementById('cryptoList').innerHTML = html;
+  } catch(e) {
+    document.getElementById('cryptoList').innerHTML = '<div class="empty-state">Could not load prices</div>';
+  }
+}
+
+async function loadBeatV() {
+  try {
+    const r = await fetch('/api/balance/' + acct.id);
+    const d = await r.json();
+    const vol = d.monthly_volume || 0;
+    const goal = 500;
+    const pct = Math.min(100, (vol/goal)*100);
+    document.getElementById('btvVolume').textContent = '$' + fmtMoney(vol);
+    document.getElementById('btvProgress').style.width = pct + '%';
+    if (d.beat_v_enabled) {
+      document.getElementById('btvStatus').textContent = '🎯 Beat the V ACTIVE — you can go up to $100 negative!';
+    } else {
+      const rem = Math.max(0, goal - vol);
+      document.getElementById('btvStatus').textContent = rem > 0 
+        ? `$${fmtMoney(rem)} more to unlock Beat the V` 
+        : '🎉 Threshold met — Beat the V unlocking soon!';
+    }
+  } catch(e) {}
+}
+
+// ── SEND MONEY ──
+let recipientId = null;
+async function lookupRecipient(val) {
+  const tag = val.replace(/[$#]/g,'').trim();
+  if (tag.length < 2) { recipientId = null; document.getElementById('recipientPreview').textContent=''; return; }
+  try {
+    const r = await fetch('/api/check-hashtag?tag=' + encodeURIComponent(tag));
+    const d = await r.json();
+    if (d.taken && d.account_id !== acct.id) {
+      recipientId = d.account_id;
+      document.getElementById('recipientPreview').textContent = '✅ ' + (d.name || tag);
+    } else {
+      recipientId = null;
+      document.getElementById('recipientPreview').textContent = '❌ User not found';
+    }
+  } catch(e){}
+}
+async function lookupRecipient2(val) {
+  const tag = val.replace(/[$#]/g,'').trim();
+  if (tag.length < 2) { recipientId = null; document.getElementById('mRecipientPreview').textContent=''; return; }
+  try {
+    const r = await fetch('/api/check-hashtag?tag=' + encodeURIComponent(tag));
+    const d = await r.json();
+    if (d.taken && d.account_id !== acct.id) {
+      recipientId = d.account_id;
+      document.getElementById('mRecipientPreview').textContent = '✅ ' + (d.name || tag);
+    } else {
+      recipientId = null;
+      document.getElementById('mRecipientPreview').textContent = '❌ User not found';
+    }
+  } catch(e){}
+}
+
+async function doSend() {
+  const to   = document.getElementById('sendTo').value.replace(/[$#]/g,'').trim();
+  const amt  = parseFloat(document.getElementById('sendAmt').value) || 0;
+  const note = document.getElementById('sendNote').value.trim();
+  if (!to || amt < 0.01) return showToast('Enter recipient and amount','error');
+  await sendMoney(to, amt, note);
+}
+async function doModalSend() {
+  const to   = document.getElementById('mSendTo').value.replace(/[$#]/g,'').trim();
+  const amt  = parseFloat(document.getElementById('mSendAmt').value) || 0;
+  const note = document.getElementById('mSendNote').value.trim();
+  if (!to || amt < 0.01) return showToast('Enter recipient and amount','error');
+  await sendMoney(to, amt, note);
+  closeModal('sendModal');
+}
+async function sendMoney(to, amt, note) {
+  showToast('Sending…');
+  try {
+    const r = await fetch('/api/send', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({from_id: acct.id, to_hashtag: to, amount: amt, note})
+    });
+    const d = await r.json();
+    if (d.error) return showToast(d.error,'error');
+    showToast('✅ Sent $' + fmtMoney(amt) + ' to $' + to.toUpperCase());
+    acct.balance = d.new_balance;
+    document.getElementById('balanceAmt').textContent = '$' + fmtMoney(d.new_balance);
+    setTimeout(() => { loadTransactions(); loadBeatV(); }, 1000);
+  } catch(e) { showToast('Send failed','error'); }
+}
+
+// ── DEPOSIT ──
+async function doDeposit(method) {
+  const amt = parseFloat(document.getElementById('dAmt').value) || 0;
+  if (amt < 1) return showToast('Enter an amount','error');
+  showToast('Processing deposit…');
+  try {
+    const r = await fetch('/api/deposit', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({account_id: acct.id, amount: amt, method})
+    });
+    const d = await r.json();
+    if (d.error) return showToast(d.error,'error');
+    if (d.checkout_url) { window.location.href = d.checkout_url; return; }
+    showToast(d.message || '✅ Deposit initiated');
+    closeModal('depositModal');
+    setTimeout(loadBalance, 2000);
+  } catch(e) { showToast('Deposit failed','error'); }
+}
+
+// ── WITHDRAW ──
+async function doWithdraw() {
+  const amt = parseFloat(document.getElementById('wAmt').value) || 0;
+  if (amt < 1) return showToast('Enter an amount','error');
+  showToast('Processing withdrawal…');
+  try {
+    const r = await fetch('/api/withdraw', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({account_id: acct.id, amount: amt})
+    });
+    const d = await r.json();
+    if (d.error) return showToast(d.error,'error');
+    showToast(d.message || '✅ Withdrawal initiated');
+    closeModal('withdrawModal');
+    setTimeout(loadBalance, 2000);
+  } catch(e) { showToast('Withdraw failed','error'); }
+}
+
+// ── CRYPTO ──
+async function doCryptoConvert() {
+  const amt  = parseFloat(document.getElementById('cryptoAmt').value) || 0;
+  const coin = document.getElementById('cryptoCoin').value;
+  if (amt < 1) return showToast('Enter an amount','error');
+  try {
+    const r = await fetch('/api/crypto/convert', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({amount_usd: amt, coin})
+    });
+    const d = await r.json();
+    if (d.error) return showToast(d.error,'error');
+    document.getElementById('cryptoConvertResult').textContent = d.result + ' ' + coin;
+  } catch(e) { showToast('Conversion failed','error'); }
+}
+
+// ── CARD REVEAL ──
+function toggleCardReveal() {
+  cardRevealed = !cardRevealed;
+  const num = acct.virtual_card_number || '';
+  document.getElementById('vcNumber').textContent = cardRevealed 
+    ? num.replace(/(\d{4})(?=\d)/g,'$1 ')
+    : '•••• •••• •••• ' + num.slice(-4);
+  document.getElementById('vcCvv').textContent = cardRevealed ? (acct.virtual_card_cvv || '•••') : '•••';
+}
+function toggleCardReveal2() {
+  cardRevealed = !cardRevealed;
+  const num = acct.virtual_card_number || '';
+  document.getElementById('vcNumber2').textContent = cardRevealed 
+    ? num.replace(/(\d{4})(?=\d)/g,'$1 ')
+    : '•••• •••• •••• ' + num.slice(-4);
+  document.getElementById('vcCvv2').textContent = cardRevealed ? (acct.virtual_card_cvv || '•••') : '•••';
+}
+
+// ── NAVIGATION ──
+function showPanel(name) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.bnav-item').forEach(b => b.classList.remove('active'));
+  const panel = document.getElementById('panel-' + name);
+  if (panel) panel.classList.add('active');
+  const navTab = document.getElementById('nav-' + name);
+  if (navTab) navTab.classList.add('active');
+  const bnavItem = document.getElementById('bnav-' + name);
+  if (bnavItem) bnavItem.classList.add('active');
+}
+
+function openModal(id) {
+  document.getElementById(id).classList.add('open');
+}
+function closeModal(id) {
+  document.getElementById(id).classList.remove('open');
+}
+// Close modal on overlay click
+document.querySelectorAll('.modal-overlay').forEach(m => {
+  m.addEventListener('click', e => { if (e.target === m) m.classList.remove('open'); });
+});
+
+// ── LOGOUT ──
+function doLogout() {
+  localStorage.removeItem('sg_account');
+  localStorage.removeItem('sg_session');
+  window.location.href = '/';
+}
+
+// ── UTILS ──
+function showToast(msg, type='success') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast' + (type==='error' ? ' error' : '') + ' show';
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+function copyText(txt) {
+  navigator.clipboard.writeText(txt).then(() => showToast('Copied!'));
+}
+function fmtMoney(n) {
+  return Number(n || 0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+}
+function fmtBig(n) {
+  if (n >= 1000) return Number(n).toLocaleString('en-US',{maximumFractionDigits:0});
+  return Number(n).toLocaleString('en-US',{maximumFractionDigits:2});
+}
+function escHtml(str) {
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+</script>
+</body>
+</html>
