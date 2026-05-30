@@ -150,6 +150,12 @@ def get_card_design():
         return jsonify({"error":str(e)}), 500
 
 
+
+@app.route("/verify/complete")
+def verify_complete():
+    tag = request.args.get("tag","")
+    return render_template("verify_complete.html", tag=tag)
+
 @app.route("/card/design")
 def card_designer_page():
     if not session.get("account_id"): return redirect("/bank")
@@ -309,46 +315,31 @@ def signup():
         })
         sg_id = saved.get("id","")
 
-        # Step 2 — create Stripe Connect Express account
+        # Step 2 — create Stripe SetupIntent so user must add & verify card
+        # Stripe authorizes the card → webhook fires setup_intent.succeeded → auto-approve
         try:
-            base_url = request.host_url.rstrip("/")
-            stripe_acct = stripe.Account.create(
-                type="express",
-                country="US",
-                email=email,
-                capabilities={"transfers":{"requested":True},"card_payments":{"requested":True}},
-                business_type="individual",
-                individual={"first_name":first,"last_name":last,"email":email},
-                metadata={"sg_account_id": sg_id, "hashtag": tag},
-                settings={"payouts":{"schedule":{"interval":"manual"}}},
+            si = stripe.SetupIntent.create(
+                usage="off_session",
+                metadata={"sg_account_id": sg_id, "hashtag": tag, "email": email},
+                description=f"Shotgun Bank verification — ${tag}",
             )
-            stripe_id = stripe_acct.id
-            # Save Stripe account ID
-            b44_put(f"{SG_URL}/{sg_id}", {"wise_account_id": stripe_id})
-
-            # Step 3 — create onboarding link
-            link = stripe.AccountLink.create(
-                account=stripe_id,
-                refresh_url=f"{base_url}/onboard/refresh?tag={tag}",
-                return_url=f"{base_url}/onboard/complete?tag={tag}",
-                type="account_onboarding",
-            )
+            b44_put(f"{SG_URL}/{sg_id}", {"wise_account_id": si.id})  # store setup intent id
             return jsonify({
                 "success": True,
                 "account_id": sg_id,
                 "status": "onboarding",
-                "onboarding_url": link.url,
-                "message": "Almost there! Complete your identity verification to activate your account.",
+                "client_secret": si.client_secret,
+                "publishable_key": STRIPE_PK,
+                "message": "Add your card to verify your identity and activate your account.",
             })
         except Exception as se:
-            # Stripe failed — fall back to manual pending review
-            print(f"[STRIPE SIGNUP ERR] {se}")
+            print(f"[STRIPE SETUP INTENT ERR] {se}")
             b44_put(f"{SG_URL}/{sg_id}", {"status": "pending"})
             return jsonify({
                 "success": True,
                 "account_id": sg_id,
                 "status": "pending",
-                "message": "Account created! Our team will review and approve your account shortly.",
+                "message": "Account created! Pending review.",
             })
     except Exception as e:
         print(f"[SIGNUP ERROR] {e}")
@@ -934,6 +925,26 @@ def stripe_webhook():
                             _send_welcome_email(acct.get("email",""), acct.get("first_name",""), acct.get("hashtag",""))
                         except: pass
             except Exception as we: print(f"[WH account.updated ERR] {we}")
+
+    elif evt == "setup_intent.succeeded":
+        # Card verified by Stripe → auto-approve account
+        si_id = obj.get("id","")
+        meta  = obj.get("metadata",{})
+        sg_id_si = meta.get("sg_account_id","")
+        if sg_id_si:
+            try:
+                import datetime as _dt
+                acct = b44_get(f"{SG_URL}/{sg_id_si}")
+                if acct and acct.get("status") in ("onboarding","pending"):
+                    b44_put(f"{SG_URL}/{sg_id_si}", {
+                        "status": "approved",
+                        "approved_by": "stripe_auto",
+                        "approved_at": _dt.datetime.utcnow().isoformat(),
+                    })
+                    print(f"[STRIPE AUTO-APPROVE via SetupIntent] {sg_id_si}")
+                    try: _send_welcome_email(acct.get("email",""), acct.get("first_name",""), acct.get("hashtag",""))
+                    except: pass
+            except Exception as we2: print(f"[WH setup_intent ERR] {we2}")
 
     elif evt == "payment_intent.succeeded" and sg_id:
         # ACH deposit confirmed (processing → succeeded)
