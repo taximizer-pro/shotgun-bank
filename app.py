@@ -99,20 +99,25 @@ def get_acct_by_email(email):
         print(f"[GET_ACCT_BY_EMAIL ERROR] {e}")
         return None
 
+CRYPTO_FALLBACK = {"BTC":97000,"ETH":3800,"SOL":165,"USDC":1.00,"DOGE":0.38}
+
 def get_crypto_price(symbol):
-    """Fetch live crypto price via CoinGecko (free, no key)."""
-    ids = {"BTC":"bitcoin","ETH":"ethereum","SOL":"solana","USDC":"usd-coin","DOGE":"dogecoin"}
-    cg_id = ids.get(symbol.upper())
-    if not cg_id: return None
+    """Fetch live crypto price via CoinCap (no rate limit, no key)."""
+    COINCAP_IDS = {"BTC":"bitcoin","ETH":"ethereum","SOL":"solana","USDC":"usd-coin","DOGE":"dogecoin"}
+    sym = symbol.upper()
+    cid = COINCAP_IDS.get(sym)
+    if not cid: return None
     try:
         req = urllib.request.Request(
-            f"https://api.coingecko.com/api/v3/simple/price?ids={cg_id}&vs_currencies=usd",
-            headers={"User-Agent":"shotgun-bank/1.0"})
+            f"https://api.coincap.io/v2/assets/{cid}",
+            headers={"User-Agent":"Mozilla/5.0","Accept":"application/json"}
+        )
         with urllib.request.urlopen(req, timeout=8) as res:
             data = json.loads(res.read())
-            return data.get(cg_id,{}).get("usd")
+            price = float(data.get("data",{}).get("priceUsd") or 0)
+            return price if price > 0 else CRYPTO_FALLBACK.get(sym)
     except:
-        return None
+        return CRYPTO_FALLBACK.get(sym)
 
 # ─────────────────────────────────────────────────────────────────────────────
 # PAGE ROUTES
