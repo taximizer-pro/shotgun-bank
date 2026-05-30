@@ -579,12 +579,20 @@ def login():
                             "status": acct.get("status","")})
         # Gmail configured — send 2FA OTP
         code = str(__import__('random').randint(100000,999999))
-        _otp_store[acct_id] = {"code": code, "expires": time.time() + OTP_TTL, "email": email}
+        expires = int(time.time()) + OTP_TTL
+        _otp_store[acct_id] = {"code": code, "expires": expires, "email": email}
+        # Also persist in Base44 so OTP survives server restarts
         try:
-            send_otp_email(email, code, acct.get("first_name",""))
+            b44_put(f"{SG_URL}/{acct_id}", {"otp_code": code, "otp_expires": expires})
+        except Exception as store_err:
+            print(f"[OTP STORE ERR] {store_err}")
+        otp_sent = False
+        try:
+            otp_sent = send_otp_email(email, code, acct.get("first_name",""))
         except Exception as otp_err:
             print(f"[OTP SEND ERR] {otp_err}")
-            # Email failed — still let them in
+        if not otp_sent:
+            # Email failed — log in directly
             session.permanent = True
             session["account_id"] = acct_id
             return jsonify({"success": True, "account_id": acct_id,
@@ -677,12 +685,27 @@ def verify_2fa():
     code    = d.get("code","").strip()
     if not acct_id or not code: return jsonify({"error":"Missing fields"}), 400
     stored = _otp_store.get(acct_id)
-    if not stored: return jsonify({"error":"No code found. Request a new one."}), 400
+    # Also check Base44-stored OTP (survives restarts)
+    b44_otp = None
+    try:
+        acct_check = b44_get(f"{SG_URL}/{acct_id}")
+        if acct_check and acct_check.get("otp_code"):
+            b44_otp = {"code": str(acct_check["otp_code"]), "expires": int(acct_check.get("otp_expires", 0))}
+    except:
+        pass
+    # Use Base44 OTP if memory store is empty (e.g. after restart)
+    if not stored and b44_otp:
+        stored = b44_otp
+    if not stored: return jsonify({"error":"No code found — please request a new one."}), 400
     if time.time() > stored["expires"]:
         _otp_store.pop(acct_id, None)
+        try: b44_put(f"{SG_URL}/{acct_id}", {"otp_code": "", "otp_expires": 0})
+        except: pass
         return jsonify({"error":"Code expired. Request a new one."}), 400
-    if stored["code"] != code: return jsonify({"error":"Incorrect code."}), 401
+    if stored["code"] != code: return jsonify({"error":"Incorrect code. Check your email and try again."}), 401
     _otp_store.pop(acct_id, None)
+    try: b44_put(f"{SG_URL}/{acct_id}", {"otp_code": "", "otp_expires": 0})
+    except: pass
     try:
         acct = get_acct(acct_id)
         if not acct: return jsonify({"error":"Account not found"}), 404
