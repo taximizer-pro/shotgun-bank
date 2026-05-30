@@ -459,8 +459,9 @@ let _typeChartInst = null, _topUsersChartInst = null, _dailyFeesChartInst = null
 // ── INIT ───────────────────────────────────────────────────────────────────
 window.onload = () => {
   loadStats();
+  loadAll();
   loadPending();
-  setInterval(loadStats, 30000);
+  setInterval(() => { loadStats(); loadAll(); loadPending(); }, 30000);
 };
 
 // ── TAB SWITCHING ──────────────────────────────────────────────────────────
@@ -479,6 +480,11 @@ function switchTab(name) {
   if(name==='financial') buildFinancial();
   if(name==='crypto') loadCrypto();
   if(name==='support') loadSupport();
+  // ── trigger data load for the tab
+  if(name==='all'||name==='approved'||name==='suspended'||name==='denied') loadAll();
+  if(name==='pending') loadPending();
+  loadStats();
+
 }
 
 function refreshCurrent() { 
