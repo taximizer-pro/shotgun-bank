@@ -45,8 +45,9 @@ _otp_store = {}           # {account_id: {code, expires, email}}
 
 
 def b44h():
+    key = os.environ.get('BASE44_API_KEY','') or os.environ.get('BASE44_SERVICE_TOKEN','')
     return {
-        "Authorization": f"Bearer {os.environ.get('BASE44_API_KEY', '')}",  # read fresh each call
+        "Authorization": f"Bearer {key}",  # read fresh each call
         "Content-Type": "application/json",
         "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
         "Accept": "application/json, */*",
