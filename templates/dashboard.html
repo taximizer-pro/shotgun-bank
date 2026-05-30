@@ -996,13 +996,13 @@ function loadWallet() {
   const linked_last4 = acct?.linked_card_last4;
   if(linked_last4) {
     clist.innerHTML = `
-      <div style="display:flex;align-items:center;gap:12px;background:rgba(255,255,255,.05);border-radius:10px;padding:14px;">
-        <div style="font-size:28px;">💳</div>
-        <div>
-          <div style="font-weight:700;color:#fff;">•••• •••• •••• ${linked_last4}</div>
-          <div style="font-size:12px;color:var(--muted);">Linked card — verified by Stripe</div>
+      <div style="display:flex;align-items:center;gap:14px;background:rgba(255,255,255,.05);border:1px solid rgba(234,179,8,.25);border-radius:12px;padding:14px 16px;">
+        <img src="https://media.base44.com/images/public/6a14ef767988d1ef0baff5aa/50205b368_generated_image.png" alt="Visa" style="height:28px;width:auto;object-fit:contain;flex-shrink:0;">
+        <div style="flex:1">
+          <div style="font-weight:700;color:#fff;font-family:'Courier New',monospace;letter-spacing:2px;">•••• •••• •••• ${linked_last4}</div>
+          <div style="font-size:12px;color:var(--muted);margin-top:2px;">Visa Debit — verified by Stripe</div>
         </div>
-        <div style="margin-left:auto;background:rgba(22,163,74,.15);color:#4ade80;border-radius:20px;padding:3px 10px;font-size:11px;font-weight:700;">ACTIVE</div>
+        <div style="background:rgba(22,163,74,.15);color:#4ade80;border-radius:20px;padding:4px 12px;font-size:11px;font-weight:700;letter-spacing:.5px;">ACTIVE</div>
       </div>`;
   } else {
     clist.innerHTML = `<div style="color:var(--muted);font-size:14px;padding:8px 0;">No card linked yet. Add one to enable instant deposits.</div>`;
