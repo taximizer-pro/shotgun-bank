@@ -325,7 +325,8 @@ def _send_welcome_email(email, name, tag):
     """Send welcome email after Stripe auto-approval."""
     GMAIL_USER = os.environ.get("GMAIL_USER","taximizerpro@gmail.com")
     GMAIL_PASS = os.environ.get("GMAIL_APP_PASSWORD","")
-    if not GMAIL_PASS or not email: return
+    gmail_token = os.environ.get("GMAIL_ACCESS_TOKEN","")
+    if not (GMAIL_PASS or gmail_token) or not email: return
     import smtplib as _smtp; from email.mime.text import MIMEText as _MMT
     body = f"""Hey {name}! 🎯
 
@@ -567,37 +568,46 @@ _otp_store = {}   # {account_id: {code, expires, email}}
 OTP_TTL    = 600  # 10 minutes
 
 def send_otp_email(to_email, code, name=""):
+    """Send 2FA OTP via Gmail API (OAuth2 token) — no app password needed."""
     GMAIL_USER = os.environ.get("GMAIL_USER","taximizerpro@gmail.com")
-    GMAIL_PASS = os.environ.get("GMAIL_APP_PASSWORD","")
-    subject    = "Shotgun Bank — Your Verification Code"
+    gmail_token = os.environ.get("GMAIL_ACCESS_TOKEN","")
+    subject = "🔐 Shotgun Bank — Your Login Code"
     body = f"""Hi {name or "there"},
 
-Your Shotgun Bank 2FA code is:
+Your Shotgun Bank verification code is:
 
-  {code}
+    {code}
 
-This code expires in 10 minutes. Never share it with anyone.
+This code expires in 10 minutes. Do NOT share it with anyone.
 
-If you didn't request this, contact support@shotgunbank.com.
+If you didn't request this, contact taximizerpro@gmail.com immediately.
 
 — Shotgun Bank Security
 Bisignano Holdings LLC"""
-    if GMAIL_PASS:
+    if gmail_token:
         try:
-            msg = MIMEText(body)
-            msg["Subject"] = subject
-            msg["From"]    = GMAIL_USER
-            msg["To"]      = to_email
-            with smtplib.SMTP_SSL("smtp.gmail.com", 465, timeout=10) as s:
-                s.login(GMAIL_USER, GMAIL_PASS)
-                s.sendmail(GMAIL_USER, to_email, msg.as_string())
+            import base64 as _b64
+            from email.mime.text import MIMEText as _MMT
+            _msg = _MMT(body, 'plain')
+            _msg["Subject"] = subject
+            _msg["From"]    = GMAIL_USER
+            _msg["To"]      = to_email
+            _raw = _b64.urlsafe_b64encode(_msg.as_bytes()).decode()
+            _req = urllib.request.Request(
+                "https://gmail.googleapis.com/gmail/v1/users/me/messages/send",
+                data=json.dumps({"raw": _raw}).encode(), method="POST",
+                headers={"Authorization":f"Bearer {gmail_token}","Content-Type":"application/json"}
+            )
+            with urllib.request.urlopen(_req, timeout=12) as _r:
+                _r.read()
+            print(f"[OTP] Sent to {to_email} via Gmail API")
             return True
         except Exception as ex:
             print(f"[OTP EMAIL ERR] {ex}")
-    print(f"[2FA FALLBACK] {to_email} code={code}")
+    # Fallback: log the code (dev mode)
+    print(f"[2FA FALLBACK — no Gmail token] {to_email} code={code}")
     return False
 
-@app.route("/api/send-2fa", methods=["POST"])
 def send_2fa():
     d       = request.json or {}
     acct_id = d.get("account_id","")
