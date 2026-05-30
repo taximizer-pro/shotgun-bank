@@ -13,17 +13,25 @@
   --purple:#7c3aed;--card:#0f2d1e;
 }
 
-  /* ── AI ICON WHITE-BG REMOVAL ── */
-  img[src*="generated_image"] {
+  /* ── ICON WHITE-BG FIX ── */
+  /* Remove white box baked into AI-generated PNGs — screen blend makes white transparent on dark bg */
+  img[src*="generated_image"],
+  img[src*="base44.app/api/apps"][src*="clean.png"],
+  img[src*="base44.app/api/apps"][src*="generated"] {
     mix-blend-mode: screen;
-    background: transparent;
+    background: transparent !important;
+    border: none !important;
+    outline: none !important;
+    box-shadow: none !important;
   }
-  /* Exception: card brand logos (Visa/MC/Amex/Discover) — keep their own colors */
-  img.vc-visa,
-  img[alt="visa"], img[alt="mastercard"], img[alt="amex"], img[alt="discover"],
-  #walletCardBrandLogo {
-    mix-blend-mode: normal;
+  /* Exempt: real logos, card brands, wallet card image — keep normal rendering */
+  img[src*="shotgun_bank_REAL_logo"],
+  img[src*="50205b368"],
+  img#walletCardBg,
+  img[alt="visa"], img[alt="mastercard"], img[alt="amex"], img[alt="discover"] {
+    mix-blend-mode: normal !important;
   }
+
 
 </style>
 <style>
