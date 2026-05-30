@@ -550,9 +550,6 @@ def login():
             print(f"[OTP SEND ERR] {otp_err}")
         masked = email[:2] + "***@" + email.split("@")[-1] if "@" in email else "your email"
         resp_data = {"requires_2fa": True, "account_id": acct_id, "email_masked": masked, "otp_sent": True}
-        # Expose OTP for demo walkthrough (test emails only)
-        if email.endswith("@shotgunbank.test"):
-            resp_data["demo_code"] = code
         return jsonify(resp_data)
     except Exception as e:
         return jsonify({"error": str(e)}), 500
